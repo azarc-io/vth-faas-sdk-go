@@ -1,0 +1,76 @@
+syntax = "proto3";
+package sdk_v1;
+option go_package = "github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1;sdk_v1";
+
+message Void {}
+
+/************************************************************************/
+/* ENUMS
+/************************************************************************/
+
+enum StageStatus {
+  Pending = 0;
+  Started = 1;
+  Completed = 2;
+  Failed = 3;
+  Skipped = 4;
+}
+
+/************************************************************************/
+/* STAGE
+/************************************************************************/
+
+message Stage {
+  string name = 1;
+  StageStatus status = 2;
+  string job_id = 3;
+  bytes data = 4;
+  string reason = 5;
+}
+
+message GetStageRequest {
+  string name = 1;
+  string job_id = 2;
+}
+
+message GetStageResponse {
+  Stage stage = 1;
+}
+
+message SetStageRequest {
+  Stage stage = 1;
+}
+
+/************************************************************************/
+/* VARIABLE
+/************************************************************************/
+
+message Variable {
+  string name = 1;
+  bytes value = 2;
+  string mime_type = 3;
+}
+
+message GetVariableRequest {
+  string name = 1;
+  string stage = 2;
+  string job_id = 3;
+}
+
+message GetVariableResponse {
+  Variable variable = 1;
+}
+
+message SetVariableRequest {
+  string name = 1;
+  string stage = 2;
+  string job_id = 3;
+  Variable variable = 4;
+}
+
+service Service {
+  rpc GetStageStatus(GetStageRequest) returns (GetStageResponse);
+  rpc SetStageStatus(SetStageRequest) returns (Void);
+  rpc GetVariable(GetVariableRequest) returns (GetVariableResponse);
+  rpc SetVariable(SetVariableRequest) returns (Void);
+}
