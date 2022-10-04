@@ -51,7 +51,7 @@ func (j *_Job) Execute(ctx api.JobContext) {
 		}
 		return nil, nil
 	}).Compensate(func(ctx api.CompensationContext) (any, api.StageError) {
-		ctx.Stage("refundMoney", func(context api.CompensationContext) (any, api.StageError) {
+		ctx.Stage("refundMoney", func(context api.StageContext) (any, api.StageError) {
 			return nil, nil
 		}).Stage("compensateSomethingElse", func(ctx api.StageContext) (interface{}, api.StageError) {
 			return nil, nil

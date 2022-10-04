@@ -116,6 +116,24 @@ func (j Job) Complete(csd api.CompletionDefinitionFn) api.CompleteChain {
 }
 
 func (j Job) Compensate(cdf api.CompensateDefinitionFn) api.CompensateChain {
+	job, err := j.stageProgressHandler.GetJob(j.JobKey())
+	if err != nil {
+		// TODO log.error
+		return j
+	}
+	err = j.stageProgressHandler.SetJobStatus(job.Key, sdk_v1.JobStatus_JobCompensating)
+	if err != nil {
+		// TODO log.error
+		return j
+	}
+	compensationCtx := NewCompensationContext(j)
+	_, err = cdf(compensationCtx)
+	if err != nil {
+		// TODO log.error
+		err = j.stageProgressHandler.SetJobStatus(job.Key, sdk_v1.JobStatus_JobCompensationCompletedWithErrors) // TODO add a reason fields to create a description for the error
+		return j
+	}
+	err = j.stageProgressHandler.SetJobStatus(job.Key, sdk_v1.JobStatus_JobCompensationCompleted)
 	return j
 }
 

@@ -19,7 +19,7 @@ type Stage struct {
 	err            error
 	updateStatusTo *sdk_v1.StageStatus
 	retry          bool
-	reason         string
+	errorCode      uint
 	metadata       map[string]any
 }
 
