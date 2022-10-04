@@ -22,10 +22,14 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ServiceClient interface {
-	GetStageStatus(ctx context.Context, in *GetStageRequest, opts ...grpc.CallOption) (*GetStageResponse, error)
-	SetStageStatus(ctx context.Context, in *SetStageRequest, opts ...grpc.CallOption) (*Void, error)
+	GetStageStatus(ctx context.Context, in *GetStageStatusRequest, opts ...grpc.CallOption) (*GetStageStatusResponse, error)
+	SetStageStatus(ctx context.Context, in *SetStageStatusRequest, opts ...grpc.CallOption) (*Void, error)
+	GetStageResult(ctx context.Context, in *GetStageResultRequest, opts ...grpc.CallOption) (*GetStageStatusResponse, error)
+	SetStageResult(ctx context.Context, in *SetStageResultRequest, opts ...grpc.CallOption) (*Void, error)
 	GetVariable(ctx context.Context, in *GetVariableRequest, opts ...grpc.CallOption) (*GetVariableResponse, error)
 	SetVariable(ctx context.Context, in *SetVariableRequest, opts ...grpc.CallOption) (*Void, error)
+	GetJob(ctx context.Context, in *GetJobRequest, opts ...grpc.CallOption) (*GetJobResponse, error)
+	SetJobStatus(ctx context.Context, in *SetJobStatusRequest, opts ...grpc.CallOption) (*Void, error)
 }
 
 type serviceClient struct {
@@ -36,8 +40,8 @@ func NewServiceClient(cc grpc.ClientConnInterface) ServiceClient {
 	return &serviceClient{cc}
 }
 
-func (c *serviceClient) GetStageStatus(ctx context.Context, in *GetStageRequest, opts ...grpc.CallOption) (*GetStageResponse, error) {
-	out := new(GetStageResponse)
+func (c *serviceClient) GetStageStatus(ctx context.Context, in *GetStageStatusRequest, opts ...grpc.CallOption) (*GetStageStatusResponse, error) {
+	out := new(GetStageStatusResponse)
 	err := c.cc.Invoke(ctx, "/sdk_v1.Service/GetStageStatus", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -45,9 +49,27 @@ func (c *serviceClient) GetStageStatus(ctx context.Context, in *GetStageRequest,
 	return out, nil
 }
 
-func (c *serviceClient) SetStageStatus(ctx context.Context, in *SetStageRequest, opts ...grpc.CallOption) (*Void, error) {
+func (c *serviceClient) SetStageStatus(ctx context.Context, in *SetStageStatusRequest, opts ...grpc.CallOption) (*Void, error) {
 	out := new(Void)
 	err := c.cc.Invoke(ctx, "/sdk_v1.Service/SetStageStatus", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *serviceClient) GetStageResult(ctx context.Context, in *GetStageResultRequest, opts ...grpc.CallOption) (*GetStageStatusResponse, error) {
+	out := new(GetStageStatusResponse)
+	err := c.cc.Invoke(ctx, "/sdk_v1.Service/GetStageResult", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *serviceClient) SetStageResult(ctx context.Context, in *SetStageResultRequest, opts ...grpc.CallOption) (*Void, error) {
+	out := new(Void)
+	err := c.cc.Invoke(ctx, "/sdk_v1.Service/SetStageResult", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -72,31 +94,65 @@ func (c *serviceClient) SetVariable(ctx context.Context, in *SetVariableRequest,
 	return out, nil
 }
 
+func (c *serviceClient) GetJob(ctx context.Context, in *GetJobRequest, opts ...grpc.CallOption) (*GetJobResponse, error) {
+	out := new(GetJobResponse)
+	err := c.cc.Invoke(ctx, "/sdk_v1.Service/GetJob", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *serviceClient) SetJobStatus(ctx context.Context, in *SetJobStatusRequest, opts ...grpc.CallOption) (*Void, error) {
+	out := new(Void)
+	err := c.cc.Invoke(ctx, "/sdk_v1.Service/SetJobStatus", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ServiceServer is the server API for Service service.
 // All implementations should embed UnimplementedServiceServer
 // for forward compatibility
 type ServiceServer interface {
-	GetStageStatus(context.Context, *GetStageRequest) (*GetStageResponse, error)
-	SetStageStatus(context.Context, *SetStageRequest) (*Void, error)
+	GetStageStatus(context.Context, *GetStageStatusRequest) (*GetStageStatusResponse, error)
+	SetStageStatus(context.Context, *SetStageStatusRequest) (*Void, error)
+	GetStageResult(context.Context, *GetStageResultRequest) (*GetStageStatusResponse, error)
+	SetStageResult(context.Context, *SetStageResultRequest) (*Void, error)
 	GetVariable(context.Context, *GetVariableRequest) (*GetVariableResponse, error)
 	SetVariable(context.Context, *SetVariableRequest) (*Void, error)
+	GetJob(context.Context, *GetJobRequest) (*GetJobResponse, error)
+	SetJobStatus(context.Context, *SetJobStatusRequest) (*Void, error)
 }
 
 // UnimplementedServiceServer should be embedded to have forward compatible implementations.
 type UnimplementedServiceServer struct {
 }
 
-func (UnimplementedServiceServer) GetStageStatus(context.Context, *GetStageRequest) (*GetStageResponse, error) {
+func (UnimplementedServiceServer) GetStageStatus(context.Context, *GetStageStatusRequest) (*GetStageStatusResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetStageStatus not implemented")
 }
-func (UnimplementedServiceServer) SetStageStatus(context.Context, *SetStageRequest) (*Void, error) {
+func (UnimplementedServiceServer) SetStageStatus(context.Context, *SetStageStatusRequest) (*Void, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SetStageStatus not implemented")
+}
+func (UnimplementedServiceServer) GetStageResult(context.Context, *GetStageResultRequest) (*GetStageStatusResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetStageResult not implemented")
+}
+func (UnimplementedServiceServer) SetStageResult(context.Context, *SetStageResultRequest) (*Void, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetStageResult not implemented")
 }
 func (UnimplementedServiceServer) GetVariable(context.Context, *GetVariableRequest) (*GetVariableResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetVariable not implemented")
 }
 func (UnimplementedServiceServer) SetVariable(context.Context, *SetVariableRequest) (*Void, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SetVariable not implemented")
+}
+func (UnimplementedServiceServer) GetJob(context.Context, *GetJobRequest) (*GetJobResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetJob not implemented")
+}
+func (UnimplementedServiceServer) SetJobStatus(context.Context, *SetJobStatusRequest) (*Void, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetJobStatus not implemented")
 }
 
 // UnsafeServiceServer may be embedded to opt out of forward compatibility for this service.
@@ -111,7 +167,7 @@ func RegisterServiceServer(s grpc.ServiceRegistrar, srv ServiceServer) {
 }
 
 func _Service_GetStageStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetStageRequest)
+	in := new(GetStageStatusRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -123,13 +179,13 @@ func _Service_GetStageStatus_Handler(srv interface{}, ctx context.Context, dec f
 		FullMethod: "/sdk_v1.Service/GetStageStatus",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ServiceServer).GetStageStatus(ctx, req.(*GetStageRequest))
+		return srv.(ServiceServer).GetStageStatus(ctx, req.(*GetStageStatusRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
 func _Service_SetStageStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SetStageRequest)
+	in := new(SetStageStatusRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -141,7 +197,43 @@ func _Service_SetStageStatus_Handler(srv interface{}, ctx context.Context, dec f
 		FullMethod: "/sdk_v1.Service/SetStageStatus",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ServiceServer).SetStageStatus(ctx, req.(*SetStageRequest))
+		return srv.(ServiceServer).SetStageStatus(ctx, req.(*SetStageStatusRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Service_GetStageResult_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetStageResultRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ServiceServer).GetStageResult(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sdk_v1.Service/GetStageResult",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ServiceServer).GetStageResult(ctx, req.(*GetStageResultRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Service_SetStageResult_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetStageResultRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ServiceServer).SetStageResult(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sdk_v1.Service/SetStageResult",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ServiceServer).SetStageResult(ctx, req.(*SetStageResultRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -182,6 +274,42 @@ func _Service_SetVariable_Handler(srv interface{}, ctx context.Context, dec func
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Service_GetJob_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetJobRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ServiceServer).GetJob(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sdk_v1.Service/GetJob",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ServiceServer).GetJob(ctx, req.(*GetJobRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Service_SetJobStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetJobStatusRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ServiceServer).SetJobStatus(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sdk_v1.Service/SetJobStatus",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ServiceServer).SetJobStatus(ctx, req.(*SetJobStatusRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Service_ServiceDesc is the grpc.ServiceDesc for Service service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -198,12 +326,28 @@ var Service_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _Service_SetStageStatus_Handler,
 		},
 		{
+			MethodName: "GetStageResult",
+			Handler:    _Service_GetStageResult_Handler,
+		},
+		{
+			MethodName: "SetStageResult",
+			Handler:    _Service_SetStageResult_Handler,
+		},
+		{
 			MethodName: "GetVariable",
 			Handler:    _Service_GetVariable_Handler,
 		},
 		{
 			MethodName: "SetVariable",
 			Handler:    _Service_SetVariable_Handler,
+		},
+		{
+			MethodName: "GetJob",
+			Handler:    _Service_GetJob_Handler,
+		},
+		{
+			MethodName: "SetJobStatus",
+			Handler:    _Service_SetJobStatus_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
