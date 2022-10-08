@@ -2,17 +2,29 @@ syntax = "proto3";
 package sdk_v1;
 option go_package = "github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1;sdk_v1";
 
+import "google/protobuf/struct.proto";
+
+/************************************************************************/
+/* COMMON
+/************************************************************************/
+
 message Void {}
+
+message Error {
+  string error = 1;
+  uint32 error_code = 2;
+  ErrorType error_type = 3;
+}
 
 /************************************************************************/
 /* ENUMS
 /************************************************************************/
 
 enum ErrorType {
-  Retry = 0;
-  Skip = 1;
-  Canceled = 2;
-  Failed = 3;
+  Failed = 0;
+  Canceled = 1;
+  Skip = 2;
+  Retry = 3;
 }
 
 enum StageStatus {
@@ -27,90 +39,69 @@ enum StageStatus {
 enum JobStatus {
   JobWaiting = 0;
   JobRunning = 1;
-  JobCompletionRunning = 2;
-  JobCompleted = 3;
-  JobCompletedWithErrors = 4;
-  JobCompensating = 5;
-  JobCompensationCompleted = 6;
-  JobCompensationCompletedWithErrors = 7;
-  JobCanceling = 8;
-  JobCancellationCompleted = 9;
-  JobCancellationCompletedWithErrors = 10;
-}
-
-message Error {
-  string error = 1;
-  uint32 error_code = 2;
-  ErrorType error_type = 3;
+  JobDone = 2;
+  JobCanceled = 3;
+  JobCompletionStarted = 4;
+  JobCompletionDone = 5;
+  JobCompletionDoneWithErrors = 6;
+  JobCompensationStarted = 7;
+  JobCompensationDone = 8;
+  JobCompensationDoneWithErrors = 9;
+  JobCancellationStarted = 10;
+  JobCancellationDone = 11;
+  JobCancellationDoneWithErrors = 12;
 }
 
 /************************************************************************/
 /* JOB
 /************************************************************************/
-message Job {
-  string correlation_id = 1;
-  string key = 2;
-  string transaction_id = 3;
-  JobStatus status = 4;
-  string reason = 5;
-}
 
-message GetJobRequest {
+message ExecuteJobRequest {
   string key = 1;
-}
-
-message GetJobResponse {
-  Job job = 1;
+  string transaction_id = 2;
+  string correlation_id = 3;
+  string last_active_stage = 4;
+  StageStatus last_active_status = 5;
 }
 
 message SetJobStatusRequest {
-  string job_key = 1;
+  string key = 1;
   JobStatus status = 2;
-  string reason = 3;
+  optional Error err = 3;
+}
+
+message RegisterHeartbeatsRequest {
+  repeated string job_keys = 1;
 }
 
 /************************************************************************/
 /* STAGE
 /************************************************************************/
 
-message Stage {
-  Job job = 1;
-  string name = 2;
-  StageStatus status = 3;
-  Error error = 4;
-}
-
 message StageResult {
-  Stage stage = 1;
-  bytes data = 2;
-}
-
-message GetStageStatusRequest {
-  string name = 1;
-  string job_id = 2;
-}
-
-message GetStageStatusResponse {
-  Stage stage = 1;
+  google.protobuf.Value data = 1;
 }
 
 message SetStageStatusRequest {
-  Stage stage = 1;
+  string name = 1;
+  string job_key = 2;
+  StageStatus status = 3;
+  Error err = 4;
 }
 
 message GetStageResultRequest {
   string name = 1;
-  string job_id = 2;
+  string job_key = 2;
 }
 
 message GetStageResultResponse {
-  Stage stage = 1;
-  StageResult result = 2;
+  StageResult result = 1;
 }
 
 message SetStageResultRequest {
-  Stage stage = 1;
-  StageResult result = 2;
+  string job_key = 1;
+  string name = 2;
+  StageResult result = 3;
 }
 
 /************************************************************************/
@@ -119,14 +110,14 @@ message SetStageResultRequest {
 
 message Variable {
   string name = 1;
-  bytes value = 2; // TODO pb.Value
+  google.protobuf.Value value = 2;
   string mime_type = 3;
 }
 
 message GetVariableRequest {
   string name = 1;
   string stage = 2;
-  string job_id = 3;
+  string job_key = 3;
 }
 
 message GetVariableResponse {
@@ -136,20 +127,31 @@ message GetVariableResponse {
 message SetVariableRequest {
   string name = 1;
   string stage = 2;
-  string job_id = 3;
+  string job_key = 3;
   Variable variable = 4;
 }
 
-service Service {
-  rpc GetStageStatus(GetStageStatusRequest) returns (GetStageStatusResponse);
+/************************************************************************/
+/* AGENT
+/************************************************************************/
+
+service AgentService {
+  rpc ExecuteJob(ExecuteJobRequest) returns (Void);
+}
+
+/************************************************************************/
+/* MANAGER
+/************************************************************************/
+
+service ManagerService {
   rpc SetStageStatus(SetStageStatusRequest) returns (Void);
 
-  rpc GetStageResult(GetStageResultRequest) returns (GetStageStatusResponse);
+  rpc GetStageResult(GetStageResultRequest) returns (GetStageResultResponse);
   rpc SetStageResult(SetStageResultRequest) returns (Void);
 
   rpc GetVariable(GetVariableRequest) returns (GetVariableResponse);
   rpc SetVariable(SetVariableRequest) returns (Void);
 
-  rpc GetJob(GetJobRequest) returns (GetJobResponse);
   rpc SetJobStatus(SetJobStatusRequest) returns (Void);
+  rpc RegisterHeartbeats(RegisterHeartbeatsRequest) returns (Void);
 }

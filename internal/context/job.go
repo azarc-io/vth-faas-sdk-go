@@ -2,9 +2,9 @@ package context
 
 import (
 	"context"
-	"errors"
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/api"
 	sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1"
+	sdk_errors "github.com/azarc-io/vth-faas-sdk-go/pkg/errors"
 )
 
 type JobMetadata struct {
@@ -18,149 +18,186 @@ func NewJobMetadata(jobKey, correlationId, transactionId string, payload any) Jo
 	return JobMetadata{jobKey, correlationId, transactionId, payload}
 }
 
+func (j JobMetadata) JobKey() string {
+	return j.jobKey
+}
+
+func (j JobMetadata) CorrelationID() string {
+	return j.correlationId
+}
+
+func (j JobMetadata) TransactionID() string {
+	return j.transactionId
+}
+
 type Job struct {
 	ctx                  context.Context
 	metadata             JobMetadata
 	stageProgressHandler api.StageProgressHandler
 	variableHandler      api.VariableHandler
+	stageErr             api.StageError
 }
 
-func NewJobContext(metadata JobMetadata, sph api.StageProgressHandler, vh api.VariableHandler) Job {
-	return Job{metadata: metadata, stageProgressHandler: sph, variableHandler: vh}
+func NewJobContext(metadata JobMetadata, sph api.StageProgressHandler, vh api.VariableHandler) api.JobContext {
+	return &Job{metadata: metadata, stageProgressHandler: sph, variableHandler: vh}
 }
 
-func (j Job) JobKey() string {
-	return j.metadata.jobKey
-}
-
-func (j Job) CorrelationID() string {
-	return j.metadata.correlationId
-}
-
-func (j Job) TransactionID() string {
-	return j.metadata.transactionId
-}
-
-func (j Job) Stage(name string, sdf api.StageDefinitionFn) api.StageChain {
-	stage, err := j.stageProgressHandler.Get(name)
+func (j *Job) Stage(name string, stageDefinitionFn api.StageDefinitionFn) api.StageChain {
+	stage, err := j.getStage(name)
 	if err != nil {
-		// the request to start the job and run the stages was received,
-		// but we can't call the server to retrieve the stage and execute the stage definition function
-		// TODO panic(fmt.Sprintf("could not retrieve stage for job_key: %s; stage: %s; err: %s", j.metadata.jobKey, name, err.Error()))
-		// or
-		// TODO log.error
-		return j
+		return j.handleStageError(err)
 	}
-	switch stage.Status {
+	switch *stage {
 	case sdk_v1.StageStatus_StagePending:
-		stage.Status = sdk_v1.StageStatus_StageStarted
-		err := j.stageProgressHandler.Set(stage)
+		err = j.updateStage(j.metadata.jobKey, name, withStageStatus(sdk_v1.StageStatus_StageStarted))
 		if err != nil {
-			// TODO log.error
-			return j
+			return j.handleStageError(err)
 		}
+
 		stageContext := NewStageContext(j)
-		result, stageErr := sdf(stageContext)
+		result, stageErr := stageDefinitionFn(stageContext)
+
 		if stageErr != nil {
-			stage = updateStageAttributesFromError(stage, stageErr)
-			e := j.stageProgressHandler.Set(stage) // TODO configure retries via GRPC middleware => retry for ever https://github.com/grpc-ecosystem/go-grpc-middleware/blob/master/retry/examples_test.go
-			if e != nil {
-				// TODO log.error
+			err = j.updateStage(j.metadata.jobKey, name, withStageError(stageErr))
+			if err != nil {
+				return j.handleStageError(err)
 			}
-			return j
+			return j.handleStageError(stageErr)
 		}
-		stage.Status = sdk_v1.StageStatus_StageCompleted
-		err = j.stageProgressHandler.Set(stage)
+		err = j.updateStage(j.metadata.jobKey, name, withStageStatus(sdk_v1.StageStatus_StageCompleted))
 		if err != nil {
-			// TODO log.error
-			return j
+			return j.handleStageError(err)
 		}
 		if result != nil {
-			err := j.stageProgressHandler.SetResult(sdk_v1.NewStageResult(stage, result))
+			err = j.stageProgressHandler.SetResult(sdk_v1.NewSetStageResultReq(j.metadata.jobKey, name, result))
 			if err != nil {
-				// TODO log.error
-				// panic(fmt.Sprintf("could not update stage result for job_key: %s; stage: %s; from status: %s; to status: %s; err: %s", stage.Job.Key, name, stage.Status, sdk_v1.StageStatus_StageCompleted, err.Error()))
+				return j.handleStageError(err)
 			}
 		}
+		// TODO log.debug success
 		return j
 	default:
 		// StageFailed = 3;
 		// StageSkipped = 4;
 		// StageCanceled = 5;
 		// TODO log.info stageName stageStatus
+		return j
 	}
-	// TODO log.debug success
-	return j
 }
 
-func (j Job) Complete(csd api.CompletionDefinitionFn) api.CompleteChain {
-	job, err := j.stageProgressHandler.GetJob(j.JobKey())
+func (j *Job) Complete(completionDefinitionFn api.CompletionDefinitionFn) api.CompleteChain {
+	if j.stageErr != nil {
+		// TODO log.info can't execute job's complete stage because of a previous stage error
+		return j
+	}
+	err := j.stageProgressHandler.SetJobStatus(sdk_v1.NewSetJobStatusReq(j.metadata.jobKey, sdk_v1.JobStatus_JobCompletionStarted))
 	if err != nil {
 		// TODO log.error
 		return j
 	}
-	err = j.stageProgressHandler.SetJobStatus(job.Key, sdk_v1.JobStatus_JobCompletionRunning)
-	if err != nil {
-		// TODO log.error
-		return j
-	}
+
 	completionCtx := NewCompleteContext(j)
-	_, err = csd(completionCtx)
+	err = completionDefinitionFn(completionCtx)
+
 	if err != nil {
 		// TODO log.error
-		err = j.stageProgressHandler.SetJobStatus(job.Key, sdk_v1.JobStatus_JobCompletedWithErrors) // TODO add a reason fields to create a description for the error
+		err = j.stageProgressHandler.SetJobStatus(sdk_v1.NewSetJobStatusReq(j.metadata.jobKey, sdk_v1.JobStatus_JobCompletionDoneWithErrors)) // TODO add an error
 		return j
 	}
-	err = j.stageProgressHandler.SetJobStatus(job.Key, sdk_v1.JobStatus_JobCompleted)
+	err = j.stageProgressHandler.SetJobStatus(sdk_v1.NewSetJobStatusReq(j.metadata.jobKey, sdk_v1.JobStatus_JobCompletionDone))
 	return j
 }
 
-func (j Job) Compensate(cdf api.CompensateDefinitionFn) api.CompensateChain {
-	job, err := j.stageProgressHandler.GetJob(j.JobKey())
+func (j *Job) Compensate(compensateDefinitionFn api.CompensateDefinitionFn) api.CompensateChain {
+	if j.stageErr == nil {
+		// TODO log.info can't execute the job's compensate stage because all stages ran successfully
+		return j
+	}
+
+	err := j.stageProgressHandler.SetJobStatus(sdk_v1.NewSetJobStatusReq(j.metadata.jobKey, sdk_v1.JobStatus_JobCompensationStarted))
 	if err != nil {
 		// TODO log.error
 		return j
 	}
-	err = j.stageProgressHandler.SetJobStatus(job.Key, sdk_v1.JobStatus_JobCompensating)
+
+	compensationCtx := NewCompensationContext(j.clone())
+	err = compensateDefinitionFn(compensationCtx)
+
 	if err != nil {
 		// TODO log.error
+		err = j.stageProgressHandler.SetJobStatus(sdk_v1.NewSetJobStatusReq(j.metadata.jobKey, sdk_v1.JobStatus_JobCompensationDoneWithErrors)) // TODO add a reason fields to create a description for the error
 		return j
 	}
-	compensationCtx := NewCompensationContext(j)
-	_, err = cdf(compensationCtx)
+	err = j.stageProgressHandler.SetJobStatus(sdk_v1.NewSetJobStatusReq(j.metadata.jobKey, sdk_v1.JobStatus_JobCompensationDone))
 	if err != nil {
-		// TODO log.error
-		err = j.stageProgressHandler.SetJobStatus(job.Key, sdk_v1.JobStatus_JobCompensationCompletedWithErrors) // TODO add a reason fields to create a description for the error
-		return j
+		//TODO log.error
 	}
-	err = j.stageProgressHandler.SetJobStatus(job.Key, sdk_v1.JobStatus_JobCompensationCompleted)
 	return j
 }
 
-func (j Job) Canceled(cdf api.CancelDefinitionFn) api.CanceledChain {
+func (j *Job) Canceled(cancelDefinitionFn api.CancelDefinitionFn) api.CanceledChain {
+	err := j.stageProgressHandler.SetJobStatus(sdk_v1.NewSetJobStatusReq(j.metadata.jobKey, sdk_v1.JobStatus_JobCompensationStarted))
+	if err != nil {
+		// TODO log.error
+		return j
+	}
+
+	cancellationCtx := NewCancellationContext(j.clone())
+	err = cancelDefinitionFn(cancellationCtx)
+
+	if err != nil {
+		// TODO log.error
+		err = j.stageProgressHandler.SetJobStatus(sdk_v1.NewSetJobStatusReq(j.metadata.jobKey, sdk_v1.JobStatus_JobCompensationDoneWithErrors)) // TODO add a reason fields to create a description for the error
+		return j
+	}
+	err = j.stageProgressHandler.SetJobStatus(sdk_v1.NewSetJobStatusReq(j.metadata.jobKey, sdk_v1.JobStatus_JobCompensationDone))
+	if err != nil {
+		//TODO log.error
+	}
 	return j
 }
 
-func (j Job) Run() {
-	//TODO do we really need this?
+func (j *Job) handleStageError(err error) api.StageChain {
+	if se, ok := err.(api.StageError); ok {
+		j.stageErr = se
+	} else {
+		j.stageErr = sdk_errors.NewStageError(err, sdk_errors.WithErrorType(sdk_v1.ErrorType_Failed))
+	}
+	// TODO log.error
+	return j
 }
 
-func updateStageAttributesFromError(stage *sdk_v1.Stage, err error) *sdk_v1.Stage {
-	var stageError api.StageError
-	if errors.As(err, &stageError) {
-		if stageError.UpdateStatusTo() != nil {
-			stage.Status = *stageError.UpdateStatusTo()
-		}
-		if stageError.Reason() != "" {
-			stage.Reason = stageError.Reason()
-		} else if err.Error() != "" {
-			stage.Reason = stageError.Error()
-		}
-		stage.Retry = stageError.Retry()
+func (j *Job) getStage(name string) (*sdk_v1.StageStatus, error) {
+	return j.stageProgressHandler.Get(j.metadata.jobKey, name)
+}
+
+type updateStageOption = func(stage *sdk_v1.SetStageStatusRequest) *sdk_v1.SetStageStatusRequest
+
+func withStageStatus(status sdk_v1.StageStatus) updateStageOption {
+	return func(stage *sdk_v1.SetStageStatusRequest) *sdk_v1.SetStageStatusRequest {
+		stage.Status = status
 		return stage
 	}
-	stage.Status = sdk_v1.StageStatus_StageFailed
-	stage.Reason = err.Error()
-	stage.Retry = true // TODO confirm if this is the right default value to that property
-	return stage
+}
+
+func withStageError(err api.StageError) updateStageOption {
+	return func(stage *sdk_v1.SetStageStatusRequest) *sdk_v1.SetStageStatusRequest {
+		stage.Status = sdk_errors.ErrorTypeToStageStatusMapper[err.ErrorType()]
+		stage.Err = err.ToErrorMessage()
+		return stage
+	}
+}
+
+func (j *Job) updateStage(jobKey, name string, opts ...updateStageOption) error {
+	req := &sdk_v1.SetStageStatusRequest{JobKey: jobKey, Name: name}
+	for _, opt := range opts {
+		req = opt(req)
+	}
+	return j.stageProgressHandler.Set(req)
+}
+
+func (j *Job) clone() *Job {
+	clone := *j
+	clone.stageErr = nil
+	return &clone
 }

@@ -1,9 +1,9 @@
 package worker
 
 import (
-	sdk_errors "github.com/azarc-io/vth-faas-sdk-go/errors"
 	"github.com/azarc-io/vth-faas-sdk-go/internal/context"
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/api"
+	sdk_errors "github.com/azarc-io/vth-faas-sdk-go/pkg/errors"
 	"testing"
 )
 
@@ -59,7 +59,7 @@ func (j JobWorker) validate() error {
 
 // TODO need to hide that from the user in production
 // can only be called by the user in testing
-func (j JobWorker) Run(metadata context.JobMetadata) {
+func (j JobWorker) Run(metadata api.Context) {
 	jobContext := context.NewJobContext(metadata, j.stageProgressHandler, j.variableHandler)
 	j.job.Execute(jobContext)
 }

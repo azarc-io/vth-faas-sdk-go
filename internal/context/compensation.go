@@ -6,31 +6,28 @@ import (
 )
 
 type Compensation struct {
-	jobContext   Job
+	api.Context
+	jobContext   *Job
 	stageContext Stage
 }
 
-func NewCompensationContext(jobCtx Job) Compensation {
-	return Compensation{jobContext: jobCtx}
+func NewCompensationContext(jobCtx *Job) api.CompensationContext {
+	return Compensation{jobContext: jobCtx, Context: jobCtx.metadata}
 }
 
-// TODO stage name inside compensation we must concatened a prefix like 'compensate' to the name of the stage
 func (c Compensation) Stage(name string, sdf api.StageDefinitionFn) api.StageChain {
-	//TODO implement me
-	panic("implement me")
+	return c.jobContext.Stage(name, sdf)
 }
 
 func (c Compensation) WithStageStatus(names []string, value any) bool {
-	//TODO implement me
+	//TODO implement me // TODO <<<<<<<<<<<<< don't forget this
 	panic("implement me")
 }
 
-func (c Compensation) GetVariable(s string) sdk_v1.Variable {
-	//TODO implement me
-	panic("implement me")
+func (c Compensation) GetVariable(s string) (*sdk_v1.Variable, error) {
+	return c.jobContext.variableHandler.Get(s)
 }
 
 func (c Compensation) SetVariable(name string, value any, mimeType string) error {
-	//TODO implement me
-	panic("implement me")
+	return c.jobContext.variableHandler.Set(sdk_v1.NewVariable(name, mimeType, value))
 }

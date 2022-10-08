@@ -1,3 +1,6 @@
+//go:generate mockgen -destination=../../internal/handlers/test/mock/mock_stageprogress.go -package=mock github.com/azarc-io/vth-faas-sdk-go/pkg/api StageProgressHandler
+//go:generate mockgen -destination=../../internal/handlers/test/mock/mock_variable.go -package=mock github.com/azarc-io/vth-faas-sdk-go/pkg/api VariableHandler
+
 package api
 
 import (
@@ -13,6 +16,14 @@ type (
 		Run(payload any)
 	}
 
+	LocalWorker interface {
+		Execute(ctx Context)
+	}
+
+	RemoteWorker interface {
+		Start() error
+	}
+
 	JobTestWorker interface {
 		JobWorker
 		Execute() //TODO
@@ -24,28 +35,23 @@ type (
 	}
 
 	StageProgressHandler interface {
-		Get(name string) (*sdk_v1.Stage, error)
-		Set(*sdk_v1.Stage) error
-		GetResult(*sdk_v1.Stage) (*sdk_v1.StageResult, error)
-		SetResult(result *sdk_v1.StageResult) error
-		GetJob(jobKey string) (*sdk_v1.Job, error)
-		SetJobStatus(jobKey string, status sdk_v1.JobStatus) error
+		Get(jobKey, name string) (*sdk_v1.StageStatus, error)
+		Set(stageStatus *sdk_v1.SetStageStatusRequest) error
+		GetResult(jobKey, name string) (*sdk_v1.StageResult, error)
+		SetResult(resultResult *sdk_v1.SetStageResultRequest) error
+		SetJobStatus(jobStatus *sdk_v1.SetJobStatusRequest) error
 	}
 
 	JobContext interface {
-		JobKey() string
-		CorrelationID() string
-		TransactionID() string
-		Stage(name string, sdf StageDefinitionFn) StageChain
+		Stage(name string, sdf StageDefinitionFn) StageChain // add ...options to conditional stage execution
 	}
 
-	StageErrors interface {
-		Canceled(reason string) StageError
-		Fail(err error) StageError
-		FailWithMetadata(err error, metadata any) StageError
-		FailWithRetry(err error) StageError
-		FailWithReason(err error, reason string) StageError
-		FailWithReasonAndMetadata(err error, reason string, metadata any) StageError
+	StageError interface {
+		Error() string
+		Code() uint32
+		Metadata() map[string]any
+		ErrorType() sdk_v1.ErrorType
+		ToErrorMessage() *sdk_v1.Error
 	}
 
 	StageChain interface {
@@ -53,58 +59,56 @@ type (
 		Complete(CompletionDefinitionFn) CompleteChain
 		Compensate(CompensateDefinitionFn) CompensateChain
 		Canceled(CancelDefinitionFn) CanceledChain
-		Run()
 	}
 
 	CompleteChain interface {
 		Compensate(CompensateDefinitionFn) CompensateChain
 		Canceled(CancelDefinitionFn) CanceledChain
-		Run()
 	}
 
 	CompensateChain interface {
 		Canceled(CancelDefinitionFn) CanceledChain
 		Complete(CompletionDefinitionFn) CompleteChain
-		Run()
 	}
 
 	CanceledChain interface {
 		Compensate(CompensateDefinitionFn) CompensateChain
 		Complete(CompletionDefinitionFn) CompleteChain
-		Run()
+	}
+
+	Context interface {
+		JobKey() string
+		CorrelationID() string
+		TransactionID() string
+	}
+
+	StageContext interface {
+		Context
+		GetVariable(string) (*sdk_v1.Variable, error)
+	}
+
+	CompletionContext interface {
+		Context
+		GetStage(jobKey, name string) (*sdk_v1.StageStatus, error)
+		GetStageResult(jobKey, stageName string) (*sdk_v1.StageResult, error)
+		SetVariable(variable *sdk_v1.Variable) error
 	}
 
 	CompensationContext interface {
-		Stage(name string, cdf CompensateDefinitionFn) StageChain
+		Context
+		Stage(name string, sdf StageDefinitionFn) StageChain
 		WithStageStatus(names []string, value any) bool
-		GetVariable(string) sdk_v1.Variable
+		GetVariable(string) (*sdk_v1.Variable, error)
 		SetVariable(name string, value any, mimeType string) error
 	}
 
 	CancelContext interface {
-		Stage(name string, cdf CancelDefinitionFn) StageChain
-	}
-
-	CompletionContext interface {
-		GetStage(name string) (*sdk_v1.Stage, error)
-		GetStageResult(stage *sdk_v1.Stage) (*sdk_v1.StageResult, error)
-		SetVariable(variable *sdk_v1.Variable) error
-	}
-
-	StageContext interface {
-		GetVariable(string) (*sdk_v1.Variable, error)
+		Context
+		Stage(name string, sdf StageDefinitionFn) StageChain
 	}
 
 	StageDefinitionFn      = func(StageContext) (any, StageError)
-	CompensateDefinitionFn = func(CompensationContext) (any, StageError)
-	CancelDefinitionFn     = func(CancelContext) (any, StageError)
-	CompletionDefinitionFn = func(CompletionContext) (any, StageError)
-
-	StageError interface {
-		Error() string
-		Metadata() map[string]any
-		Reason() string
-		Retry() bool
-		UpdateStatusTo() *sdk_v1.StageStatus
-	}
+	CompensateDefinitionFn = func(CompensationContext) StageError
+	CancelDefinitionFn     = func(CancelContext) StageError
+	CompletionDefinitionFn = func(CompletionContext) StageError
 )

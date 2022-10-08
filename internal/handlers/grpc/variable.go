@@ -1,9 +1,9 @@
 package test
 
 import (
-	sdk_errors "github.com/azarc-io/vth-faas-sdk-go/errors"
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/api"
 	sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1"
+	sdk_errors "github.com/azarc-io/vth-faas-sdk-go/pkg/errors"
 )
 
 // TODO implement the DEFAULT GRPC handler
