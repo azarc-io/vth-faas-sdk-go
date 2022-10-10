@@ -10,6 +10,7 @@ import (
 
 type (
 	Job interface {
+		Initialize() error
 		Execute(JobContext)
 	}
 
@@ -18,8 +19,8 @@ type (
 	}
 
 	VariableHandler interface {
-		Get(name, stage, jobKey string) (*sdk_v1.Variable, error)
-		Set(req *sdk_v1.SetVariableRequest) error
+		Get(jobKey, stage string, names ...string) ([]*sdk_v1.Variable, error)
+		Set(jobKey, stage string, variables ...*sdk_v1.Variable) error
 	}
 
 	StageProgressHandler interface {
@@ -75,20 +76,20 @@ type (
 
 	StageContext interface {
 		Context
-		GetVariable(name, stage string) (*sdk_v1.Variable, error)
+		GetVariables(stage string, names ...string) ([]*sdk_v1.Variable, error)
 	}
 
 	CompletionContext interface {
 		Context
-		GetStageResult(jobKey, stageName string) (*sdk_v1.StageResult, error)
-		SetVariable(variable *sdk_v1.SetVariableRequest) error
+		GetStageResult(stageName string) (*sdk_v1.StageResult, error)
+		SetVariables(stage string, variables ...*sdk_v1.Variable) error
 	}
 
 	CompensationContext interface {
 		Context
 		Stage(name string, sdf StageDefinitionFn, options ...StageOption) StageChain
-		GetVariable(name, stage string) (*sdk_v1.Variable, error)
-		SetVariable(variable *sdk_v1.SetVariableRequest) error
+		GetVariables(stage string, names ...string) ([]*sdk_v1.Variable, error)
+		SetVariables(stage string, variables ...*sdk_v1.Variable) error
 	}
 
 	CancelContext interface {

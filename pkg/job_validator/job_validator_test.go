@@ -9,6 +9,10 @@ type ValidExecutor struct{}
 
 var _ api.Job = &ValidExecutor{}
 
+func (i ValidExecutor) Initialize() error {
+	return nil
+}
+
 func (i ValidExecutor) Execute(ctx api.JobContext) {
 	ctx.Stage("stage1", func(stageContext api.StageContext) (any, api.StageError) {
 		return nil, nil
@@ -46,6 +50,10 @@ func TestJobExecutorValidatorWithValidExecutor(t *testing.T) {
 }
 
 type InvalidExecutor struct{}
+
+func (i InvalidExecutor) Initialize() error {
+	return nil
+}
 
 var _ api.Job = &InvalidExecutor{}
 

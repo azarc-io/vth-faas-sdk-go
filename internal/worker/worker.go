@@ -38,6 +38,10 @@ func NewJobWorker(job api.Job, options ...Option) (api.JobWorker, error) {
 	if err := jw.validate(); err != nil {
 		return nil, err
 	}
+	err := job.Initialize()
+	if err != nil {
+		return nil, err
+	}
 	return jw, nil
 }
 

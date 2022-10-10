@@ -16,16 +16,21 @@ func NewMockVariableHandler(t *testing.T) api.VariableHandler {
 	return inMemoryVariableHandler{t: t, variables: make(map[string]*sdk_v1.Variable)}
 }
 
-func (i inMemoryVariableHandler) Get(name, stage, jobKey string) (*sdk_v1.Variable, error) {
-	if variable, ok := i.variables[i.key(name, stage, jobKey)]; ok {
-		return variable, nil
+func (i inMemoryVariableHandler) Get(jobKey, stage string, names ...string) ([]*sdk_v1.Variable, error) {
+	var vars []*sdk_v1.Variable
+	for _, n := range names {
+		vars = append(vars, i.variables[i.key(n, stage, jobKey)])
 	}
-	i.t.Fatalf("variable not found for params >> name: %s, jobKey: %s, stage: %s", name, jobKey, stage)
-	return nil, nil
+	if len(vars) == 0 {
+		i.t.Fatalf("no variables found for the params: ")
+	}
+	return vars, nil
 }
 
-func (i inMemoryVariableHandler) Set(req *sdk_v1.SetVariableRequest) error {
-	i.variables[i.key(req.Name, req.Stage, req.JobKey)] = req.Variable
+func (i inMemoryVariableHandler) Set(jobKey, stage string, variables ...*sdk_v1.Variable) error {
+	for _, v := range variables {
+		i.variables[i.key(v.Name, stage, jobKey)] = v
+	}
 	return nil
 }
 

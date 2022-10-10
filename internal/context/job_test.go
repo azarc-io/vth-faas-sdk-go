@@ -1,14 +1,17 @@
 package context_test
 
 import (
+	ctx "context"
 	"errors"
 	"github.com/azarc-io/vth-faas-sdk-go/internal/context"
 	"github.com/azarc-io/vth-faas-sdk-go/internal/handlers/test/inmemory"
 	"github.com/azarc-io/vth-faas-sdk-go/internal/handlers/test/mock"
+	"github.com/azarc-io/vth-faas-sdk-go/internal/worker"
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/api"
 	sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1"
 	sdk_errors "github.com/azarc-io/vth-faas-sdk-go/pkg/errors"
 	"github.com/golang/mock/gomock"
+	"strings"
 	"testing"
 )
 
@@ -165,8 +168,16 @@ type InitExecutor struct {
 
 var _ api.Job = &InitExecutor{}
 
-func NewInitExecutor() InitExecutor {
-	return InitExecutor{map[string]uint{}}
+func NewInitExecutor() *InitExecutor {
+	return &InitExecutor{}
+}
+
+func (i *InitExecutor) Initialize() error {
+	if i.m == nil {
+		i.m = map[string]uint{}
+	}
+	i.m["initialize"] += 1
+	return nil
 }
 
 func (i *InitExecutor) Execute(ctx api.JobContext) {
@@ -185,18 +196,21 @@ func TestInitialization(t *testing.T) {
 		return context.NewJobContext(jobMetadata, stageProgressHandler, variableHandler)
 	}
 
-	initExecutor := InitExecutor{}
+	initExecutor := &InitExecutor{}
 
 	defer func() {
 		if r := recover(); r != nil {
-			initExecutor = NewInitExecutor() // now the map is initialized
+			err := initExecutor.Initialize() // now the map is initialized
+			if err != nil {
+				t.Error("error initializing the map: ", err)
+			}
 			initExecutor.Execute(newCxt())
 			if initExecutor.m["stage1"] != 1 {
 				t.Errorf("counter expected to be 1 and we got: %d", initExecutor.m["stage1"])
 			}
 			initExecutor.Execute(newCxt())
 			if initExecutor.m["stage1"] != 2 {
-				t.Errorf("counter expected to be 1 and we got: %d", initExecutor.m["stage1"])
+				t.Errorf("counter expected to be 2 and we got: %d", initExecutor.m["stage1"])
 			}
 		}
 	}()
@@ -211,15 +225,15 @@ func TestShouldTriggerConditionalStageExecution(t *testing.T) {
 	defer mockCtrlFinish()
 
 	stageProgressHandler.EXPECT().Get("jobKey", "stage1").Return(sdk_v1.Ptr(sdk_v1.StageStatus_StagePending), nil)
-	stageProgressHandler.EXPECT().Set(sdk_v1.NewSetStageStatusReq("jobKey", "stage1", sdk_v1.StageStatus_StageStarted))
-	stageProgressHandler.EXPECT().Set(sdk_v1.NewSetStageStatusReq("jobKey", "stage1", sdk_v1.StageStatus_StageCompleted))
+	stageProgressHandler.EXPECT().Set(sdk_v1.NewSetStageStatusReq("jobKey", "stage2", sdk_v1.StageStatus_StageStarted))
+	stageProgressHandler.EXPECT().Set(sdk_v1.NewSetStageStatusReq("jobKey", "stage2", sdk_v1.StageStatus_StageCompleted))
 
 	var executed bool
 
-	jobContext.Stage("stage1", func(context api.StageContext) (any, api.StageError) {
+	jobContext.Stage("stage2", func(context api.StageContext) (any, api.StageError) {
 		executed = true
 		return nil, nil
-	}, context.WithStageStatus(sdk_v1.StageStatus_StagePending))
+	}, context.WithStageStatus("stage1", sdk_v1.StageStatus_StagePending))
 
 	if !executed {
 		t.Error("conditional stage execution should be triggered")
@@ -234,10 +248,10 @@ func TestShouldSkipConditionalStageExecution(t *testing.T) {
 
 	var executed bool
 
-	jobContext.Stage("stage1", func(context api.StageContext) (any, api.StageError) {
+	jobContext.Stage("stage2", func(context api.StageContext) (any, api.StageError) {
 		executed = true
 		return nil, nil
-	}, context.WithStageStatus(sdk_v1.StageStatus_StageCanceled))
+	}, context.WithStageStatus("stage1", sdk_v1.StageStatus_StageCanceled))
 
 	if executed {
 		t.Error("conditional stage execution should be skipped")
@@ -247,4 +261,92 @@ func TestShouldSkipConditionalStageExecution(t *testing.T) {
 		t.Errorf("error message expected: '%s'; got: '%s'", "conditional stage execution skipped this stage", jobContext.Err().Error())
 	}
 
+}
+
+type T struct {
+	A string
+	B struct {
+		C int
+		D struct {
+			E []string
+		}
+	}
+}
+
+// TODO move to the right place
+func TestJsonVariableTest(t *testing.T) {
+	sample := T{
+		A: "a",
+		B: struct {
+			C int
+			D struct {
+				E []string
+			}
+		}{
+			C: 1,
+			D: struct {
+				E []string
+			}{E: []string{"1", "2", "3"}},
+		},
+	}
+
+	v, err := sdk_v1.NewVariable("test_var", "application/json", sample)
+	if err != nil {
+		t.Error("error serializing sdk variable: ", err)
+	}
+	var fromValue T
+	err = v.Bind(&fromValue)
+	if err != nil {
+		t.Error("error deserializing sdk variable: ", err)
+	}
+	if fromValue.A != sample.A {
+		t.Errorf("error serializing: expect: %v' got: %v", fromValue.A, sample.A)
+	}
+	if fromValue.B.C != sample.B.C {
+		t.Errorf("error serializing: expect: %v' got: %v", fromValue.B.C, sample.B.C)
+	}
+	if strings.Join(fromValue.B.D.E, "") != strings.Join(sample.B.D.E, "") {
+		t.Errorf("error serializing: expect: %v' got: %v", fromValue.B.D.E, sample.B.D.E)
+	}
+}
+
+// TODO move to the right place
+func TestRawVariableValue(t *testing.T) {
+	v, err := sdk_v1.NewVariable("test_var", "application/json", "test")
+	if err != nil {
+		t.Error("error creating a variable: ", err)
+	}
+	if b, er := v.Raw(); er != nil || string(b) != `"test"` {
+		t.Errorf("error getting the raw value from a variable. expected: '%s' got: '%s', error: %s", "test", string(b), err)
+	}
+
+	v, err = sdk_v1.NewVariable("test_var", "application/json", []byte{1, 2, 3, 3, 2, 5, 5, 8, 4, 5, 7, 6, 4, 0, 2, 8, 9, 5, 7, 4, 9, 8, 5, 7, 4, 2, 3})
+	if err != nil {
+		t.Error("error creating a variable: ", err)
+	}
+	if b, er := v.Raw(); er != nil || string(b) != `"AQIDAwIFBQgEBQcGBAACCAkFBwQJCAUHBAID"` {
+		t.Errorf("error getting the raw value from a variable. expected: '%s' got: '%s', error: %s", "test", string(b), err)
+	}
+}
+
+func TestJobWorker(t *testing.T) {
+	stageProgressHandler := inmemory.NewMockStageProgressHandler(t, sdk_v1.NewSetStageStatusReq("jobKey", "stage1", sdk_v1.StageStatus_StagePending))
+	variablesHandler := inmemory.NewMockVariableHandler(t)
+	job := NewInitExecutor()
+	jobWorker, err := worker.NewJobWorker(job, worker.WithStageProgressHandler(stageProgressHandler), worker.WithVariableHandler(variablesHandler))
+	if err != nil {
+		t.Error("error instantiating the job worker: ", err)
+	}
+	for range []int{5, 5, 5, 5, 5} {
+		err = jobWorker.Run(context.NewJobMetadata(ctx.Background(), "jobJey", "correlationId", "transactionId", nil))
+		if err != nil {
+			t.Error("error running the job worker: ", err)
+		}
+	}
+	if job.m["initialize"] != 1 {
+		t.Errorf("initialize should run only once; got: %d", job.m["initialize"])
+	}
+	if job.m["stage1"] != 5 {
+		t.Errorf("stage1 should run 5 times; got: %d", job.m["stage1"])
+	}
 }

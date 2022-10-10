@@ -110,8 +110,8 @@ type ManagerServiceClient interface {
 	SetStageStatus(ctx context.Context, in *SetStageStatusRequest, opts ...grpc.CallOption) (*Void, error)
 	GetStageResult(ctx context.Context, in *GetStageResultRequest, opts ...grpc.CallOption) (*GetStageResultResponse, error)
 	SetStageResult(ctx context.Context, in *SetStageResultRequest, opts ...grpc.CallOption) (*Void, error)
-	GetVariable(ctx context.Context, in *GetVariableRequest, opts ...grpc.CallOption) (*GetVariableResponse, error)
-	SetVariable(ctx context.Context, in *SetVariableRequest, opts ...grpc.CallOption) (*Void, error)
+	GetVariables(ctx context.Context, in *GetVariablesRequest, opts ...grpc.CallOption) (*GetVariablesResponse, error)
+	SetVariables(ctx context.Context, in *SetVariablesRequest, opts ...grpc.CallOption) (*Void, error)
 	SetJobStatus(ctx context.Context, in *SetJobStatusRequest, opts ...grpc.CallOption) (*Void, error)
 	RegisterHeartbeats(ctx context.Context, in *RegisterHeartbeatsRequest, opts ...grpc.CallOption) (*Void, error)
 }
@@ -160,18 +160,18 @@ func (c *managerServiceClient) SetStageResult(ctx context.Context, in *SetStageR
 	return out, nil
 }
 
-func (c *managerServiceClient) GetVariable(ctx context.Context, in *GetVariableRequest, opts ...grpc.CallOption) (*GetVariableResponse, error) {
-	out := new(GetVariableResponse)
-	err := c.cc.Invoke(ctx, "/sdk_v1.ManagerService/GetVariable", in, out, opts...)
+func (c *managerServiceClient) GetVariables(ctx context.Context, in *GetVariablesRequest, opts ...grpc.CallOption) (*GetVariablesResponse, error) {
+	out := new(GetVariablesResponse)
+	err := c.cc.Invoke(ctx, "/sdk_v1.ManagerService/GetVariables", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *managerServiceClient) SetVariable(ctx context.Context, in *SetVariableRequest, opts ...grpc.CallOption) (*Void, error) {
+func (c *managerServiceClient) SetVariables(ctx context.Context, in *SetVariablesRequest, opts ...grpc.CallOption) (*Void, error) {
 	out := new(Void)
-	err := c.cc.Invoke(ctx, "/sdk_v1.ManagerService/SetVariable", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/sdk_v1.ManagerService/SetVariables", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -204,8 +204,8 @@ type ManagerServiceServer interface {
 	SetStageStatus(context.Context, *SetStageStatusRequest) (*Void, error)
 	GetStageResult(context.Context, *GetStageResultRequest) (*GetStageResultResponse, error)
 	SetStageResult(context.Context, *SetStageResultRequest) (*Void, error)
-	GetVariable(context.Context, *GetVariableRequest) (*GetVariableResponse, error)
-	SetVariable(context.Context, *SetVariableRequest) (*Void, error)
+	GetVariables(context.Context, *GetVariablesRequest) (*GetVariablesResponse, error)
+	SetVariables(context.Context, *SetVariablesRequest) (*Void, error)
 	SetJobStatus(context.Context, *SetJobStatusRequest) (*Void, error)
 	RegisterHeartbeats(context.Context, *RegisterHeartbeatsRequest) (*Void, error)
 }
@@ -226,11 +226,11 @@ func (UnimplementedManagerServiceServer) GetStageResult(context.Context, *GetSta
 func (UnimplementedManagerServiceServer) SetStageResult(context.Context, *SetStageResultRequest) (*Void, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SetStageResult not implemented")
 }
-func (UnimplementedManagerServiceServer) GetVariable(context.Context, *GetVariableRequest) (*GetVariableResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetVariable not implemented")
+func (UnimplementedManagerServiceServer) GetVariables(context.Context, *GetVariablesRequest) (*GetVariablesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetVariables not implemented")
 }
-func (UnimplementedManagerServiceServer) SetVariable(context.Context, *SetVariableRequest) (*Void, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SetVariable not implemented")
+func (UnimplementedManagerServiceServer) SetVariables(context.Context, *SetVariablesRequest) (*Void, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetVariables not implemented")
 }
 func (UnimplementedManagerServiceServer) SetJobStatus(context.Context, *SetJobStatusRequest) (*Void, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SetJobStatus not implemented")
@@ -322,38 +322,38 @@ func _ManagerService_SetStageResult_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ManagerService_GetVariable_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetVariableRequest)
+func _ManagerService_GetVariables_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetVariablesRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ManagerServiceServer).GetVariable(ctx, in)
+		return srv.(ManagerServiceServer).GetVariables(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/sdk_v1.ManagerService/GetVariable",
+		FullMethod: "/sdk_v1.ManagerService/GetVariables",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ManagerServiceServer).GetVariable(ctx, req.(*GetVariableRequest))
+		return srv.(ManagerServiceServer).GetVariables(ctx, req.(*GetVariablesRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ManagerService_SetVariable_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SetVariableRequest)
+func _ManagerService_SetVariables_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetVariablesRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ManagerServiceServer).SetVariable(ctx, in)
+		return srv.(ManagerServiceServer).SetVariables(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/sdk_v1.ManagerService/SetVariable",
+		FullMethod: "/sdk_v1.ManagerService/SetVariables",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ManagerServiceServer).SetVariable(ctx, req.(*SetVariableRequest))
+		return srv.(ManagerServiceServer).SetVariables(ctx, req.(*SetVariablesRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -418,12 +418,12 @@ var ManagerService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _ManagerService_SetStageResult_Handler,
 		},
 		{
-			MethodName: "GetVariable",
-			Handler:    _ManagerService_GetVariable_Handler,
+			MethodName: "GetVariables",
+			Handler:    _ManagerService_GetVariables_Handler,
 		},
 		{
-			MethodName: "SetVariable",
-			Handler:    _ManagerService_SetVariable_Handler,
+			MethodName: "SetVariables",
+			Handler:    _ManagerService_SetVariables_Handler,
 		},
 		{
 			MethodName: "SetJobStatus",

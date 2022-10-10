@@ -14,6 +14,6 @@ func NewStageContext(jobCtx *Job) api.StageContext {
 	return Stage{jobContext: jobCtx, Context: jobCtx.metadata}
 }
 
-func (sc Stage) GetVariable(name, stage string) (*sdk_v1.Variable, error) {
-	return sc.jobContext.variableHandler.Get(name, stage, sc.JobKey())
+func (sc Stage) GetVariables(stage string, names ...string) ([]*sdk_v1.Variable, error) {
+	return sc.jobContext.variableHandler.Get(sc.JobKey(), stage, names...)
 }

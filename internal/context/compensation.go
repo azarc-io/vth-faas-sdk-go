@@ -19,10 +19,10 @@ func (c Compensation) Stage(name string, sdf api.StageDefinitionFn, options ...a
 	return c.jobContext.Stage(name, sdf, options...)
 }
 
-func (c Compensation) GetVariable(name, stage string) (*sdk_v1.Variable, error) {
-	return c.jobContext.variableHandler.Get(name, stage, c.JobKey())
+func (c Compensation) GetVariables(stage string, name ...string) ([]*sdk_v1.Variable, error) {
+	return c.jobContext.variableHandler.Get(stage, c.JobKey(), name...)
 }
 
-func (c Compensation) SetVariable(variable *sdk_v1.SetVariableRequest) error {
-	return c.jobContext.variableHandler.Set(variable)
+func (c Compensation) SetVariables(stage string, variables ...*sdk_v1.Variable) error {
+	return c.jobContext.variableHandler.Set(c.JobKey(), stage, variables...)
 }

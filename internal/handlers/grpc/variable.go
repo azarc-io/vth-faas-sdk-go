@@ -14,15 +14,19 @@ func NewGrpcVariableHandler() api.VariableHandler {
 	return GrpcVariableHandler{}
 }
 
-func (g GrpcVariableHandler) Set(req *sdk_v1.SetVariableRequest) error {
-	_, err := g.client.SetVariable(context.Background(), req)
+func (g GrpcVariableHandler) Set(jobKey, stage string, variables ...*sdk_v1.Variable) error {
+	_, err := g.client.SetVariables(context.Background(), sdk_v1.NewSetVariablesRequest(jobKey, stage, variables...))
 	return err
 }
 
-func (g GrpcVariableHandler) Get(name, stage, jobKey string) (*sdk_v1.Variable, error) {
-	variable, err := g.client.GetVariable(context.Background(), sdk_v1.NewGetVariableRequest(name, stage, jobKey))
+func (g GrpcVariableHandler) Get(jobKey string, stage string, names ...string) ([]*sdk_v1.Variable, error) {
+	variables, err := g.client.GetVariables(context.Background(), sdk_v1.NewGetVariablesRequest(jobKey, stage, names...))
 	if err != nil {
 		return nil, err
 	}
-	return variable.Variable, nil
+	var vars []*sdk_v1.Variable
+	for _, v := range variables.Variables {
+		vars = append(vars, v)
+	}
+	return vars, nil
 }

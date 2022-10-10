@@ -14,10 +14,10 @@ func NewCompleteContext(jobCtx *Job) api.CompletionContext {
 	return Completion{jobContext: jobCtx, Context: jobCtx.metadata}
 }
 
-func (c Completion) GetStageResult(jobKey, stageName string) (*sdk_v1.StageResult, error) {
-	return c.jobContext.stageProgressHandler.GetResult(jobKey, stageName)
+func (c Completion) GetStageResult(stageName string) (*sdk_v1.StageResult, error) {
+	return c.jobContext.stageProgressHandler.GetResult(c.JobKey(), stageName)
 }
 
-func (c Completion) SetVariable(variable *sdk_v1.SetVariableRequest) error {
-	return c.jobContext.variableHandler.Set(variable)
+func (c Completion) SetVariables(stage string, variables ...*sdk_v1.Variable) error {
+	return c.jobContext.variableHandler.Set(c.JobKey(), stage, variables...)
 }

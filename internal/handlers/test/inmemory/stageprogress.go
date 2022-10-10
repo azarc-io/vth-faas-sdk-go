@@ -12,10 +12,11 @@ type inMemoryStageProgressHandler struct {
 	t       *testing.T
 	stages  map[string]*sdk_v1.SetStageStatusRequest
 	results map[string]*sdk_v1.SetStageResultRequest
+	jobs    map[string]*sdk_v1.SetJobStatusRequest
 }
 
 func NewMockStageProgressHandler(t *testing.T, seeds ...any) api.StageProgressHandler {
-	handler := inMemoryStageProgressHandler{t, map[string]*sdk_v1.SetStageStatusRequest{}, map[string]*sdk_v1.SetStageResultRequest{}}
+	handler := inMemoryStageProgressHandler{t, map[string]*sdk_v1.SetStageStatusRequest{}, map[string]*sdk_v1.SetStageResultRequest{}, map[string]*sdk_v1.SetJobStatusRequest{}}
 	for _, seed := range seeds {
 		switch seed.(type) {
 		case *sdk_v1.SetStageStatusRequest:
@@ -58,7 +59,8 @@ func (i inMemoryStageProgressHandler) SetResult(result *sdk_v1.SetStageResultReq
 }
 
 func (i inMemoryStageProgressHandler) SetJobStatus(jobStatus *sdk_v1.SetJobStatusRequest) error {
-	return nil // TODO add some behaviour here
+	i.jobs[jobStatus.Key] = jobStatus
+	return nil
 }
 
 func (i inMemoryStageProgressHandler) key(jobKey, name string) string {

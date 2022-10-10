@@ -22,6 +22,7 @@ func (j *Job) Stage(name string, stageDefinitionFn api.StageDefinitionFn, option
 			return j.handleStageError(err)
 		}
 	}
+
 	err := j.updateStage(j.metadata.jobKey, name, withStageStatus(sdk_v1.StageStatus_StageStarted))
 	if err != nil {
 		return j.handleStageError(err)
@@ -37,16 +38,24 @@ func (j *Job) Stage(name string, stageDefinitionFn api.StageDefinitionFn, option
 		}
 		return j.handleStageError(stageErr)
 	}
+
+	if result != nil {
+		req, err := sdk_v1.NewSetStageResultReq(j.metadata.jobKey, name, result)
+		if err != nil {
+			return j.handleStageError(err)
+		}
+		err = j.stageProgressHandler.SetResult(req)
+		if err != nil {
+			return j.handleStageError(err)
+		}
+		return j
+	}
+
 	err = j.updateStage(j.metadata.jobKey, name, withStageStatus(sdk_v1.StageStatus_StageCompleted))
 	if err != nil {
 		return j.handleStageError(err)
 	}
-	if result != nil {
-		err = j.stageProgressHandler.SetResult(sdk_v1.NewSetStageResultReq(j.metadata.jobKey, name, result))
-		if err != nil {
-			return j.handleStageError(err)
-		}
-	}
+
 	return j
 }
 
@@ -102,17 +111,18 @@ func (j *Job) Compensate(compensateDefinitionFn api.CompensateDefinitionFn) api.
 func (j *Job) Canceled(cancelDefinitionFn api.CancelDefinitionFn) api.CanceledChain {
 	err := j.stageProgressHandler.SetJobStatus(sdk_v1.NewSetJobStatusReq(j.metadata.jobKey, sdk_v1.JobStatus_JobCompensationStarted))
 	if err != nil {
-		// TODO log.error
-		return j
+		return j.handleStageError(err)
 	}
 
 	cancellationCtx := NewCancellationContext(j.clone())
 	err = cancelDefinitionFn(cancellationCtx)
 
 	if err != nil {
-		// TODO log.error
-		err = j.stageProgressHandler.SetJobStatus(sdk_v1.NewSetJobStatusReq(j.metadata.jobKey, sdk_v1.JobStatus_JobCompensationDoneWithErrors)) // TODO add a reason fields to create a description for the error
-		return j
+		er := j.stageProgressHandler.SetJobStatus(sdk_v1.NewSetJobStatusReq(j.metadata.jobKey, sdk_v1.JobStatus_JobCompensationDoneWithErrors)) // TODO add a reason fields to create a description for the error
+		if er != nil {
+			return j.handleStageError(er)
+		}
+		return j.handleStageError(err)
 	}
 	err = j.stageProgressHandler.SetJobStatus(sdk_v1.NewSetJobStatusReq(j.metadata.jobKey, sdk_v1.JobStatus_JobCompensationDone))
 	if err != nil {
@@ -195,9 +205,9 @@ func newStageOptionParams(stageName string, job *Job) api.StageOptionParams {
 	}
 }
 
-func WithStageStatus(status sdk_v1.StageStatus) api.StageOption {
+func WithStageStatus(stageName string, status sdk_v1.StageStatus) api.StageOption {
 	return func(sop api.StageOptionParams) api.StageError {
-		stageStatus, err := sop.StageProgressHandler().Get(sop.Context().JobKey(), sop.StageName())
+		stageStatus, err := sop.StageProgressHandler().Get(sop.Context().JobKey(), stageName)
 		if err != nil {
 			return sdk_errors.NewStageError(err, sdk_errors.WithErrorType(sdk_v1.ErrorType_Skip)) // TODO confirm if that error type is the right one to return here
 		}

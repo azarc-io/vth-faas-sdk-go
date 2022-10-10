@@ -3,6 +3,7 @@ package sdk_v1;
 option go_package = "github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1;sdk_v1";
 
 import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
 
 /************************************************************************/
 /* COMMON
@@ -14,6 +15,11 @@ message Error {
   string error = 1;
   uint32 error_code = 2;
   ErrorType error_type = 3;
+}
+
+message RetryStrategy {
+  uint32 backoff = 1;
+  uint32 count = 2;
 }
 
 /************************************************************************/
@@ -56,12 +62,16 @@ enum JobStatus {
 /* JOB
 /************************************************************************/
 
+message LastActiveStage {
+  string name = 1;
+  StageStatus status = 2;
+}
+
 message ExecuteJobRequest {
   string key = 1;
   string transaction_id = 2;
   string correlation_id = 3;
-  string last_active_stage = 4;
-  StageStatus last_active_status = 5;
+  LastActiveStage last_active_stage = 4;
 }
 
 message SetJobStatusRequest {
@@ -123,21 +133,20 @@ message Variable {
   string mime_type = 3;
 }
 
-message GetVariableRequest {
-  string name = 1;
-  string stage = 2;
-  string job_key = 3;
+message GetVariablesRequest {
+  string stage = 1;
+  string job_key = 2;
+  repeated string name = 3;
 }
 
-message GetVariableResponse {
-  Variable variable = 1;
+message GetVariablesResponse {
+  map<string, Variable> variables = 1;
 }
 
-message SetVariableRequest {
-  string name = 1;
-  string stage = 2;
-  string job_key = 3;
-  Variable variable = 4;
+message SetVariablesRequest {
+  string stage = 1;
+  string job_key = 2;
+  map<string, Variable> variables = 3;
 }
 
 /************************************************************************/
@@ -159,8 +168,8 @@ service ManagerService {
   rpc GetStageResult(GetStageResultRequest) returns (GetStageResultResponse);
   rpc SetStageResult(SetStageResultRequest) returns (Void);
 
-  rpc GetVariable(GetVariableRequest) returns (GetVariableResponse);
-  rpc SetVariable(SetVariableRequest) returns (Void);
+  rpc GetVariables(GetVariablesRequest) returns (GetVariablesResponse);
+  rpc SetVariables(SetVariablesRequest) returns (Void);
 
   rpc SetJobStatus(SetJobStatusRequest) returns (Void);
   rpc RegisterHeartbeats(RegisterHeartbeatsRequest) returns (Void);
