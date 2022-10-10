@@ -4,6 +4,7 @@
 package api
 
 import (
+	"context"
 	sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1"
 )
 
@@ -13,25 +14,12 @@ type (
 	}
 
 	JobWorker interface {
-		Run(payload any)
-	}
-
-	LocalWorker interface {
-		Execute(ctx Context)
-	}
-
-	RemoteWorker interface {
-		Start() error
-	}
-
-	JobTestWorker interface {
-		JobWorker
-		Execute() //TODO
+		Run(ctx Context) StageError
 	}
 
 	VariableHandler interface {
-		Get(name string) (*sdk_v1.Variable, error)
-		Set(variable *sdk_v1.Variable) error
+		Get(name, stage, jobKey string) (*sdk_v1.Variable, error)
+		Set(req *sdk_v1.SetVariableRequest) error
 	}
 
 	StageProgressHandler interface {
@@ -40,10 +28,6 @@ type (
 		GetResult(jobKey, name string) (*sdk_v1.StageResult, error)
 		SetResult(resultResult *sdk_v1.SetStageResultRequest) error
 		SetJobStatus(jobStatus *sdk_v1.SetJobStatusRequest) error
-	}
-
-	JobContext interface {
-		Stage(name string, sdf StageDefinitionFn) StageChain // add ...options to conditional stage execution
 	}
 
 	StageError interface {
@@ -55,7 +39,7 @@ type (
 	}
 
 	StageChain interface {
-		Stage(name string, sdf StageDefinitionFn) StageChain
+		Stage(name string, sdf StageDefinitionFn, options ...StageOption) StageChain
 		Complete(CompletionDefinitionFn) CompleteChain
 		Compensate(CompensateDefinitionFn) CompensateChain
 		Canceled(CancelDefinitionFn) CanceledChain
@@ -77,38 +61,51 @@ type (
 	}
 
 	Context interface {
+		Ctx() context.Context
 		JobKey() string
 		CorrelationID() string
 		TransactionID() string
+		Payload() any
+	}
+
+	JobContext interface {
+		Stage(name string, sdf StageDefinitionFn, options ...StageOption) StageChain
+		Err() StageError
 	}
 
 	StageContext interface {
 		Context
-		GetVariable(string) (*sdk_v1.Variable, error)
+		GetVariable(name, stage string) (*sdk_v1.Variable, error)
 	}
 
 	CompletionContext interface {
 		Context
-		GetStage(jobKey, name string) (*sdk_v1.StageStatus, error)
 		GetStageResult(jobKey, stageName string) (*sdk_v1.StageResult, error)
-		SetVariable(variable *sdk_v1.Variable) error
+		SetVariable(variable *sdk_v1.SetVariableRequest) error
 	}
 
 	CompensationContext interface {
 		Context
-		Stage(name string, sdf StageDefinitionFn) StageChain
-		WithStageStatus(names []string, value any) bool
-		GetVariable(string) (*sdk_v1.Variable, error)
-		SetVariable(name string, value any, mimeType string) error
+		Stage(name string, sdf StageDefinitionFn, options ...StageOption) StageChain
+		GetVariable(name, stage string) (*sdk_v1.Variable, error)
+		SetVariable(variable *sdk_v1.SetVariableRequest) error
 	}
 
 	CancelContext interface {
 		Context
-		Stage(name string, sdf StageDefinitionFn) StageChain
+		Stage(name string, sdf StageDefinitionFn, options ...StageOption) StageChain
+	}
+
+	StageOptionParams interface {
+		StageName() string
+		StageProgressHandler() StageProgressHandler
+		VariableHandler() VariableHandler
+		Context() Context
 	}
 
 	StageDefinitionFn      = func(StageContext) (any, StageError)
 	CompensateDefinitionFn = func(CompensationContext) StageError
 	CancelDefinitionFn     = func(CancelContext) StageError
 	CompletionDefinitionFn = func(CompletionContext) StageError
+	StageOption            = func(StageOptionParams) StageError
 )

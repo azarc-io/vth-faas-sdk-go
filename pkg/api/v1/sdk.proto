@@ -104,6 +104,15 @@ message SetStageResultRequest {
   StageResult result = 3;
 }
 
+message GetStageStatusRequest {
+  string job_key = 1;
+  string name = 2;
+}
+
+message GetStageStatusResponse {
+  StageStatus status = 1;
+}
+
 /************************************************************************/
 /* VARIABLE
 /************************************************************************/
@@ -144,6 +153,7 @@ service AgentService {
 /************************************************************************/
 
 service ManagerService {
+  rpc GetStageStatus(GetStageStatusRequest) returns (GetStageStatusResponse);
   rpc SetStageStatus(SetStageStatusRequest) returns (Void);
 
   rpc GetStageResult(GetStageResultRequest) returns (GetStageResultResponse);

@@ -4,7 +4,7 @@ import (
 	"github.com/azarc-io/vth-faas-sdk-go/internal/context"
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/api"
 	sdk_errors "github.com/azarc-io/vth-faas-sdk-go/pkg/errors"
-	"testing"
+	"github.com/rs/zerolog"
 )
 
 type Option = func(je *JobWorker) *JobWorker
@@ -27,9 +27,10 @@ type JobWorker struct {
 	job                  api.Job
 	variableHandler      api.VariableHandler
 	stageProgressHandler api.StageProgressHandler
+	log                  zerolog.Logger
 }
 
-func NewJobWorker(job api.Job, options ...Option) (*JobWorker, error) {
+func NewJobWorker(job api.Job, options ...Option) (api.JobWorker, error) {
 	jw := &JobWorker{job: job}
 	for _, opt := range options {
 		jw = opt(jw)
@@ -40,26 +41,20 @@ func NewJobWorker(job api.Job, options ...Option) (*JobWorker, error) {
 	return jw, nil
 }
 
-// TODO return a test worker and expose the Execute methd
-func NewTestJobWorker(t *testing.T, job api.Job, options ...Option) (*JobTestWorker, error) {
-	return nil, nil
-}
-
-func (j JobWorker) validate() error {
-	if j.variableHandler == nil {
+func (w JobWorker) validate() error {
+	if w.variableHandler == nil {
 		// TODO do not return an error use the default handler which is the GRPC handler
 		return sdk_errors.VariableHandlerRequired
 	}
-	if j.stageProgressHandler == nil {
+	if w.stageProgressHandler == nil {
 		// TODO do not return an error use the default handler which is the GRPC handler
 		return sdk_errors.StageProgressHandlerRequired
 	}
 	return nil
 }
 
-// TODO need to hide that from the user in production
-// can only be called by the user in testing
-func (j JobWorker) Run(metadata api.Context) {
-	jobContext := context.NewJobContext(metadata, j.stageProgressHandler, j.variableHandler)
-	j.job.Execute(jobContext)
+func (w JobWorker) Run(metadata api.Context) api.StageError {
+	jobContext := context.NewJobContext(metadata, w.stageProgressHandler, w.variableHandler)
+	w.job.Execute(jobContext)
+	return jobContext.Err()
 }

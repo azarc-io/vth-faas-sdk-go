@@ -106,6 +106,7 @@ var AgentService_ServiceDesc = grpc.ServiceDesc{
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ManagerServiceClient interface {
+	GetStageStatus(ctx context.Context, in *GetStageStatusRequest, opts ...grpc.CallOption) (*GetStageStatusResponse, error)
 	SetStageStatus(ctx context.Context, in *SetStageStatusRequest, opts ...grpc.CallOption) (*Void, error)
 	GetStageResult(ctx context.Context, in *GetStageResultRequest, opts ...grpc.CallOption) (*GetStageResultResponse, error)
 	SetStageResult(ctx context.Context, in *SetStageResultRequest, opts ...grpc.CallOption) (*Void, error)
@@ -121,6 +122,15 @@ type managerServiceClient struct {
 
 func NewManagerServiceClient(cc grpc.ClientConnInterface) ManagerServiceClient {
 	return &managerServiceClient{cc}
+}
+
+func (c *managerServiceClient) GetStageStatus(ctx context.Context, in *GetStageStatusRequest, opts ...grpc.CallOption) (*GetStageStatusResponse, error) {
+	out := new(GetStageStatusResponse)
+	err := c.cc.Invoke(ctx, "/sdk_v1.ManagerService/GetStageStatus", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *managerServiceClient) SetStageStatus(ctx context.Context, in *SetStageStatusRequest, opts ...grpc.CallOption) (*Void, error) {
@@ -190,6 +200,7 @@ func (c *managerServiceClient) RegisterHeartbeats(ctx context.Context, in *Regis
 // All implementations should embed UnimplementedManagerServiceServer
 // for forward compatibility
 type ManagerServiceServer interface {
+	GetStageStatus(context.Context, *GetStageStatusRequest) (*GetStageStatusResponse, error)
 	SetStageStatus(context.Context, *SetStageStatusRequest) (*Void, error)
 	GetStageResult(context.Context, *GetStageResultRequest) (*GetStageResultResponse, error)
 	SetStageResult(context.Context, *SetStageResultRequest) (*Void, error)
@@ -203,6 +214,9 @@ type ManagerServiceServer interface {
 type UnimplementedManagerServiceServer struct {
 }
 
+func (UnimplementedManagerServiceServer) GetStageStatus(context.Context, *GetStageStatusRequest) (*GetStageStatusResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetStageStatus not implemented")
+}
 func (UnimplementedManagerServiceServer) SetStageStatus(context.Context, *SetStageStatusRequest) (*Void, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SetStageStatus not implemented")
 }
@@ -234,6 +248,24 @@ type UnsafeManagerServiceServer interface {
 
 func RegisterManagerServiceServer(s grpc.ServiceRegistrar, srv ManagerServiceServer) {
 	s.RegisterService(&ManagerService_ServiceDesc, srv)
+}
+
+func _ManagerService_GetStageStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetStageStatusRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ManagerServiceServer).GetStageStatus(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sdk_v1.ManagerService/GetStageStatus",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ManagerServiceServer).GetStageStatus(ctx, req.(*GetStageStatusRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _ManagerService_SetStageStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -369,6 +401,10 @@ var ManagerService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "sdk_v1.ManagerService",
 	HandlerType: (*ManagerServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "GetStageStatus",
+			Handler:    _ManagerService_GetStageStatus_Handler,
+		},
 		{
 			MethodName: "SetStageStatus",
 			Handler:    _ManagerService_SetStageStatus_Handler,

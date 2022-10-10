@@ -1,88 +1,53 @@
 package context
 
 import (
-	"context"
+	"fmt"
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/api"
 	sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1"
 	sdk_errors "github.com/azarc-io/vth-faas-sdk-go/pkg/errors"
 )
 
-type JobMetadata struct {
-	jobKey        string
-	correlationId string
-	transactionId string
-	payload       any
+func NewJobContext(metadata api.Context, sph api.StageProgressHandler, vh api.VariableHandler) api.JobContext {
+	m := JobMetadata{metadata.Ctx(), metadata.JobKey(), metadata.CorrelationID(), metadata.TransactionID(), nil}
+	return &Job{metadata: m, stageProgressHandler: sph, variableHandler: vh}
 }
 
-func NewJobMetadata(jobKey, correlationId, transactionId string, payload any) JobMetadata {
-	return JobMetadata{jobKey, correlationId, transactionId, payload}
+func (j *Job) Err() api.StageError {
+	return j.stageErr
 }
 
-func (j JobMetadata) JobKey() string {
-	return j.jobKey
-}
-
-func (j JobMetadata) CorrelationID() string {
-	return j.correlationId
-}
-
-func (j JobMetadata) TransactionID() string {
-	return j.transactionId
-}
-
-type Job struct {
-	ctx                  context.Context
-	metadata             JobMetadata
-	stageProgressHandler api.StageProgressHandler
-	variableHandler      api.VariableHandler
-	stageErr             api.StageError
-}
-
-func NewJobContext(metadata JobMetadata, sph api.StageProgressHandler, vh api.VariableHandler) api.JobContext {
-	return &Job{metadata: metadata, stageProgressHandler: sph, variableHandler: vh}
-}
-
-func (j *Job) Stage(name string, stageDefinitionFn api.StageDefinitionFn) api.StageChain {
-	stage, err := j.getStage(name)
+func (j *Job) Stage(name string, stageDefinitionFn api.StageDefinitionFn, options ...api.StageOption) api.StageChain {
+	for _, option := range options {
+		if err := option(newStageOptionParams(name, j)); err != nil {
+			return j.handleStageError(err)
+		}
+	}
+	err := j.updateStage(j.metadata.jobKey, name, withStageStatus(sdk_v1.StageStatus_StageStarted))
 	if err != nil {
 		return j.handleStageError(err)
 	}
-	switch *stage {
-	case sdk_v1.StageStatus_StagePending:
-		err = j.updateStage(j.metadata.jobKey, name, withStageStatus(sdk_v1.StageStatus_StageStarted))
+
+	stageContext := NewStageContext(j)
+	result, stageErr := stageDefinitionFn(stageContext)
+
+	if stageErr != nil {
+		err = j.updateStage(j.metadata.jobKey, name, withStageError(stageErr))
 		if err != nil {
 			return j.handleStageError(err)
 		}
-
-		stageContext := NewStageContext(j)
-		result, stageErr := stageDefinitionFn(stageContext)
-
-		if stageErr != nil {
-			err = j.updateStage(j.metadata.jobKey, name, withStageError(stageErr))
-			if err != nil {
-				return j.handleStageError(err)
-			}
-			return j.handleStageError(stageErr)
-		}
-		err = j.updateStage(j.metadata.jobKey, name, withStageStatus(sdk_v1.StageStatus_StageCompleted))
-		if err != nil {
-			return j.handleStageError(err)
-		}
-		if result != nil {
-			err = j.stageProgressHandler.SetResult(sdk_v1.NewSetStageResultReq(j.metadata.jobKey, name, result))
-			if err != nil {
-				return j.handleStageError(err)
-			}
-		}
-		// TODO log.debug success
-		return j
-	default:
-		// StageFailed = 3;
-		// StageSkipped = 4;
-		// StageCanceled = 5;
-		// TODO log.info stageName stageStatus
-		return j
+		return j.handleStageError(stageErr)
 	}
+	err = j.updateStage(j.metadata.jobKey, name, withStageStatus(sdk_v1.StageStatus_StageCompleted))
+	if err != nil {
+		return j.handleStageError(err)
+	}
+	if result != nil {
+		err = j.stageProgressHandler.SetResult(sdk_v1.NewSetStageResultReq(j.metadata.jobKey, name, result))
+		if err != nil {
+			return j.handleStageError(err)
+		}
+	}
+	return j
 }
 
 func (j *Job) Complete(completionDefinitionFn api.CompletionDefinitionFn) api.CompleteChain {
@@ -92,8 +57,7 @@ func (j *Job) Complete(completionDefinitionFn api.CompletionDefinitionFn) api.Co
 	}
 	err := j.stageProgressHandler.SetJobStatus(sdk_v1.NewSetJobStatusReq(j.metadata.jobKey, sdk_v1.JobStatus_JobCompletionStarted))
 	if err != nil {
-		// TODO log.error
-		return j
+		return j.handleStageError(err)
 	}
 
 	completionCtx := NewCompleteContext(j)
@@ -167,10 +131,6 @@ func (j *Job) handleStageError(err error) api.StageChain {
 	return j
 }
 
-func (j *Job) getStage(name string) (*sdk_v1.StageStatus, error) {
-	return j.stageProgressHandler.Get(j.metadata.jobKey, name)
-}
-
 type updateStageOption = func(stage *sdk_v1.SetStageStatusRequest) *sdk_v1.SetStageStatusRequest
 
 func withStageStatus(status sdk_v1.StageStatus) updateStageOption {
@@ -200,4 +160,50 @@ func (j *Job) clone() *Job {
 	clone := *j
 	clone.stageErr = nil
 	return &clone
+}
+
+// TODO move
+type stageOptionParams struct {
+	stageName string
+	sph       api.StageProgressHandler
+	vh        api.VariableHandler
+	ctx       api.Context
+}
+
+func (s stageOptionParams) StageName() string {
+	return s.stageName
+}
+
+func (s stageOptionParams) StageProgressHandler() api.StageProgressHandler {
+	return s.sph
+}
+
+func (s stageOptionParams) VariableHandler() api.VariableHandler {
+	return s.vh
+}
+
+func (s stageOptionParams) Context() api.Context {
+	return s.ctx
+}
+
+func newStageOptionParams(stageName string, job *Job) api.StageOptionParams {
+	return stageOptionParams{
+		stageName: stageName,
+		sph:       job.stageProgressHandler,
+		vh:        job.variableHandler,
+		ctx:       job.metadata,
+	}
+}
+
+func WithStageStatus(status sdk_v1.StageStatus) api.StageOption {
+	return func(sop api.StageOptionParams) api.StageError {
+		stageStatus, err := sop.StageProgressHandler().Get(sop.Context().JobKey(), sop.StageName())
+		if err != nil {
+			return sdk_errors.NewStageError(err, sdk_errors.WithErrorType(sdk_v1.ErrorType_Skip)) // TODO confirm if that error type is the right one to return here
+		}
+		if *stageStatus != status {
+			return sdk_errors.NewStageError(fmt.Errorf("conditional stage execution skipped this stage"), sdk_errors.WithErrorType(sdk_v1.ErrorType_Skip)) // TODO confirm if that error type is the right one to return here
+		}
+		return nil
+	}
 }

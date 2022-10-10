@@ -1,3 +1,0 @@
-// verathread will execute/run the jobs via GRPC
-// unit test also need a server/runner that triggers the job
-// the same contract can be used by Rune

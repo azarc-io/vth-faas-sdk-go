@@ -14,11 +14,11 @@ import (
 )
 
 func main() {
-	jobMetadata := context.NewJobMetadata("jobKey", "correlationId", "transactionId", "payload")
+	jobMetadata := context.NewJobMetadata(ctx.Background(), "jobKey", "correlationId", "transactionId", "payload")
 	stageProgressHandler := inmemory.NewMockStageProgressHandler(nil, sdk_v1.NewSetStageStatusReq("jobKey", "stage1", sdk_v1.StageStatus_StagePending))
-	variableHandler := inmemory.NewMockVariableHandler()
-	ctx := context.NewJobContext(jobMetadata, stageProgressHandler, variableHandler)
-	ctx.Stage("stage1", func(stageContext api.StageContext) (any, api.StageError) {
+	variableHandler := inmemory.NewMockVariableHandler(nil)
+	jobContext := context.NewJobContext(jobMetadata, stageProgressHandler, variableHandler)
+	jobContext.Stage("stage1", func(stageContext api.StageContext) (any, api.StageError) {
 		println("stage1 exec")
 		return nil, nil
 	})
@@ -40,7 +40,7 @@ func main() {
 
 type AgentService struct{}
 
-func (a AgentService) ExecuteJob(ctx2 ctx.Context, request *sdk_v1.ExecuteJobRequest) (*sdk_v1.Void, error) {
+func (a AgentService) ExecuteJob(c ctx.Context, request *sdk_v1.ExecuteJobRequest) (*sdk_v1.Void, error) {
 	println("ExecuteJob req!, ", fmt.Sprintf("job: %s, tr: %s, co: %s", request.Key, request.TransactionId, request.CorrelationId))
 	return &sdk_v1.Void{}, nil
 }

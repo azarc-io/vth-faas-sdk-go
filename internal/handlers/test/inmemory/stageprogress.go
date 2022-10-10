@@ -20,10 +20,10 @@ func NewMockStageProgressHandler(t *testing.T, seeds ...any) api.StageProgressHa
 		switch seed.(type) {
 		case *sdk_v1.SetStageStatusRequest:
 			s := seed.(*sdk_v1.SetStageStatusRequest)
-			handler.stages[key(s.JobKey, s.Name)] = s
+			handler.stages[handler.key(s.JobKey, s.Name)] = s
 		case *sdk_v1.SetStageResultRequest:
 			r := seed.(*sdk_v1.SetStageResultRequest)
-			handler.results[key(r.JobKey, r.Name)] = r
+			handler.results[handler.key(r.JobKey, r.Name)] = r
 		default:
 			handler.t.Fatalf("invalid seed type. accepted values are: *sdk_v1.SetStageStatusRequest, *sdk_v1.SetStageResultRequest, but got: %s", reflect.TypeOf(seed).String())
 		}
@@ -32,7 +32,7 @@ func NewMockStageProgressHandler(t *testing.T, seeds ...any) api.StageProgressHa
 }
 
 func (i inMemoryStageProgressHandler) Get(jobKey, name string) (*sdk_v1.StageStatus, error) {
-	if stage, ok := i.stages[key(jobKey, name)]; ok {
+	if stage, ok := i.stages[i.key(jobKey, name)]; ok {
 		return &stage.Status, nil
 	}
 	i.t.Fatalf("stage status no found for params >> jobKey: %s, stageName: %s", jobKey, name)
@@ -40,12 +40,12 @@ func (i inMemoryStageProgressHandler) Get(jobKey, name string) (*sdk_v1.StageSta
 }
 
 func (i inMemoryStageProgressHandler) Set(stageStatus *sdk_v1.SetStageStatusRequest) error {
-	i.stages[key(stageStatus.JobKey, stageStatus.Name)] = stageStatus
+	i.stages[i.key(stageStatus.JobKey, stageStatus.Name)] = stageStatus
 	return nil
 }
 
 func (i inMemoryStageProgressHandler) GetResult(jobKey, name string) (*sdk_v1.StageResult, error) {
-	if variable, ok := i.results[key(jobKey, name)]; ok {
+	if variable, ok := i.results[i.key(jobKey, name)]; ok {
 		return variable.Result, nil
 	}
 	i.t.Fatalf("stage result no found for params >> jobKey: %s, stageName: %s", jobKey, name)
@@ -53,7 +53,7 @@ func (i inMemoryStageProgressHandler) GetResult(jobKey, name string) (*sdk_v1.St
 }
 
 func (i inMemoryStageProgressHandler) SetResult(result *sdk_v1.SetStageResultRequest) error {
-	i.results[key(result.JobKey, result.Name)] = result
+	i.results[i.key(result.JobKey, result.Name)] = result
 	return nil
 }
 
@@ -61,6 +61,6 @@ func (i inMemoryStageProgressHandler) SetJobStatus(jobStatus *sdk_v1.SetJobStatu
 	return nil // TODO add some behaviour here
 }
 
-func key(jobKey, name string) string {
+func (i inMemoryStageProgressHandler) key(jobKey, name string) string {
 	return fmt.Sprintf("%s_%s", jobKey, name)
 }

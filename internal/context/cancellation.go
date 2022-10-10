@@ -14,6 +14,6 @@ func NewCancellationContext(jobCtx *Job) api.CancelContext {
 	return Cancellation{jobContext: jobCtx, Context: jobCtx.metadata}
 }
 
-func (c Cancellation) Stage(name string, sdf api.StageDefinitionFn) api.StageChain {
-	return c.jobContext.Stage(name, sdf)
+func (c Cancellation) Stage(name string, sdf api.StageDefinitionFn, options ...api.StageOption) api.StageChain {
+	return c.jobContext.Stage(name, sdf, options...)
 }

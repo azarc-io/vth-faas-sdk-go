@@ -44,10 +44,10 @@ func NewVariable(name, mimeType string, value any) *Variable {
 	}
 }
 
-func NewSetJobStatusReq(key string, status JobStatus, err ...Error) *SetJobStatusRequest {
+func NewSetJobStatusReq(key string, status JobStatus, err ...*Error) *SetJobStatusRequest {
 	req := &SetJobStatusRequest{Key: key, Status: status}
 	if len(err) > 0 {
-		req.Err = &err[0]
+		req.Err = err[0]
 	}
 	return req
 }
@@ -59,16 +59,24 @@ func NewStageResultReq(jobKey, stageName string) *GetStageResultRequest {
 	}
 }
 
-func NewSetStageStatusReq(jobKey, stageName string, status StageStatus, err ...Error) *SetStageStatusRequest {
+func NewSetStageStatusReq(jobKey, stageName string, status StageStatus, err ...*Error) *SetStageStatusRequest {
 	sssr := &SetStageStatusRequest{
 		Name:   stageName,
 		JobKey: jobKey,
 		Status: status,
 	}
 	if len(err) > 0 {
-		sssr.Err = &err[0]
+		sssr.Err = err[0]
 	}
 	return sssr
+}
+
+func NewGetVariableRequest(name, stage, jobKey string) *GetVariableRequest {
+	return &GetVariableRequest{Name: name, Stage: stage, JobKey: jobKey}
+}
+
+func NewGetStageStatusReq(jobKey, stageName string) *GetStageStatusRequest {
+	return &GetStageStatusRequest{JobKey: jobKey, Name: stageName}
 }
 
 func Ptr[T any](t T) *T {

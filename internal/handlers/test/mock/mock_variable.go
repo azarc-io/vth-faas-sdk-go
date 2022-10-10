@@ -35,22 +35,22 @@ func (m *MockVariableHandler) EXPECT() *MockVariableHandlerMockRecorder {
 }
 
 // Get mocks base method.
-func (m *MockVariableHandler) Get(arg0 string) (*sdk_v1.Variable, error) {
+func (m *MockVariableHandler) Get(arg0, arg1, arg2 string) (*sdk_v1.Variable, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Get", arg0)
+	ret := m.ctrl.Call(m, "Get", arg0, arg1, arg2)
 	ret0, _ := ret[0].(*sdk_v1.Variable)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Get indicates an expected call of Get.
-func (mr *MockVariableHandlerMockRecorder) Get(arg0 interface{}) *gomock.Call {
+func (mr *MockVariableHandlerMockRecorder) Get(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockVariableHandler)(nil).Get), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockVariableHandler)(nil).Get), arg0, arg1, arg2)
 }
 
 // Set mocks base method.
-func (m *MockVariableHandler) Set(arg0 *sdk_v1.Variable) error {
+func (m *MockVariableHandler) Set(arg0 *sdk_v1.SetVariableRequest) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Set", arg0)
 	ret0, _ := ret[0].(error)

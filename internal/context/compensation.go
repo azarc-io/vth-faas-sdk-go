@@ -15,19 +15,14 @@ func NewCompensationContext(jobCtx *Job) api.CompensationContext {
 	return Compensation{jobContext: jobCtx, Context: jobCtx.metadata}
 }
 
-func (c Compensation) Stage(name string, sdf api.StageDefinitionFn) api.StageChain {
-	return c.jobContext.Stage(name, sdf)
+func (c Compensation) Stage(name string, sdf api.StageDefinitionFn, options ...api.StageOption) api.StageChain {
+	return c.jobContext.Stage(name, sdf, options...)
 }
 
-func (c Compensation) WithStageStatus(names []string, value any) bool {
-	//TODO implement me // TODO <<<<<<<<<<<<< don't forget this
-	panic("implement me")
+func (c Compensation) GetVariable(name, stage string) (*sdk_v1.Variable, error) {
+	return c.jobContext.variableHandler.Get(name, stage, c.JobKey())
 }
 
-func (c Compensation) GetVariable(s string) (*sdk_v1.Variable, error) {
-	return c.jobContext.variableHandler.Get(s)
-}
-
-func (c Compensation) SetVariable(name string, value any, mimeType string) error {
-	return c.jobContext.variableHandler.Set(sdk_v1.NewVariable(name, mimeType, value))
+func (c Compensation) SetVariable(variable *sdk_v1.SetVariableRequest) error {
+	return c.jobContext.variableHandler.Set(variable)
 }

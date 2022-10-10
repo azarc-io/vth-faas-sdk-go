@@ -16,7 +16,7 @@ func newMockJobContext(t *testing.T) (api.JobContext, func(), *mock.MockStagePro
 	mockCtrl := gomock.NewController(t)
 	stageProgressHandlerMock := mock.NewMockStageProgressHandler(mockCtrl)
 	variableHandlerMock := mock.NewMockVariableHandler(mockCtrl)
-	jobMetadata := context.NewJobMetadata("jobKey", "correlationId", "transactionId", "payload")
+	jobMetadata := context.NewJobMetadata(nil, "jobKey", "correlationId", "transactionId", "payload")
 	jobContext := context.NewJobContext(jobMetadata, stageProgressHandlerMock, variableHandlerMock)
 	return jobContext, mockCtrl.Finish, stageProgressHandlerMock, variableHandlerMock
 }
@@ -29,7 +29,6 @@ func TestRunSingleStageWithSuccess(t *testing.T) {
 	jobContext, mockCtrlFinish, stageProgressHandler, _ := newMockJobContext(t)
 	defer mockCtrlFinish()
 
-	stageProgressHandler.EXPECT().Get("jobKey", "stage1").Return(sdk_v1.Ptr(sdk_v1.StageStatus_StagePending), nil)
 	stageProgressHandler.EXPECT().Set(sdk_v1.NewSetStageStatusReq("jobKey", "stage1", sdk_v1.StageStatus_StageStarted))
 	stageProgressHandler.EXPECT().Set(sdk_v1.NewSetStageStatusReq("jobKey", "stage1", sdk_v1.StageStatus_StageCompleted))
 
@@ -39,7 +38,7 @@ func TestRunSingleStageWithSuccess(t *testing.T) {
 }
 
 func TestStageBuilder(t *testing.T) {
-	jobMetadata := context.NewJobMetadata("jobKey", "correlationId", "transactionId", "payload")
+	jobMetadata := context.NewJobMetadata(nil, "jobKey", "correlationId", "transactionId", "payload")
 	stageProgressHandler := inmemory.NewMockStageProgressHandler(t,
 		sdk_v1.NewSetStageStatusReq("jobKey", "stage1", sdk_v1.StageStatus_StagePending),
 		sdk_v1.NewSetStageStatusReq("jobKey", "compensate_stage1", sdk_v1.StageStatus_StagePending),
@@ -49,9 +48,8 @@ func TestStageBuilder(t *testing.T) {
 		sdk_v1.NewSetStageStatusReq("jobKey", "compensate_compensate_stage2", sdk_v1.StageStatus_StagePending),
 		sdk_v1.NewSetStageStatusReq("jobKey", "compensate_compensate_compensate_stage1", sdk_v1.StageStatus_StagePending),
 	)
-	variableHandler := inmemory.NewMockVariableHandler()
+	variableHandler := inmemory.NewMockVariableHandler(t)
 	jobContext := context.NewJobContext(jobMetadata, stageProgressHandler, variableHandler)
-
 	jobContext.Stage("stage1", func(context api.StageContext) (any, api.StageError) {
 		println("---- stage1")
 		return nil, sdk_errors.NewStageError(errors.New("err"))
@@ -98,30 +96,23 @@ func TestStageBuilderMock(t *testing.T) {
 	stageProgressHandlerMock := mock.NewMockStageProgressHandler(mockCtrl)
 	variableHandlerMock := mock.NewMockVariableHandler(mockCtrl)
 
-	jobMetadata := context.NewJobMetadata("jobKey", "correlationId", "transactionId", "payload")
+	jobMetadata := context.NewJobMetadata(nil, "jobKey", "correlationId", "transactionId", "payload")
 
-	stageProgressHandlerMock.EXPECT().Get("jobKey", "stage1").Return(sdk_v1.Ptr(sdk_v1.StageStatus_StagePending), nil)
 	stageProgressHandlerMock.EXPECT().Set(sdk_v1.NewSetStageStatusReq("jobKey", "stage1", sdk_v1.StageStatus_StageStarted)).Return(nil)
-	stageProgressHandlerMock.EXPECT().Set(sdk_v1.NewSetStageStatusReq("jobKey", "stage1", sdk_v1.StageStatus_StageFailed, sdk_v1.Error{Error: "err", ErrorCode: 0, ErrorType: sdk_v1.ErrorType_Failed})).Return(nil)
+	stageProgressHandlerMock.EXPECT().Set(sdk_v1.NewSetStageStatusReq("jobKey", "stage1", sdk_v1.StageStatus_StageFailed, &sdk_v1.Error{Error: "err", ErrorCode: 0, ErrorType: sdk_v1.ErrorType_Failed})).Return(nil)
 	stageProgressHandlerMock.EXPECT().SetJobStatus(sdk_v1.NewSetJobStatusReq("jobKey", sdk_v1.JobStatus_JobCompensationStarted)).Return(nil)
-	stageProgressHandlerMock.EXPECT().Get("jobKey", "compensate_stage1").Return(sdk_v1.Ptr(sdk_v1.StageStatus_StagePending), nil)
 	stageProgressHandlerMock.EXPECT().Set(sdk_v1.NewSetStageStatusReq("jobKey", "compensate_stage1", sdk_v1.StageStatus_StageStarted)).Return(nil)
 	stageProgressHandlerMock.EXPECT().Set(sdk_v1.NewSetStageStatusReq("jobKey", "compensate_stage1", sdk_v1.StageStatus_StageCompleted)).Return(nil)
-	stageProgressHandlerMock.EXPECT().Get("jobKey", "compensate_stage2").Return(sdk_v1.Ptr(sdk_v1.StageStatus_StagePending), nil)
 	stageProgressHandlerMock.EXPECT().Set(sdk_v1.NewSetStageStatusReq("jobKey", "compensate_stage2", sdk_v1.StageStatus_StageStarted)).Return(nil)
 	stageProgressHandlerMock.EXPECT().Set(sdk_v1.NewSetStageStatusReq("jobKey", "compensate_stage2", sdk_v1.StageStatus_StageCompleted)).Return(nil)
-	stageProgressHandlerMock.EXPECT().Get("jobKey", "compensate_stage3").Return(sdk_v1.Ptr(sdk_v1.StageStatus_StagePending), nil)
 	stageProgressHandlerMock.EXPECT().Set(sdk_v1.NewSetStageStatusReq("jobKey", "compensate_stage3", sdk_v1.StageStatus_StageStarted)).Return(nil)
-	stageProgressHandlerMock.EXPECT().Set(sdk_v1.NewSetStageStatusReq("jobKey", "compensate_stage3", sdk_v1.StageStatus_StageFailed, sdk_v1.Error{Error: "as", ErrorCode: 0, ErrorType: sdk_v1.ErrorType_Failed})).Return(nil)
+	stageProgressHandlerMock.EXPECT().Set(sdk_v1.NewSetStageStatusReq("jobKey", "compensate_stage3", sdk_v1.StageStatus_StageFailed, &sdk_v1.Error{Error: "as", ErrorCode: 0, ErrorType: sdk_v1.ErrorType_Failed})).Return(nil)
 	stageProgressHandlerMock.EXPECT().SetJobStatus(sdk_v1.NewSetJobStatusReq("jobKey", sdk_v1.JobStatus_JobCompensationStarted)).Return(nil)
-	stageProgressHandlerMock.EXPECT().Get("jobKey", "compensate_compensate_stage1").Return(sdk_v1.Ptr(sdk_v1.StageStatus_StagePending), nil)
 	stageProgressHandlerMock.EXPECT().Set(sdk_v1.NewSetStageStatusReq("jobKey", "compensate_compensate_stage1", sdk_v1.StageStatus_StageStarted)).Return(nil)
 	stageProgressHandlerMock.EXPECT().Set(sdk_v1.NewSetStageStatusReq("jobKey", "compensate_compensate_stage1", sdk_v1.StageStatus_StageCompleted)).Return(nil)
-	stageProgressHandlerMock.EXPECT().Get("jobKey", "compensate_compensate_stage2").Return(sdk_v1.Ptr(sdk_v1.StageStatus_StagePending), nil)
 	stageProgressHandlerMock.EXPECT().Set(sdk_v1.NewSetStageStatusReq("jobKey", "compensate_compensate_stage2", sdk_v1.StageStatus_StageStarted)).Return(nil)
-	stageProgressHandlerMock.EXPECT().Set(sdk_v1.NewSetStageStatusReq("jobKey", "compensate_compensate_stage2", sdk_v1.StageStatus_StageFailed, sdk_v1.Error{Error: "as", ErrorCode: 0, ErrorType: sdk_v1.ErrorType_Failed})).Return(nil)
+	stageProgressHandlerMock.EXPECT().Set(sdk_v1.NewSetStageStatusReq("jobKey", "compensate_compensate_stage2", sdk_v1.StageStatus_StageFailed, &sdk_v1.Error{Error: "as", ErrorCode: 0, ErrorType: sdk_v1.ErrorType_Failed})).Return(nil)
 	stageProgressHandlerMock.EXPECT().SetJobStatus(sdk_v1.NewSetJobStatusReq("jobKey", sdk_v1.JobStatus_JobCompensationStarted)).Return(nil)
-	stageProgressHandlerMock.EXPECT().Get("jobKey", "compensate_compensate_compensate_stage1").Return(sdk_v1.Ptr(sdk_v1.StageStatus_StagePending), nil)
 	stageProgressHandlerMock.EXPECT().Set(sdk_v1.NewSetStageStatusReq("jobKey", "compensate_compensate_compensate_stage1", sdk_v1.StageStatus_StageStarted)).Return(nil)
 	stageProgressHandlerMock.EXPECT().Set(sdk_v1.NewSetStageStatusReq("jobKey", "compensate_compensate_compensate_stage1", sdk_v1.StageStatus_StageCompleted)).Return(nil)
 	stageProgressHandlerMock.EXPECT().SetJobStatus(sdk_v1.NewSetJobStatusReq("jobKey", sdk_v1.JobStatus_JobCompensationDone)).Return(nil)
@@ -169,11 +160,13 @@ func TestStageBuilderMock(t *testing.T) {
 }
 
 type InitExecutor struct {
-	m map[string]int
+	m map[string]uint
 }
 
+var _ api.Job = &InitExecutor{}
+
 func NewInitExecutor() InitExecutor {
-	return InitExecutor{map[string]int{}}
+	return InitExecutor{map[string]uint{}}
 }
 
 func (i *InitExecutor) Execute(ctx api.JobContext) {
@@ -181,13 +174,14 @@ func (i *InitExecutor) Execute(ctx api.JobContext) {
 		i.m["stage1"] += 1
 		return nil, nil
 	})
+	return
 }
 
 func TestInitialization(t *testing.T) {
 	newCxt := func() api.JobContext {
-		jobMetadata := context.NewJobMetadata("jobKey", "correlationId", "transactionId", "payload")
+		jobMetadata := context.NewJobMetadata(nil, "jobKey", "correlationId", "transactionId", "payload")
 		stageProgressHandler := inmemory.NewMockStageProgressHandler(t, sdk_v1.NewSetStageStatusReq("jobKey", "stage1", sdk_v1.StageStatus_StagePending))
-		variableHandler := inmemory.NewMockVariableHandler()
+		variableHandler := inmemory.NewMockVariableHandler(t)
 		return context.NewJobContext(jobMetadata, stageProgressHandler, variableHandler)
 	}
 
@@ -210,4 +204,47 @@ func TestInitialization(t *testing.T) {
 	ctx := newCxt()
 	initExecutor.Execute(ctx) // panic: assignment to entry in nil map
 	t.Fatal("should have panicked because the map in the executor isn't initialized")
+}
+
+func TestShouldTriggerConditionalStageExecution(t *testing.T) {
+	jobContext, mockCtrlFinish, stageProgressHandler, _ := newMockJobContext(t)
+	defer mockCtrlFinish()
+
+	stageProgressHandler.EXPECT().Get("jobKey", "stage1").Return(sdk_v1.Ptr(sdk_v1.StageStatus_StagePending), nil)
+	stageProgressHandler.EXPECT().Set(sdk_v1.NewSetStageStatusReq("jobKey", "stage1", sdk_v1.StageStatus_StageStarted))
+	stageProgressHandler.EXPECT().Set(sdk_v1.NewSetStageStatusReq("jobKey", "stage1", sdk_v1.StageStatus_StageCompleted))
+
+	var executed bool
+
+	jobContext.Stage("stage1", func(context api.StageContext) (any, api.StageError) {
+		executed = true
+		return nil, nil
+	}, context.WithStageStatus(sdk_v1.StageStatus_StagePending))
+
+	if !executed {
+		t.Error("conditional stage execution should be triggered")
+	}
+}
+
+func TestShouldSkipConditionalStageExecution(t *testing.T) {
+	jobContext, mockCtrlFinish, stageProgressHandler, _ := newMockJobContext(t)
+	defer mockCtrlFinish()
+
+	stageProgressHandler.EXPECT().Get("jobKey", "stage1").Return(sdk_v1.Ptr(sdk_v1.StageStatus_StagePending), nil)
+
+	var executed bool
+
+	jobContext.Stage("stage1", func(context api.StageContext) (any, api.StageError) {
+		executed = true
+		return nil, nil
+	}, context.WithStageStatus(sdk_v1.StageStatus_StageCanceled))
+
+	if executed {
+		t.Error("conditional stage execution should be skipped")
+	}
+
+	if jobContext.Err().Error() != "conditional stage execution skipped this stage" {
+		t.Errorf("error message expected: '%s'; got: '%s'", "conditional stage execution skipped this stage", jobContext.Err().Error())
+	}
+
 }

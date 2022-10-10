@@ -1,29 +1,28 @@
 package test
 
 import (
+	"context"
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/api"
 	sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1"
-	sdk_errors "github.com/azarc-io/vth-faas-sdk-go/pkg/errors"
 )
 
-// TODO implement the DEFAULT GRPC handler
-
-type inMemoryVariableHandler struct {
-	variables map[string]*sdk_v1.Variable
+type GrpcVariableHandler struct {
+	client sdk_v1.ManagerServiceClient
 }
 
-func NewMockVariableHandler() api.VariableHandler {
-	return inMemoryVariableHandler{variables: make(map[string]*sdk_v1.Variable)}
+func NewGrpcVariableHandler() api.VariableHandler {
+	return GrpcVariableHandler{}
 }
 
-func (i inMemoryVariableHandler) Get(name string) (*sdk_v1.Variable, error) {
-	if variable, ok := i.variables[name]; ok {
-		return variable, nil
+func (g GrpcVariableHandler) Set(req *sdk_v1.SetVariableRequest) error {
+	_, err := g.client.SetVariable(context.Background(), req)
+	return err
+}
+
+func (g GrpcVariableHandler) Get(name, stage, jobKey string) (*sdk_v1.Variable, error) {
+	variable, err := g.client.GetVariable(context.Background(), sdk_v1.NewGetVariableRequest(name, stage, jobKey))
+	if err != nil {
+		return nil, err
 	}
-	return nil, sdk_errors.VariableNotFound
-}
-
-func (i inMemoryVariableHandler) Set(variable *sdk_v1.Variable) error {
-	i.variables[variable.Name] = variable
-	return nil
+	return variable.Variable, nil
 }

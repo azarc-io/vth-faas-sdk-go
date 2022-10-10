@@ -1,36 +1,72 @@
 package test
 
 import (
+	"context"
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/api"
 	sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1"
-	sdk_errors "github.com/azarc-io/vth-faas-sdk-go/pkg/errors"
 )
 
-// TODO implement the DEFAULT GRPC handler
-// this must also trigger the spark execution
-type inMemoryStageProgressHandler struct {
-	stages map[string]*sdk_v1.Stage
+type GrpcStageProgressHandler struct {
+	client sdk_v1.ManagerServiceClient
 }
 
-func NewMockStageProgressHandler(stages ...*sdk_v1.Stage) api.StageProgressHandler {
-	handler := inMemoryStageProgressHandler{map[string]*sdk_v1.Stage{}}
-	if stages == nil {
-		return handler
-	}
-	for _, stage := range stages {
-		handler.stages[stage.Name] = stage
-	}
-	return handler
+func NewGrpcStageProgressHandler(client sdk_v1.ManagerServiceClient) api.StageProgressHandler {
+	return &GrpcStageProgressHandler{client: client}
 }
 
-func (i inMemoryStageProgressHandler) Get(name string) (*sdk_v1.Stage, error) {
-	if variable, ok := i.stages[name]; ok {
-		return variable, nil
-	}
-	return nil, sdk_errors.VariableNotFound
+func (g *GrpcStageProgressHandler) Get(jobKey, name string) (*sdk_v1.StageStatus, error) {
+	resp, err := g.client.GetStageStatus(context.Background(), sdk_v1.NewGetStageStatusReq(jobKey, name))
+	return &resp.Status, err
 }
 
-func (i inMemoryStageProgressHandler) Set(stage *sdk_v1.Stage) error {
-	i.stages[stage.Name] = stage
-	return nil
+func (g *GrpcStageProgressHandler) Set(stageStatus *sdk_v1.SetStageStatusRequest) error { //TODO receive ctx
+	_, err := g.client.SetStageStatus(context.Background(), stageStatus)
+	return err
 }
+
+func (g *GrpcStageProgressHandler) GetResult(jobKey, name string) (*sdk_v1.StageResult, error) { //TODO receive ctx
+	result, err := g.client.GetStageResult(context.Background(), sdk_v1.NewStageResultReq(jobKey, name))
+	return result.Result, err
+}
+
+func (g *GrpcStageProgressHandler) SetResult(result *sdk_v1.SetStageResultRequest) error { //TODO receive ctx
+	_, err := g.client.SetStageResult(context.Background(), result)
+	return err
+}
+
+func (g *GrpcStageProgressHandler) SetJobStatus(jobStatus *sdk_v1.SetJobStatusRequest) error { //TODO receive ctx
+	_, err := g.client.SetJobStatus(context.Background(), jobStatus)
+	return err
+}
+
+//func (g *GrpcStageProgressHandler) initialize() error {
+//	if err := g.validate(); err != nil {
+//		return err
+//	}
+//	if err := g.createClient(); err != nil {
+//		return err
+//	}
+//	return nil
+//}
+//
+//func (g *GrpcStageProgressHandler) validate() error {
+//	if g.config == nil {
+//		return errors.New("a config is required in grpc stage progress handler")
+//	}
+//	return nil
+//}
+//
+//func (g *GrpcStageProgressHandler) createClient() error {
+//	var err error
+//	g.client, err = CreateManagerServiceClient(g.config)
+//	return err
+//}
+
+//type Option func(handler GrpcStageProgressHandler) GrpcStageProgressHandler
+//
+//func WithConfig(config *config.Config) Option {
+//	return func(handler GrpcStageProgressHandler) GrpcStageProgressHandler {
+//		handler.config = config
+//		return handler
+//	}
+//}
