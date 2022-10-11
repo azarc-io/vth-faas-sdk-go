@@ -15,6 +15,8 @@ message Error {
   string error = 1;
   uint32 error_code = 2;
   ErrorType error_type = 3;
+  optional google.protobuf.Value metadata = 4;
+  optional RetryStrategy retry = 5;
 }
 
 message RetryStrategy {
@@ -74,14 +76,18 @@ message ExecuteJobRequest {
   LastActiveStage last_active_stage = 4;
 }
 
+message ExecuteJobResponse {
+  string agent_id = 1;
+}
+
 message SetJobStatusRequest {
   string key = 1;
   JobStatus status = 2;
   optional Error err = 3;
 }
 
-message RegisterHeartbeatsRequest {
-  repeated string job_keys = 1;
+message RegisterHeartbeatRequest {
+  string agent_id = 1;
 }
 
 /************************************************************************/
@@ -154,7 +160,7 @@ message SetVariablesRequest {
 /************************************************************************/
 
 service AgentService {
-  rpc ExecuteJob(ExecuteJobRequest) returns (Void);
+  rpc ExecuteJob(ExecuteJobRequest) returns (ExecuteJobResponse);
 }
 
 /************************************************************************/
@@ -172,5 +178,5 @@ service ManagerService {
   rpc SetVariables(SetVariablesRequest) returns (Void);
 
   rpc SetJobStatus(SetJobStatusRequest) returns (Void);
-  rpc RegisterHeartbeats(RegisterHeartbeatsRequest) returns (Void);
+  rpc RegisterHeartbeat(RegisterHeartbeatRequest) returns (Void);
 }

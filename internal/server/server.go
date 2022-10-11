@@ -5,6 +5,7 @@ import (
 	api_ctx "github.com/azarc-io/vth-faas-sdk-go/internal/context"
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/api"
 	sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1"
+	"github.com/azarc-io/vth-faas-sdk-go/pkg/config"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -13,11 +14,12 @@ import (
 )
 
 type Server struct {
+	config *config.Config
 	worker api.JobWorker
 }
 
-func NewServer(worker api.JobWorker) *Server {
-	return &Server{worker: worker}
+func NewServer(cfg *config.Config, worker api.JobWorker) *Server {
+	return &Server{config: cfg, worker: worker}
 }
 
 func (s Server) Start() error {
@@ -44,12 +46,15 @@ func (s Server) Start() error {
 	return nil
 }
 
-func (s Server) ExecuteJob(ctx context.Context, request *sdk_v1.ExecuteJobRequest) (*sdk_v1.Void, error) {
+func (s Server) ExecuteJob(ctx context.Context, request *sdk_v1.ExecuteJobRequest) (*sdk_v1.ExecuteJobResponse, error) {
 	jobContext := api_ctx.NewJobMetadata(ctx, request.Key, request.CorrelationId, request.TransactionId, nil)
-	err := s.worker.Run(jobContext)
-	if err != nil {
+	go func() { // TODO goroutine pool
+		err := s.worker.Run(jobContext)
+		if err != nil {
+			// we don't care about this error here, it is being sent to the manager service via grpc calls to update the job status
+			// TODO fix me
+		}
+	}()
 
-		return nil, err
-	}
-	return &sdk_v1.Void{}, nil
+	return &sdk_v1.ExecuteJobResponse{AgentId: s.config.App.InstanceId}, nil
 }

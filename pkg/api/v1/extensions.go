@@ -119,7 +119,7 @@ var serdesMap = map[string]serdes{
 				if err != nil {
 					return nil, err
 				}
-				v := map[string]interface{}{}
+				v := map[string]any{}
 				err = json.Unmarshal(b, &v)
 				if err != nil {
 					return nil, err

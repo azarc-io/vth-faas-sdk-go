@@ -3,6 +3,7 @@ package config
 import (
 	"context"
 	"fmt"
+	"github.com/lithammer/shortuuid/v4"
 	"github.com/sethvargo/go-envconfig"
 	"time"
 )
@@ -11,6 +12,7 @@ type Config struct {
 	App struct {
 		Environment string `env:"APP_ENVIRONMENT,required"`
 		Component   string `env:"APP_COMPONENT,default=job_worker"`
+		InstanceId  string
 	}
 	Log struct {
 		Level string `env:"LOG_LEVEL,default=info"`
@@ -23,13 +25,13 @@ type Config struct {
 
 type ManagerService struct {
 	Host         string        `env:"AGENT_SERVER_PORT,required"`
-	Port         string        `env:"AGENT_SERVER_PORT,required"`
+	Port         int           `env:"AGENT_SERVER_PORT,required"`
 	RetryBackoff time.Duration `env:"AGENT_RETRY_BACKOFF_DURATION,default="`
 	MaxRetries   int           `env:"AGENT_RETRY_ATTEMPTS,default=20"`
 }
 
 func (m ManagerService) HostPort() string {
-	return fmt.Sprintf("%s:%s", m.Host, m.Port)
+	return fmt.Sprintf("%s:%d", m.Host, m.Port)
 }
 
 func New() (*Config, error) {
@@ -48,5 +50,6 @@ func NewMock(mapper map[string]string) (*Config, error) {
 		fmt.Printf("error loading configuration: %s", err.Error())
 		return nil, err
 	}
+	config.App.InstanceId = shortuuid.New()
 	return config, nil
 }

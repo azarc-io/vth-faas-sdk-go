@@ -9,6 +9,7 @@ import (
 	"github.com/azarc-io/vth-faas-sdk-go/internal/worker"
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/api"
 	sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1"
+	"github.com/azarc-io/vth-faas-sdk-go/pkg/config"
 	sdk_errors "github.com/azarc-io/vth-faas-sdk-go/pkg/errors"
 	"github.com/golang/mock/gomock"
 	"strings"
@@ -333,7 +334,11 @@ func TestJobWorker(t *testing.T) {
 	stageProgressHandler := inmemory.NewMockStageProgressHandler(t, sdk_v1.NewSetStageStatusReq("jobKey", "stage1", sdk_v1.StageStatus_StagePending))
 	variablesHandler := inmemory.NewMockVariableHandler(t)
 	job := NewInitExecutor()
-	jobWorker, err := worker.NewJobWorker(job, worker.WithStageProgressHandler(stageProgressHandler), worker.WithVariableHandler(variablesHandler))
+	cfg, err := config.NewMock(map[string]string{"APP_ENVIRONMENT": "test", "AGENT_SERVER_PORT": "0"})
+	if err != nil {
+		t.Error(err)
+	}
+	jobWorker, err := worker.NewJobWorker(cfg, job, worker.WithStageProgressHandler(stageProgressHandler), worker.WithVariableHandler(variablesHandler))
 	if err != nil {
 		t.Error("error instantiating the job worker: ", err)
 	}

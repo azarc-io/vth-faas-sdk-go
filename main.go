@@ -7,6 +7,7 @@ import (
 	"github.com/azarc-io/vth-faas-sdk-go/internal/handlers/test/inmemory"
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/api"
 	sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1"
+	"github.com/lithammer/shortuuid/v4"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 	"net"
@@ -40,7 +41,7 @@ func main() {
 
 type AgentService struct{}
 
-func (a AgentService) ExecuteJob(c ctx.Context, request *sdk_v1.ExecuteJobRequest) (*sdk_v1.Void, error) {
-	println("ExecuteJob req!, ", fmt.Sprintf("job: %s, tr: %s, co: %s", request.Key, request.TransactionId, request.CorrelationId))
-	return &sdk_v1.Void{}, nil
+func (a AgentService) ExecuteJob(c ctx.Context, req *sdk_v1.ExecuteJobRequest) (*sdk_v1.ExecuteJobResponse, error) {
+	println("ExecuteJob req!, ", fmt.Sprintf("job: %s, tr: %s, co: %s", req.Key, req.TransactionId, req.CorrelationId))
+	return &sdk_v1.ExecuteJobResponse{AgentId: shortuuid.New()}, nil
 }

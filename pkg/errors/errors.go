@@ -4,14 +4,13 @@ import (
 	"encoding/json"
 	"errors"
 	sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 var (
-	StageDoesNotExist            = errors.New("stage does not exists")
-	BindValueFailed              = errors.New("bind value failed")
-	VariableNotFound             = errors.New("variable not found")
-	VariableHandlerRequired      = errors.New("a variable handler is required to create a new job worker")
-	StageProgressHandlerRequired = errors.New("a stage progress handler is required to create a new job worker")
+	StageDoesNotExist = errors.New("stage does not exists")
+	BindValueFailed   = errors.New("bind value failed")
+	VariableNotFound  = errors.New("variable not found")
 
 	ErrorTypeToStageStatusMapper = map[sdk_v1.ErrorType]sdk_v1.StageStatus{
 		sdk_v1.ErrorType_Retry:    sdk_v1.StageStatus_StageFailed,
@@ -28,6 +27,12 @@ type Stage struct {
 	errorType sdk_v1.ErrorType
 	errorCode uint32
 	metadata  map[string]any
+	retry     *RetryConfig
+}
+
+type RetryConfig struct {
+	times         uint
+	backoffMillis uint
 }
 
 func NewStageError(err error, opts ...Option) *Stage {
@@ -50,16 +55,23 @@ func (s *Stage) Error() string {
 	return s.err.Error()
 }
 
-func (s *Stage) Metadata() map[string]interface{} {
+func (s *Stage) Metadata() map[string]any {
 	return s.metadata
 }
 
 func (s *Stage) ToErrorMessage() *sdk_v1.Error {
-	return &sdk_v1.Error{
+	err := &sdk_v1.Error{
 		Error:     s.err.Error(),
 		ErrorCode: s.errorCode,
 		ErrorType: s.errorType,
 	}
+	if s.metadata != nil {
+		err.Metadata, _ = structpb.NewValue(s.metadata)
+	}
+	if s.retry != nil {
+		err.Retry = &sdk_v1.RetryStrategy{Backoff: uint32(s.retry.backoffMillis), Count: uint32(s.retry.times)}
+	}
+	return err
 }
 
 func WithErrorType(errorType sdk_v1.ErrorType) Option {
@@ -83,11 +95,18 @@ func WithMetadata(metadata any) Option {
 	}
 }
 
+func WithRetry(times, backoffMillis uint) Option {
+	return func(err *Stage) *Stage {
+		err.retry = &RetryConfig{times, backoffMillis}
+		return err
+	}
+}
+
 func (s *Stage) parseMetadata(metadata any) {
 	m := map[string]any{}
 	if metadata != nil {
-		mdBytes, _ := json.Marshal(metadata) // TODO handle error - log at least
-		_ = json.Unmarshal(mdBytes, &m)      // TODO handle error - log at least
+		mdBytes, _ := json.Marshal(metadata)
+		_ = json.Unmarshal(mdBytes, &m)
 	}
 	s.metadata = m
 }

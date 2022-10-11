@@ -2,8 +2,9 @@ package worker
 
 import (
 	"github.com/azarc-io/vth-faas-sdk-go/internal/context"
+	grpc_handler "github.com/azarc-io/vth-faas-sdk-go/internal/handlers/grpc"
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/api"
-	sdk_errors "github.com/azarc-io/vth-faas-sdk-go/pkg/errors"
+	"github.com/azarc-io/vth-faas-sdk-go/pkg/config"
 	"github.com/rs/zerolog"
 )
 
@@ -24,14 +25,15 @@ func WithStageProgressHandler(sph api.StageProgressHandler) Option {
 }
 
 type JobWorker struct {
+	config               *config.Config
 	job                  api.Job
 	variableHandler      api.VariableHandler
 	stageProgressHandler api.StageProgressHandler
 	log                  zerolog.Logger
 }
 
-func NewJobWorker(job api.Job, options ...Option) (api.JobWorker, error) {
-	jw := &JobWorker{job: job}
+func NewJobWorker(cfg *config.Config, job api.Job, options ...Option) (api.JobWorker, error) {
+	jw := &JobWorker{config: cfg, job: job}
 	for _, opt := range options {
 		jw = opt(jw)
 	}
@@ -47,12 +49,14 @@ func NewJobWorker(job api.Job, options ...Option) (api.JobWorker, error) {
 
 func (w JobWorker) validate() error {
 	if w.variableHandler == nil {
-		// TODO do not return an error use the default handler which is the GRPC handler
-		return sdk_errors.VariableHandlerRequired
+		w.variableHandler = grpc_handler.NewGrpcVariableHandler()
 	}
 	if w.stageProgressHandler == nil {
-		// TODO do not return an error use the default handler which is the GRPC handler
-		return sdk_errors.StageProgressHandlerRequired
+		client, err := grpc_handler.CreateManagerServiceClient(w.config)
+		if err != nil {
+			return err
+		}
+		w.stageProgressHandler = grpc_handler.NewGrpcStageProgressHandler(client)
 	}
 	return nil
 }

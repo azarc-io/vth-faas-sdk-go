@@ -13,26 +13,6 @@ type validatorContext struct {
 	stageNameCounter map[string]uint
 }
 
-func (v validatorContext) Initialize() error {
-	return nil
-}
-
-func (v validatorContext) Execute(jobContext api.JobContext) {
-
-}
-
-func (v validatorContext) GetStageResult(stageName string) (*sdk_v1.StageResult, error) {
-	return nil, nil
-}
-
-func (v validatorContext) GetVariables(stage string, names ...string) ([]*sdk_v1.Variable, error) {
-	return nil, nil
-}
-
-func (v validatorContext) SetVariables(stage string, variables ...*sdk_v1.Variable) error {
-	return nil
-}
-
 func Check(job api.Job) error {
 	ctx := validatorContext{map[string]uint{}}
 	job.Execute(ctx)
@@ -111,4 +91,24 @@ func (v validatorContext) Err() api.StageError {
 
 func (v validatorContext) GetVariable(name, stage string) (*sdk_v1.Variable, error) {
 	return nil, nil
+}
+
+func (v validatorContext) Initialize() error {
+	return nil
+}
+
+func (v validatorContext) Execute(jobContext api.JobContext) {
+
+}
+
+func (v validatorContext) GetStageResult(stageName string) (*sdk_v1.StageResult, error) {
+	return nil, nil
+}
+
+func (v validatorContext) GetVariables(stage string, names ...string) ([]*sdk_v1.Variable, error) {
+	return nil, nil
+}
+
+func (v validatorContext) SetVariables(stage string, variables ...*sdk_v1.Variable) error {
+	return nil
 }

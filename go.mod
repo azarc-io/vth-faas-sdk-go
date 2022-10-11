@@ -13,6 +13,8 @@ require (
 
 require (
 	github.com/golang/protobuf v1.5.2 // indirect
+	github.com/google/uuid v1.3.0 // indirect
+	github.com/lithammer/shortuuid/v4 v4.0.0 // indirect
 	github.com/mattn/go-colorable v0.1.12 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
 	golang.org/x/net v0.0.0-20221004154528-8021a29435af // indirect

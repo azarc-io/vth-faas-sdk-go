@@ -22,7 +22,7 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type AgentServiceClient interface {
-	ExecuteJob(ctx context.Context, in *ExecuteJobRequest, opts ...grpc.CallOption) (*Void, error)
+	ExecuteJob(ctx context.Context, in *ExecuteJobRequest, opts ...grpc.CallOption) (*ExecuteJobResponse, error)
 }
 
 type agentServiceClient struct {
@@ -33,8 +33,8 @@ func NewAgentServiceClient(cc grpc.ClientConnInterface) AgentServiceClient {
 	return &agentServiceClient{cc}
 }
 
-func (c *agentServiceClient) ExecuteJob(ctx context.Context, in *ExecuteJobRequest, opts ...grpc.CallOption) (*Void, error) {
-	out := new(Void)
+func (c *agentServiceClient) ExecuteJob(ctx context.Context, in *ExecuteJobRequest, opts ...grpc.CallOption) (*ExecuteJobResponse, error) {
+	out := new(ExecuteJobResponse)
 	err := c.cc.Invoke(ctx, "/sdk_v1.AgentService/ExecuteJob", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -46,14 +46,14 @@ func (c *agentServiceClient) ExecuteJob(ctx context.Context, in *ExecuteJobReque
 // All implementations should embed UnimplementedAgentServiceServer
 // for forward compatibility
 type AgentServiceServer interface {
-	ExecuteJob(context.Context, *ExecuteJobRequest) (*Void, error)
+	ExecuteJob(context.Context, *ExecuteJobRequest) (*ExecuteJobResponse, error)
 }
 
 // UnimplementedAgentServiceServer should be embedded to have forward compatible implementations.
 type UnimplementedAgentServiceServer struct {
 }
 
-func (UnimplementedAgentServiceServer) ExecuteJob(context.Context, *ExecuteJobRequest) (*Void, error) {
+func (UnimplementedAgentServiceServer) ExecuteJob(context.Context, *ExecuteJobRequest) (*ExecuteJobResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ExecuteJob not implemented")
 }
 
@@ -113,7 +113,7 @@ type ManagerServiceClient interface {
 	GetVariables(ctx context.Context, in *GetVariablesRequest, opts ...grpc.CallOption) (*GetVariablesResponse, error)
 	SetVariables(ctx context.Context, in *SetVariablesRequest, opts ...grpc.CallOption) (*Void, error)
 	SetJobStatus(ctx context.Context, in *SetJobStatusRequest, opts ...grpc.CallOption) (*Void, error)
-	RegisterHeartbeats(ctx context.Context, in *RegisterHeartbeatsRequest, opts ...grpc.CallOption) (*Void, error)
+	RegisterHeartbeat(ctx context.Context, in *RegisterHeartbeatRequest, opts ...grpc.CallOption) (*Void, error)
 }
 
 type managerServiceClient struct {
@@ -187,9 +187,9 @@ func (c *managerServiceClient) SetJobStatus(ctx context.Context, in *SetJobStatu
 	return out, nil
 }
 
-func (c *managerServiceClient) RegisterHeartbeats(ctx context.Context, in *RegisterHeartbeatsRequest, opts ...grpc.CallOption) (*Void, error) {
+func (c *managerServiceClient) RegisterHeartbeat(ctx context.Context, in *RegisterHeartbeatRequest, opts ...grpc.CallOption) (*Void, error) {
 	out := new(Void)
-	err := c.cc.Invoke(ctx, "/sdk_v1.ManagerService/RegisterHeartbeats", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/sdk_v1.ManagerService/RegisterHeartbeat", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -207,7 +207,7 @@ type ManagerServiceServer interface {
 	GetVariables(context.Context, *GetVariablesRequest) (*GetVariablesResponse, error)
 	SetVariables(context.Context, *SetVariablesRequest) (*Void, error)
 	SetJobStatus(context.Context, *SetJobStatusRequest) (*Void, error)
-	RegisterHeartbeats(context.Context, *RegisterHeartbeatsRequest) (*Void, error)
+	RegisterHeartbeat(context.Context, *RegisterHeartbeatRequest) (*Void, error)
 }
 
 // UnimplementedManagerServiceServer should be embedded to have forward compatible implementations.
@@ -235,8 +235,8 @@ func (UnimplementedManagerServiceServer) SetVariables(context.Context, *SetVaria
 func (UnimplementedManagerServiceServer) SetJobStatus(context.Context, *SetJobStatusRequest) (*Void, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SetJobStatus not implemented")
 }
-func (UnimplementedManagerServiceServer) RegisterHeartbeats(context.Context, *RegisterHeartbeatsRequest) (*Void, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method RegisterHeartbeats not implemented")
+func (UnimplementedManagerServiceServer) RegisterHeartbeat(context.Context, *RegisterHeartbeatRequest) (*Void, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RegisterHeartbeat not implemented")
 }
 
 // UnsafeManagerServiceServer may be embedded to opt out of forward compatibility for this service.
@@ -376,20 +376,20 @@ func _ManagerService_SetJobStatus_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ManagerService_RegisterHeartbeats_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(RegisterHeartbeatsRequest)
+func _ManagerService_RegisterHeartbeat_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RegisterHeartbeatRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ManagerServiceServer).RegisterHeartbeats(ctx, in)
+		return srv.(ManagerServiceServer).RegisterHeartbeat(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/sdk_v1.ManagerService/RegisterHeartbeats",
+		FullMethod: "/sdk_v1.ManagerService/RegisterHeartbeat",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ManagerServiceServer).RegisterHeartbeats(ctx, req.(*RegisterHeartbeatsRequest))
+		return srv.(ManagerServiceServer).RegisterHeartbeat(ctx, req.(*RegisterHeartbeatRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -430,8 +430,8 @@ var ManagerService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _ManagerService_SetJobStatus_Handler,
 		},
 		{
-			MethodName: "RegisterHeartbeats",
-			Handler:    _ManagerService_RegisterHeartbeats_Handler,
+			MethodName: "RegisterHeartbeat",
+			Handler:    _ManagerService_RegisterHeartbeat_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
