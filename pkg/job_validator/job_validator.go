@@ -42,6 +42,10 @@ func (v validatorContext) Stage(name string, sdf api.StageDefinitionFn, options 
 	return v
 }
 
+func (v validatorContext) LastActiveStage() api.LastActiveStatus {
+	return nil
+}
+
 func (v validatorContext) Canceled(fn api.CancelDefinitionFn) api.CanceledChain {
 	fn(v)
 	return v

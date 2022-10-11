@@ -67,6 +67,12 @@ type (
 		CorrelationID() string
 		TransactionID() string
 		Payload() any
+		LastActiveStage() LastActiveStatus
+	}
+
+	LastActiveStatus interface {
+		Name() string
+		Status() sdk_v1.StageStatus
 	}
 
 	JobContext interface {

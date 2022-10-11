@@ -12,7 +12,7 @@ type inMemoryVariableHandler struct {
 	t         *testing.T
 }
 
-func NewMockVariableHandler(t *testing.T) api.VariableHandler {
+func NewVariableHandler(t *testing.T) api.VariableHandler {
 	return inMemoryVariableHandler{t: t, variables: make(map[string]*sdk_v1.Variable)}
 }
 

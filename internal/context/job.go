@@ -1,14 +1,24 @@
 package context
 
 import (
+	ctx "context"
 	"fmt"
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/api"
 	sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1"
 	sdk_errors "github.com/azarc-io/vth-faas-sdk-go/pkg/errors"
 )
 
+type Job struct {
+	ctx                  ctx.Context
+	metadata             JobMetadata
+	stageProgressHandler api.StageProgressHandler
+	variableHandler      api.VariableHandler
+	stageErr             api.StageError
+	resumeDone           bool
+}
+
 func NewJobContext(metadata api.Context, sph api.StageProgressHandler, vh api.VariableHandler) api.JobContext {
-	m := JobMetadata{metadata.Ctx(), metadata.JobKey(), metadata.CorrelationID(), metadata.TransactionID(), nil}
+	m := JobMetadata{ctx: metadata.Ctx(), jobKey: metadata.JobKey(), correlationId: metadata.CorrelationID(), transactionId: metadata.TransactionID(), payload: metadata.Payload(), lastActiveStage: metadata.LastActiveStage()}
 	return &Job{metadata: m, stageProgressHandler: sph, variableHandler: vh}
 }
 
@@ -17,6 +27,10 @@ func (j *Job) Err() api.StageError {
 }
 
 func (j *Job) Stage(name string, stageDefinitionFn api.StageDefinitionFn, options ...api.StageOption) api.StageChain {
+	if j.shouldSkip(name) {
+		return j
+	}
+
 	for _, option := range options {
 		if err := option(newStageOptionParams(name, j)); err != nil {
 			return j.handleStageError(err)
@@ -73,7 +87,6 @@ func (j *Job) Complete(completionDefinitionFn api.CompletionDefinitionFn) api.Co
 	err = completionDefinitionFn(completionCtx)
 
 	if err != nil {
-		// TODO log.error
 		err = j.stageProgressHandler.SetJobStatus(sdk_v1.NewSetJobStatusReq(j.metadata.jobKey, sdk_v1.JobStatus_JobCompletionDoneWithErrors)) // TODO add an error
 		return j
 	}
@@ -139,6 +152,21 @@ func (j *Job) handleStageError(err error) api.StageChain {
 	}
 	// TODO log.error
 	return j
+}
+
+func (j *Job) shouldSkip(currentStageName string) (skip bool) {
+	if j.metadata.lastActiveStage == nil || j.resumeDone {
+		return false
+	}
+	if j.metadata.lastActiveStage.Name() == currentStageName {
+		if j.metadata.lastActiveStage.Status() == sdk_v1.StageStatus_StageCompleted {
+			j.resumeDone = true
+			return true
+		}
+		j.resumeDone = true
+		return false
+	}
+	return true
 }
 
 type updateStageOption = func(stage *sdk_v1.SetStageStatusRequest) *sdk_v1.SetStageStatusRequest

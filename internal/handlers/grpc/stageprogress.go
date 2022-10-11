@@ -6,40 +6,40 @@ import (
 	sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1"
 )
 
-type GrpcStageProgressHandler struct {
+type StageProgressHandler struct {
 	client sdk_v1.ManagerServiceClient
 }
 
-func NewGrpcStageProgressHandler(client sdk_v1.ManagerServiceClient) api.StageProgressHandler {
-	return &GrpcStageProgressHandler{client: client}
+func NewStageProgressHandler(client sdk_v1.ManagerServiceClient) api.StageProgressHandler {
+	return &StageProgressHandler{client: client}
 }
 
-func (g *GrpcStageProgressHandler) Get(jobKey, name string) (*sdk_v1.StageStatus, error) {
+func (g *StageProgressHandler) Get(jobKey, name string) (*sdk_v1.StageStatus, error) {
 	resp, err := g.client.GetStageStatus(context.Background(), sdk_v1.NewGetStageStatusReq(jobKey, name))
 	return &resp.Status, err
 }
 
-func (g *GrpcStageProgressHandler) Set(stageStatus *sdk_v1.SetStageStatusRequest) error { //TODO receive ctx
+func (g *StageProgressHandler) Set(stageStatus *sdk_v1.SetStageStatusRequest) error { //TODO receive ctx
 	_, err := g.client.SetStageStatus(context.Background(), stageStatus)
 	return err
 }
 
-func (g *GrpcStageProgressHandler) GetResult(jobKey, name string) (*sdk_v1.StageResult, error) { //TODO receive ctx
+func (g *StageProgressHandler) GetResult(jobKey, name string) (*sdk_v1.StageResult, error) { //TODO receive ctx
 	result, err := g.client.GetStageResult(context.Background(), sdk_v1.NewStageResultReq(jobKey, name))
 	return result.Result, err
 }
 
-func (g *GrpcStageProgressHandler) SetResult(result *sdk_v1.SetStageResultRequest) error { //TODO receive ctx
+func (g *StageProgressHandler) SetResult(result *sdk_v1.SetStageResultRequest) error { //TODO receive ctx
 	_, err := g.client.SetStageResult(context.Background(), result)
 	return err
 }
 
-func (g *GrpcStageProgressHandler) SetJobStatus(jobStatus *sdk_v1.SetJobStatusRequest) error { //TODO receive ctx
+func (g *StageProgressHandler) SetJobStatus(jobStatus *sdk_v1.SetJobStatusRequest) error { //TODO receive ctx
 	_, err := g.client.SetJobStatus(context.Background(), jobStatus)
 	return err
 }
 
-//func (g *GrpcStageProgressHandler) initialize() error {
+//func (g *StageProgressHandler) initialize() error {
 //	if err := g.validate(); err != nil {
 //		return err
 //	}
@@ -49,23 +49,23 @@ func (g *GrpcStageProgressHandler) SetJobStatus(jobStatus *sdk_v1.SetJobStatusRe
 //	return nil
 //}
 //
-//func (g *GrpcStageProgressHandler) validate() error {
+//func (g *StageProgressHandler) validate() error {
 //	if g.config == nil {
 //		return errors.New("a config is required in grpc stage progress handler")
 //	}
 //	return nil
 //}
 //
-//func (g *GrpcStageProgressHandler) createClient() error {
+//func (g *StageProgressHandler) createClient() error {
 //	var err error
 //	g.client, err = CreateManagerServiceClient(g.config)
 //	return err
 //}
 
-//type Option func(handler GrpcStageProgressHandler) GrpcStageProgressHandler
+//type Option func(handler StageProgressHandler) StageProgressHandler
 //
 //func WithConfig(config *config.Config) Option {
-//	return func(handler GrpcStageProgressHandler) GrpcStageProgressHandler {
+//	return func(handler StageProgressHandler) StageProgressHandler {
 //		handler.config = config
 //		return handler
 //	}

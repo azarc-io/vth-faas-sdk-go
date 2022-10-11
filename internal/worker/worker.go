@@ -49,14 +49,14 @@ func NewJobWorker(cfg *config.Config, job api.Job, options ...Option) (api.JobWo
 
 func (w JobWorker) validate() error {
 	if w.variableHandler == nil {
-		w.variableHandler = grpc_handler.NewGrpcVariableHandler()
+		w.variableHandler = grpc_handler.NewVariableHandler()
 	}
 	if w.stageProgressHandler == nil {
 		client, err := grpc_handler.CreateManagerServiceClient(w.config)
 		if err != nil {
 			return err
 		}
-		w.stageProgressHandler = grpc_handler.NewGrpcStageProgressHandler(client)
+		w.stageProgressHandler = grpc_handler.NewStageProgressHandler(client)
 	}
 	return nil
 }

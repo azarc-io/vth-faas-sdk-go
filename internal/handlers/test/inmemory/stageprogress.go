@@ -15,7 +15,7 @@ type inMemoryStageProgressHandler struct {
 	jobs    map[string]*sdk_v1.SetJobStatusRequest
 }
 
-func NewMockStageProgressHandler(t *testing.T, seeds ...any) api.StageProgressHandler {
+func NewStageProgressHandler(t *testing.T, seeds ...any) api.StageProgressHandler {
 	handler := inMemoryStageProgressHandler{t, map[string]*sdk_v1.SetStageStatusRequest{}, map[string]*sdk_v1.SetStageResultRequest{}, map[string]*sdk_v1.SetJobStatusRequest{}}
 	for _, seed := range seeds {
 		switch seed.(type) {

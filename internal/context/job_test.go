@@ -43,7 +43,7 @@ func TestRunSingleStageWithSuccess(t *testing.T) {
 
 func TestStageBuilder(t *testing.T) {
 	jobMetadata := context.NewJobMetadata(nil, "jobKey", "correlationId", "transactionId", "payload")
-	stageProgressHandler := inmemory.NewMockStageProgressHandler(t,
+	stageProgressHandler := inmemory.NewStageProgressHandler(t,
 		sdk_v1.NewSetStageStatusReq("jobKey", "stage1", sdk_v1.StageStatus_StagePending),
 		sdk_v1.NewSetStageStatusReq("jobKey", "compensate_stage1", sdk_v1.StageStatus_StagePending),
 		sdk_v1.NewSetStageStatusReq("jobKey", "compensate_stage2", sdk_v1.StageStatus_StagePending),
@@ -52,7 +52,7 @@ func TestStageBuilder(t *testing.T) {
 		sdk_v1.NewSetStageStatusReq("jobKey", "compensate_compensate_stage2", sdk_v1.StageStatus_StagePending),
 		sdk_v1.NewSetStageStatusReq("jobKey", "compensate_compensate_compensate_stage1", sdk_v1.StageStatus_StagePending),
 	)
-	variableHandler := inmemory.NewMockVariableHandler(t)
+	variableHandler := inmemory.NewVariableHandler(t)
 	jobContext := context.NewJobContext(jobMetadata, stageProgressHandler, variableHandler)
 	jobContext.Stage("stage1", func(context api.StageContext) (any, api.StageError) {
 		println("---- stage1")
@@ -192,8 +192,8 @@ func (i *InitExecutor) Execute(ctx api.JobContext) {
 func TestInitialization(t *testing.T) {
 	newCxt := func() api.JobContext {
 		jobMetadata := context.NewJobMetadata(nil, "jobKey", "correlationId", "transactionId", "payload")
-		stageProgressHandler := inmemory.NewMockStageProgressHandler(t, sdk_v1.NewSetStageStatusReq("jobKey", "stage1", sdk_v1.StageStatus_StagePending))
-		variableHandler := inmemory.NewMockVariableHandler(t)
+		stageProgressHandler := inmemory.NewStageProgressHandler(t, sdk_v1.NewSetStageStatusReq("jobKey", "stage1", sdk_v1.StageStatus_StagePending))
+		variableHandler := inmemory.NewVariableHandler(t)
 		return context.NewJobContext(jobMetadata, stageProgressHandler, variableHandler)
 	}
 
@@ -331,8 +331,8 @@ func TestRawVariableValue(t *testing.T) {
 }
 
 func TestJobWorker(t *testing.T) {
-	stageProgressHandler := inmemory.NewMockStageProgressHandler(t, sdk_v1.NewSetStageStatusReq("jobKey", "stage1", sdk_v1.StageStatus_StagePending))
-	variablesHandler := inmemory.NewMockVariableHandler(t)
+	stageProgressHandler := inmemory.NewStageProgressHandler(t, sdk_v1.NewSetStageStatusReq("jobKey", "stage1", sdk_v1.StageStatus_StagePending))
+	variablesHandler := inmemory.NewVariableHandler(t)
 	job := NewInitExecutor()
 	cfg, err := config.NewMock(map[string]string{"APP_ENVIRONMENT": "test", "AGENT_SERVER_PORT": "0"})
 	if err != nil {
@@ -353,5 +353,118 @@ func TestJobWorker(t *testing.T) {
 	}
 	if job.m["stage1"] != 5 {
 		t.Errorf("stage1 should run 5 times; got: %d", job.m["stage1"])
+	}
+}
+
+type ResumeTestJob struct {
+	stageExecutionCounter map[string]uint
+}
+
+func (r ResumeTestJob) inc(stageName string) {
+	r.stageExecutionCounter[stageName] += 1
+}
+
+func (r ResumeTestJob) Initialize() error {
+	if r.stageExecutionCounter == nil {
+		r.stageExecutionCounter = map[string]uint{}
+	}
+	r.inc("initialize")
+	return nil
+}
+
+func (r ResumeTestJob) Execute(jobContext api.JobContext) {
+	jobContext.Stage("stage-skip-1", func(stageContext api.StageContext) (any, api.StageError) {
+		r.inc("stage-skip-1")
+		return nil, nil
+	}).Stage("stage-skip-2", func(stageContext api.StageContext) (any, api.StageError) {
+		r.inc("stage-skip-1")
+		return nil, nil
+	}).Stage("stage-execute-1", func(stageContext api.StageContext) (any, api.StageError) {
+		r.inc("stage-execute-1")
+		return nil, nil
+	}).Stage("stage-execute-2", func(stageContext api.StageContext) (any, api.StageError) {
+		r.inc("stage-execute-2")
+		return nil, nil
+	}).Complete(func(completionContext api.CompletionContext) api.StageError {
+		r.inc("stage-complete")
+		return nil
+	})
+}
+
+func TestResumeRetryLastActiveStageCompleted(t *testing.T) {
+	stageProgressHandler := inmemory.NewStageProgressHandler(t, sdk_v1.NewSetStageStatusReq("jobKey", "stage1", sdk_v1.StageStatus_StagePending))
+	variablesHandler := inmemory.NewVariableHandler(t)
+
+	jobMetadata := context.NewJobMetadataFromGrpcRequest(nil, &sdk_v1.ExecuteJobRequest{
+		Key:           "jobKey",
+		TransactionId: "transactionId",
+		CorrelationId: "correlationId",
+		LastActiveStage: &sdk_v1.LastActiveStage{
+			Name:   "stage-skip-2",
+			Status: sdk_v1.StageStatus_StageCompleted,
+		},
+	})
+	jobContext := context.NewJobContext(jobMetadata, stageProgressHandler, variablesHandler)
+	resumeTestJob := ResumeTestJob{map[string]uint{}}
+	_ = resumeTestJob.Initialize()
+	resumeTestJob.Execute(jobContext)
+
+	if resumeTestJob.stageExecutionCounter["initialize"] != 1 {
+		t.Error("initialize executed more than 1 time")
+	}
+
+	if resumeTestJob.stageExecutionCounter["stage-skip-1"] != 0 {
+		t.Error("stage-skip-1 executed")
+	}
+
+	if resumeTestJob.stageExecutionCounter["stage-skip-2"] != 0 {
+		t.Error("stage-skip-1 executed")
+	}
+
+	if resumeTestJob.stageExecutionCounter["stage-execute-1"] != 1 {
+		t.Errorf("stage-execute-1 executed: %d times; expected: 1 time", resumeTestJob.stageExecutionCounter["stage-execute-1"])
+	}
+
+	if resumeTestJob.stageExecutionCounter["stage-execute-2"] != 1 {
+		t.Errorf("stage-execute-2 executed: %d times; expected: 1 time", resumeTestJob.stageExecutionCounter["stage-execute-2"])
+	}
+}
+
+func TestResumeRetry(t *testing.T) {
+	stageProgressHandler := inmemory.NewStageProgressHandler(t, sdk_v1.NewSetStageStatusReq("jobKey", "stage1", sdk_v1.StageStatus_StagePending))
+	variablesHandler := inmemory.NewVariableHandler(t)
+
+	jobMetadata := context.NewJobMetadataFromGrpcRequest(nil, &sdk_v1.ExecuteJobRequest{
+		Key:           "jobKey",
+		TransactionId: "transactionId",
+		CorrelationId: "correlationId",
+		LastActiveStage: &sdk_v1.LastActiveStage{
+			Name:   "stage-execute-1",
+			Status: sdk_v1.StageStatus_StageFailed,
+		},
+	})
+	jobContext := context.NewJobContext(jobMetadata, stageProgressHandler, variablesHandler)
+	resumeTestJob := ResumeTestJob{map[string]uint{}}
+	_ = resumeTestJob.Initialize()
+	resumeTestJob.Execute(jobContext)
+
+	if resumeTestJob.stageExecutionCounter["initialize"] != 1 {
+		t.Error("initialize executed more than 1 time")
+	}
+
+	if resumeTestJob.stageExecutionCounter["stage-skip-1"] != 0 {
+		t.Error("stage-skip-1 executed")
+	}
+
+	if resumeTestJob.stageExecutionCounter["stage-skip-2"] != 0 {
+		t.Error("stage-skip-1 executed")
+	}
+
+	if resumeTestJob.stageExecutionCounter["stage-execute-1"] != 1 {
+		t.Errorf("stage-execute-1 executed: %d times; expected: 1 time", resumeTestJob.stageExecutionCounter["stage-execute-1"])
+	}
+
+	if resumeTestJob.stageExecutionCounter["stage-execute-2"] != 1 {
+		t.Errorf("stage-execute-2 executed: %d times; expected: 1 time", resumeTestJob.stageExecutionCounter["stage-execute-2"])
 	}
 }
