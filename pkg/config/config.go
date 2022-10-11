@@ -24,10 +24,11 @@ type Config struct {
 }
 
 type ManagerService struct {
-	Host         string        `env:"AGENT_SERVER_PORT,required"`
-	Port         int           `env:"AGENT_SERVER_PORT,required"`
-	RetryBackoff time.Duration `env:"AGENT_RETRY_BACKOFF_DURATION,default="`
-	MaxRetries   int           `env:"AGENT_RETRY_ATTEMPTS,default=20"`
+	HeartBeatInterval time.Duration `env:"MANAGER_HEARTBEAT_INTERVAL,default=5s"`
+	Host              string        `env:"MANAGER_SERVER_PORT,required"`
+	Port              int           `env:"MANAGER_SERVER_PORT,required"`
+	RetryBackoff      time.Duration `env:"MANAGER_RETRY_BACKOFF_DURATION,default=1s"`
+	MaxRetries        int           `env:"MANAGER_RETRY_ATTEMPTS,default=20"`
 }
 
 func (m ManagerService) HostPort() string {

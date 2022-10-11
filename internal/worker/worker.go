@@ -1,6 +1,7 @@
 package worker
 
 import (
+	"github.com/azarc-io/vth-faas-sdk-go/internal/clients"
 	"github.com/azarc-io/vth-faas-sdk-go/internal/context"
 	grpc_handler "github.com/azarc-io/vth-faas-sdk-go/internal/handlers/grpc"
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/api"
@@ -52,7 +53,7 @@ func (w JobWorker) validate() error {
 		w.variableHandler = grpc_handler.NewVariableHandler()
 	}
 	if w.stageProgressHandler == nil {
-		client, err := grpc_handler.CreateManagerServiceClient(w.config)
+		client, err := clients.CreateManagerServiceClient(w.config)
 		if err != nil {
 			return err
 		}

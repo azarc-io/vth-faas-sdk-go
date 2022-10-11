@@ -334,7 +334,7 @@ func TestJobWorker(t *testing.T) {
 	stageProgressHandler := inmemory.NewStageProgressHandler(t, sdk_v1.NewSetStageStatusReq("jobKey", "stage1", sdk_v1.StageStatus_StagePending))
 	variablesHandler := inmemory.NewVariableHandler(t)
 	job := NewInitExecutor()
-	cfg, err := config.NewMock(map[string]string{"APP_ENVIRONMENT": "test", "AGENT_SERVER_PORT": "0"})
+	cfg, err := config.NewMock(map[string]string{"APP_ENVIRONMENT": "test", "AGENT_SERVER_PORT": "0", "MANAGER_SERVER_PORT": "0"})
 	if err != nil {
 		t.Error(err)
 	}

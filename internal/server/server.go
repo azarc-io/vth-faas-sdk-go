@@ -14,12 +14,15 @@ import (
 )
 
 type Server struct {
-	config *config.Config
-	worker api.JobWorker
+	config    *config.Config
+	worker    api.JobWorker
+	client    sdk_v1.ManagerServiceClient
+	svr       *grpc.Server
+	heartBeat *Heartbeat
 }
 
-func NewServer(cfg *config.Config, worker api.JobWorker) *Server {
-	return &Server{config: cfg, worker: worker}
+func NewServer(cfg *config.Config, worker api.JobWorker, client sdk_v1.ManagerServiceClient) *Server {
+	return &Server{config: cfg, worker: worker, client: client}
 }
 
 func (s Server) Start() error {
@@ -27,11 +30,11 @@ func (s Server) Start() error {
 	// LOGGER SAMPLE >> add .Fields(fields) with the spark name on it
 	logger := log.With().CallerWithSkipFrameCount(3).Stack().Logger()
 
-	svr := grpc.NewServer(grpc.ConnectionTimeout(time.Second * 10)) // TODO env var
-	sdk_v1.RegisterAgentServiceServer(svr, s)
+	s.svr = grpc.NewServer(grpc.ConnectionTimeout(time.Second * 10)) // TODO env var
+	sdk_v1.RegisterAgentServiceServer(s.svr, s)
 
 	// TODO create an env var around this >> config.Grpc_reflection_enabled?
-	reflection.Register(svr)
+	reflection.Register(s.svr)
 	// TODO create an env var around this >> config.Grpc_reflection_enabled?
 
 	listener, err := net.Listen("tcp", "localhost:7777") // TODO env var
@@ -39,11 +42,20 @@ func (s Server) Start() error {
 		logger.Error().Err(err).Msg("error setting up the listener")
 		return err
 	}
-	if err = svr.Serve(listener); err != nil {
+
+	s.heartBeat = NewHeartbeat(s.config, s.client)
+	s.heartBeat.Start()
+
+	if err = s.svr.Serve(listener); err != nil {
 		logger.Error().Err(err).Msg("error starting the server")
 		return err
 	}
 	return nil
+}
+
+func (s Server) Stop() {
+	s.heartBeat.Stop()
+	s.svr.GracefulStop()
 }
 
 func (s Server) ExecuteJob(ctx context.Context, request *sdk_v1.ExecuteJobRequest) (*sdk_v1.ExecuteJobResponse, error) {
@@ -55,6 +67,5 @@ func (s Server) ExecuteJob(ctx context.Context, request *sdk_v1.ExecuteJobReques
 			// TODO fix me
 		}
 	}()
-
 	return &sdk_v1.ExecuteJobResponse{AgentId: s.config.App.InstanceId}, nil
 }
