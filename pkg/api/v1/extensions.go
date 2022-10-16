@@ -2,6 +2,7 @@ package sdk_v1
 
 import (
 	"encoding/json"
+	"github.com/samber/lo"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -14,6 +15,14 @@ func (x *Variable) Raw() ([]byte, error) {
 
 func (x *Variable) Bind(a any) error {
 	return serdesMap[x.MimeType].unmarshal(x.Value, a)
+}
+
+func (x *StageResult) Raw() ([]byte, error) {
+	return x.Data.MarshalJSON()
+}
+
+func (x *StageResult) Bind(a any) error {
+	return serdesMap["application/json"].unmarshal(x.Data, a) // TODO fix this
 }
 
 func NewSetStageResultReq(jobKey, name string, data any) (*SetStageResultRequest, error) {
@@ -129,4 +138,18 @@ var serdesMap = map[string]serdes{
 			return value, nil
 		},
 	},
+}
+
+type Variables struct {
+	vars []*Variable
+}
+
+func NewVariables(vars ...*Variable) *Variables {
+	return &Variables{vars}
+}
+
+func (v Variables) Get(name string) (*Variable, bool) {
+	return lo.Find(v.vars, func(variable *Variable) bool {
+		return variable.Name == name
+	})
 }

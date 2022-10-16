@@ -19,7 +19,7 @@ func (g VariableHandler) Set(jobKey, stage string, variables ...*sdk_v1.Variable
 	return err
 }
 
-func (g VariableHandler) Get(jobKey string, stage string, names ...string) ([]*sdk_v1.Variable, error) {
+func (g VariableHandler) Get(jobKey string, stage string, names ...string) (*sdk_v1.Variables, error) {
 	variables, err := g.client.GetVariables(context.Background(), sdk_v1.NewGetVariablesRequest(jobKey, stage, names...))
 	if err != nil {
 		return nil, err
@@ -28,5 +28,5 @@ func (g VariableHandler) Get(jobKey string, stage string, names ...string) ([]*s
 	for _, v := range variables.Variables {
 		vars = append(vars, v)
 	}
-	return vars, nil
+	return sdk_v1.NewVariables(vars...), nil
 }

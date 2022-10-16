@@ -19,7 +19,7 @@ type (
 	}
 
 	VariableHandler interface {
-		Get(jobKey, stage string, names ...string) ([]*sdk_v1.Variable, error)
+		Get(jobKey, stage string, names ...string) (*sdk_v1.Variables, error)
 		Set(jobKey, stage string, variables ...*sdk_v1.Variable) error
 	}
 
@@ -39,34 +39,18 @@ type (
 		ToErrorMessage() *sdk_v1.Error
 	}
 
-	StageChain interface {
-		Stage(name string, sdf StageDefinitionFn, options ...StageOption) StageChain
-		Complete(CompletionDefinitionFn) CompleteChain
-		Compensate(CompensateDefinitionFn) CompensateChain
-		Canceled(CancelDefinitionFn) CanceledChain
-	}
-
-	CompleteChain interface {
-		Compensate(CompensateDefinitionFn) CompensateChain
-		Canceled(CancelDefinitionFn) CanceledChain
-	}
-
-	CompensateChain interface {
-		Canceled(CancelDefinitionFn) CanceledChain
-		Complete(CompletionDefinitionFn) CompleteChain
-	}
-
-	CanceledChain interface {
-		Compensate(CompensateDefinitionFn) CompensateChain
-		Complete(CompletionDefinitionFn) CompleteChain
-	}
-
 	Context interface {
 		Ctx() context.Context
 		JobKey() string
 		CorrelationID() string
 		TransactionID() string
 		Payload() any
+	}
+
+	JobContext interface {
+		Context
+		VariableHandler() VariableHandler
+		StageProgressHandler() StageProgressHandler
 		LastActiveStage() LastActiveStatus
 	}
 
@@ -75,32 +59,10 @@ type (
 		Status() sdk_v1.StageStatus
 	}
 
-	JobContext interface {
-		Stage(name string, sdf StageDefinitionFn, options ...StageOption) StageChain
-		Err() StageError
-	}
-
 	StageContext interface {
 		Context
-		GetVariables(stage string, names ...string) ([]*sdk_v1.Variable, error)
-	}
-
-	CompletionContext interface {
-		Context
-		GetStageResult(stageName string) (*sdk_v1.StageResult, error)
+		GetVariables(stage string, names ...string) (*sdk_v1.Variables, error)
 		SetVariables(stage string, variables ...*sdk_v1.Variable) error
-	}
-
-	CompensationContext interface {
-		Context
-		Stage(name string, sdf StageDefinitionFn, options ...StageOption) StageChain
-		GetVariables(stage string, names ...string) ([]*sdk_v1.Variable, error)
-		SetVariables(stage string, variables ...*sdk_v1.Variable) error
-	}
-
-	CancelContext interface {
-		Context
-		Stage(name string, sdf StageDefinitionFn, options ...StageOption) StageChain
 	}
 
 	StageOptionParams interface {
@@ -110,9 +72,6 @@ type (
 		Context() Context
 	}
 
-	StageDefinitionFn      = func(StageContext) (any, StageError)
-	CompensateDefinitionFn = func(CompensationContext) StageError
-	CancelDefinitionFn     = func(CancelContext) StageError
-	CompletionDefinitionFn = func(CompletionContext) StageError
-	StageOption            = func(StageOptionParams) StageError
+	StageDefinitionFn = func(StageContext) (any, StageError)
+	StageOption       = func(StageOptionParams) StageError
 )

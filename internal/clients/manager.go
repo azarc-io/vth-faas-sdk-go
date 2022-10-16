@@ -17,7 +17,7 @@ func CreateManagerServiceClient(config *config.Config) (sdk_v1.ManagerServiceCli
 		grpc.WithStreamInterceptor(grpc_retry.StreamClientInterceptor(retryOpts...)),
 		grpc.WithUnaryInterceptor(grpc_retry.UnaryClientInterceptor(retryOpts...)),
 	}
-	if cc, err := grpc.Dial(config.ManagerService.HostPort(), opts...); err != nil {
+	if cc, err := grpc.Dial(config.ManagerService.HostPort(), opts...); err == nil {
 		return sdk_v1.NewManagerServiceClient(cc), err
 	} else {
 		return nil, err

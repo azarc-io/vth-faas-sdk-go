@@ -17,7 +17,7 @@ import (
 func main() {
 	jobMetadata := context.NewJobMetadata(ctx.Background(), "jobKey", "correlationId", "transactionId", "payload")
 	stageProgressHandler := inmemory.NewStageProgressHandler(nil, sdk_v1.NewSetStageStatusReq("jobKey", "stage1", sdk_v1.StageStatus_StagePending))
-	variableHandler := inmemory.NewVariableHandler(nil)
+	variableHandler := inmemory.NewVariableHandler(nil, nil)
 	jobContext := context.NewJobContext(jobMetadata, stageProgressHandler, variableHandler)
 	jobContext.Stage("stage1", func(stageContext api.StageContext) (any, api.StageError) {
 		println("stage1 exec")

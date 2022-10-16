@@ -12,28 +12,33 @@ type inMemoryVariableHandler struct {
 	t         *testing.T
 }
 
-func NewVariableHandler(t *testing.T) api.VariableHandler {
-	return inMemoryVariableHandler{t: t, variables: make(map[string]*sdk_v1.Variable)}
+func NewVariableHandler(t *testing.T, variables *sdk_v1.SetVariablesRequest) api.VariableHandler {
+	i := &inMemoryVariableHandler{t: t, variables: make(map[string]*sdk_v1.Variable)}
+	for k, v := range variables.GetVariables() {
+		i.variables[i.key(k, variables.Stage, variables.JobKey)] = v
+	}
+	return i
 }
 
-func (i inMemoryVariableHandler) Get(jobKey, stage string, names ...string) ([]*sdk_v1.Variable, error) {
+func (i *inMemoryVariableHandler) Get(jobKey, stage string, names ...string) (*sdk_v1.Variables, error) {
 	var vars []*sdk_v1.Variable
 	for _, n := range names {
-		vars = append(vars, i.variables[i.key(n, stage, jobKey)])
+		key := i.key(n, stage, jobKey)
+		vars = append(vars, i.variables[key])
 	}
 	if len(vars) == 0 {
 		i.t.Fatalf("no variables found for the params: ")
 	}
-	return vars, nil
+	return sdk_v1.NewVariables(vars...), nil
 }
 
-func (i inMemoryVariableHandler) Set(jobKey, stage string, variables ...*sdk_v1.Variable) error {
+func (i *inMemoryVariableHandler) Set(jobKey, stage string, variables ...*sdk_v1.Variable) error {
 	for _, v := range variables {
 		i.variables[i.key(v.Name, stage, jobKey)] = v
 	}
 	return nil
 }
 
-func (i inMemoryVariableHandler) key(name, stage, jobKey string) string {
+func (i *inMemoryVariableHandler) key(name, stage, jobKey string) string {
 	return fmt.Sprintf("%s_%s_%s", name, stage, jobKey)
 }

@@ -38,35 +38,3 @@ func (g *StageProgressHandler) SetJobStatus(jobStatus *sdk_v1.SetJobStatusReques
 	_, err := g.client.SetJobStatus(context.Background(), jobStatus)
 	return err
 }
-
-//func (g *StageProgressHandler) initialize() error {
-//	if err := g.validate(); err != nil {
-//		return err
-//	}
-//	if err := g.createClient(); err != nil {
-//		return err
-//	}
-//	return nil
-//}
-//
-//func (g *StageProgressHandler) validate() error {
-//	if g.config == nil {
-//		return errors.New("a config is required in grpc stage progress handler")
-//	}
-//	return nil
-//}
-//
-//func (g *StageProgressHandler) createClient() error {
-//	var err error
-//	g.client, err = CreateManagerServiceClient(g.config)
-//	return err
-//}
-
-//type Option func(handler StageProgressHandler) StageProgressHandler
-//
-//func WithConfig(config *config.Config) Option {
-//	return func(handler StageProgressHandler) StageProgressHandler {
-//		handler.config = config
-//		return handler
-//	}
-//}

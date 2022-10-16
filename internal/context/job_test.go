@@ -52,7 +52,7 @@ func TestStageBuilder(t *testing.T) {
 		sdk_v1.NewSetStageStatusReq("jobKey", "compensate_compensate_stage2", sdk_v1.StageStatus_StagePending),
 		sdk_v1.NewSetStageStatusReq("jobKey", "compensate_compensate_compensate_stage1", sdk_v1.StageStatus_StagePending),
 	)
-	variableHandler := inmemory.NewVariableHandler(t)
+	variableHandler := inmemory.NewVariableHandler(t, nil)
 	jobContext := context.NewJobContext(jobMetadata, stageProgressHandler, variableHandler)
 	jobContext.Stage("stage1", func(context api.StageContext) (any, api.StageError) {
 		println("---- stage1")
@@ -193,7 +193,7 @@ func TestInitialization(t *testing.T) {
 	newCxt := func() api.JobContext {
 		jobMetadata := context.NewJobMetadata(nil, "jobKey", "correlationId", "transactionId", "payload")
 		stageProgressHandler := inmemory.NewStageProgressHandler(t, sdk_v1.NewSetStageStatusReq("jobKey", "stage1", sdk_v1.StageStatus_StagePending))
-		variableHandler := inmemory.NewVariableHandler(t)
+		variableHandler := inmemory.NewVariableHandler(t, nil)
 		return context.NewJobContext(jobMetadata, stageProgressHandler, variableHandler)
 	}
 
@@ -332,7 +332,7 @@ func TestRawVariableValue(t *testing.T) {
 
 func TestJobWorker(t *testing.T) {
 	stageProgressHandler := inmemory.NewStageProgressHandler(t, sdk_v1.NewSetStageStatusReq("jobKey", "stage1", sdk_v1.StageStatus_StagePending))
-	variablesHandler := inmemory.NewVariableHandler(t)
+	variablesHandler := inmemory.NewVariableHandler(t, nil)
 	job := NewInitExecutor()
 	cfg, err := config.NewMock(map[string]string{"APP_ENVIRONMENT": "test", "AGENT_SERVER_PORT": "0", "MANAGER_SERVER_PORT": "0"})
 	if err != nil {
@@ -343,7 +343,7 @@ func TestJobWorker(t *testing.T) {
 		t.Error("error instantiating the job worker: ", err)
 	}
 	for range []int{5, 5, 5, 5, 5} {
-		err = jobWorker.Run(context.NewJobMetadata(ctx.Background(), "jobJey", "correlationId", "transactionId", nil))
+		err = jobWorker.Run(context.NewJobMetadata(ctx.Background(), "jobKey", "correlationId", "transactionId", nil))
 		if err != nil {
 			t.Error("error running the job worker: ", err)
 		}
@@ -393,7 +393,7 @@ func (r ResumeTestJob) Execute(jobContext api.JobContext) {
 
 func TestResumeRetryLastActiveStageCompleted(t *testing.T) {
 	stageProgressHandler := inmemory.NewStageProgressHandler(t, sdk_v1.NewSetStageStatusReq("jobKey", "stage1", sdk_v1.StageStatus_StagePending))
-	variablesHandler := inmemory.NewVariableHandler(t)
+	variablesHandler := inmemory.NewVariableHandler(t, nil)
 
 	jobMetadata := context.NewJobMetadataFromGrpcRequest(nil, &sdk_v1.ExecuteJobRequest{
 		Key:           "jobKey",
@@ -432,7 +432,7 @@ func TestResumeRetryLastActiveStageCompleted(t *testing.T) {
 
 func TestResumeRetry(t *testing.T) {
 	stageProgressHandler := inmemory.NewStageProgressHandler(t, sdk_v1.NewSetStageStatusReq("jobKey", "stage1", sdk_v1.StageStatus_StagePending))
-	variablesHandler := inmemory.NewVariableHandler(t)
+	variablesHandler := inmemory.NewVariableHandler(t, nil)
 
 	jobMetadata := context.NewJobMetadataFromGrpcRequest(nil, &sdk_v1.ExecuteJobRequest{
 		Key:           "jobKey",

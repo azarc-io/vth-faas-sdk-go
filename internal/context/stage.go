@@ -7,13 +7,17 @@ import (
 
 type Stage struct {
 	api.Context
-	jobContext *Job
+	jobContext api.JobContext
 }
 
-func NewStageContext(jobCtx *Job) api.StageContext {
-	return Stage{jobContext: jobCtx, Context: jobCtx.metadata}
+func NewStageContext(ctx api.JobContext) api.StageContext {
+	return Stage{jobContext: ctx, Context: ctx}
 }
 
-func (sc Stage) GetVariables(stage string, names ...string) ([]*sdk_v1.Variable, error) {
-	return sc.jobContext.variableHandler.Get(sc.JobKey(), stage, names...)
+func (sc Stage) GetVariables(stage string, names ...string) (*sdk_v1.Variables, error) {
+	return sc.jobContext.VariableHandler().Get(sc.JobKey(), stage, names...)
+}
+
+func (sc Stage) SetVariables(stage string, variables ...*sdk_v1.Variable) error {
+	return sc.jobContext.VariableHandler().Set(sc.JobKey(), stage, variables...)
 }

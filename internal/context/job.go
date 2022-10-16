@@ -13,191 +13,51 @@ type Job struct {
 	metadata             JobMetadata
 	stageProgressHandler api.StageProgressHandler
 	variableHandler      api.VariableHandler
-	stageErr             api.StageError
-	resumeDone           bool
 }
 
 func NewJobContext(metadata api.Context, sph api.StageProgressHandler, vh api.VariableHandler) api.JobContext {
-	m := JobMetadata{ctx: metadata.Ctx(), jobKey: metadata.JobKey(), correlationId: metadata.CorrelationID(), transactionId: metadata.TransactionID(), payload: metadata.Payload(), lastActiveStage: metadata.LastActiveStage()}
+	m := JobMetadata{ctx: metadata.Ctx(), jobKey: metadata.JobKey(), correlationId: metadata.CorrelationID(), transactionId: metadata.TransactionID(), payload: metadata.Payload(), lastActiveStage: nil} // metadata.LastActiveStage() FIXME
 	return &Job{metadata: m, stageProgressHandler: sph, variableHandler: vh}
 }
 
-func (j *Job) Err() api.StageError {
-	return j.stageErr
+func (j *Job) VariableHandler() api.VariableHandler {
+	return j.variableHandler
 }
 
-func (j *Job) Stage(name string, stageDefinitionFn api.StageDefinitionFn, options ...api.StageOption) api.StageChain {
-	if j.shouldSkip(name) {
-		return j
-	}
-
-	for _, option := range options {
-		if err := option(newStageOptionParams(name, j)); err != nil {
-			return j.handleStageError(err)
-		}
-	}
-
-	err := j.updateStage(j.metadata.jobKey, name, withStageStatus(sdk_v1.StageStatus_StageStarted))
-	if err != nil {
-		return j.handleStageError(err)
-	}
-
-	stageContext := NewStageContext(j)
-	result, stageErr := stageDefinitionFn(stageContext)
-
-	if stageErr != nil {
-		err = j.updateStage(j.metadata.jobKey, name, withStageError(stageErr))
-		if err != nil {
-			return j.handleStageError(err)
-		}
-		return j.handleStageError(stageErr)
-	}
-
-	if result != nil {
-		req, err := sdk_v1.NewSetStageResultReq(j.metadata.jobKey, name, result)
-		if err != nil {
-			return j.handleStageError(err)
-		}
-		err = j.stageProgressHandler.SetResult(req)
-		if err != nil {
-			return j.handleStageError(err)
-		}
-		return j
-	}
-
-	err = j.updateStage(j.metadata.jobKey, name, withStageStatus(sdk_v1.StageStatus_StageCompleted))
-	if err != nil {
-		return j.handleStageError(err)
-	}
-
-	return j
+func (j *Job) StageProgressHandler() api.StageProgressHandler {
+	return j.stageProgressHandler
 }
 
-func (j *Job) Complete(completionDefinitionFn api.CompletionDefinitionFn) api.CompleteChain {
-	if j.stageErr != nil {
-		// TODO log.info can't execute job's complete stage because of a previous stage error
-		return j
-	}
-	err := j.stageProgressHandler.SetJobStatus(sdk_v1.NewSetJobStatusReq(j.metadata.jobKey, sdk_v1.JobStatus_JobCompletionStarted))
-	if err != nil {
-		return j.handleStageError(err)
-	}
-
-	completionCtx := NewCompleteContext(j)
-	err = completionDefinitionFn(completionCtx)
-
-	if err != nil {
-		err = j.stageProgressHandler.SetJobStatus(sdk_v1.NewSetJobStatusReq(j.metadata.jobKey, sdk_v1.JobStatus_JobCompletionDoneWithErrors)) // TODO add an error
-		return j
-	}
-	err = j.stageProgressHandler.SetJobStatus(sdk_v1.NewSetJobStatusReq(j.metadata.jobKey, sdk_v1.JobStatus_JobCompletionDone))
-	return j
+func (j *Job) Ctx() ctx.Context {
+	return j.ctx
 }
 
-func (j *Job) Compensate(compensateDefinitionFn api.CompensateDefinitionFn) api.CompensateChain {
-	if j.stageErr == nil {
-		// TODO log.info can't execute the job's compensate stage because all stages ran successfully
-		return j
-	}
-
-	err := j.stageProgressHandler.SetJobStatus(sdk_v1.NewSetJobStatusReq(j.metadata.jobKey, sdk_v1.JobStatus_JobCompensationStarted))
-	if err != nil {
-		// TODO log.error
-		return j
-	}
-
-	compensationCtx := NewCompensationContext(j.clone())
-	err = compensateDefinitionFn(compensationCtx)
-
-	if err != nil {
-		// TODO log.error
-		err = j.stageProgressHandler.SetJobStatus(sdk_v1.NewSetJobStatusReq(j.metadata.jobKey, sdk_v1.JobStatus_JobCompensationDoneWithErrors)) // TODO add a reason fields to create a description for the error
-		return j
-	}
-	err = j.stageProgressHandler.SetJobStatus(sdk_v1.NewSetJobStatusReq(j.metadata.jobKey, sdk_v1.JobStatus_JobCompensationDone))
-	if err != nil {
-		//TODO log.error
-	}
-	return j
+func (j *Job) JobKey() string {
+	return j.metadata.jobKey
 }
 
-func (j *Job) Canceled(cancelDefinitionFn api.CancelDefinitionFn) api.CanceledChain {
-	err := j.stageProgressHandler.SetJobStatus(sdk_v1.NewSetJobStatusReq(j.metadata.jobKey, sdk_v1.JobStatus_JobCompensationStarted))
-	if err != nil {
-		return j.handleStageError(err)
-	}
-
-	cancellationCtx := NewCancellationContext(j.clone())
-	err = cancelDefinitionFn(cancellationCtx)
-
-	if err != nil {
-		er := j.stageProgressHandler.SetJobStatus(sdk_v1.NewSetJobStatusReq(j.metadata.jobKey, sdk_v1.JobStatus_JobCompensationDoneWithErrors)) // TODO add a reason fields to create a description for the error
-		if er != nil {
-			return j.handleStageError(er)
-		}
-		return j.handleStageError(err)
-	}
-	err = j.stageProgressHandler.SetJobStatus(sdk_v1.NewSetJobStatusReq(j.metadata.jobKey, sdk_v1.JobStatus_JobCompensationDone))
-	if err != nil {
-		//TODO log.error
-	}
-	return j
+func (j *Job) CorrelationID() string {
+	return j.metadata.correlationId
 }
 
-func (j *Job) handleStageError(err error) api.StageChain {
-	if se, ok := err.(api.StageError); ok {
-		j.stageErr = se
-	} else {
-		j.stageErr = sdk_errors.NewStageError(err, sdk_errors.WithErrorType(sdk_v1.ErrorType_Failed))
-	}
-	// TODO log.error
-	return j
+func (j *Job) TransactionID() string {
+	return j.metadata.transactionId
 }
 
-func (j *Job) shouldSkip(currentStageName string) (skip bool) {
-	if j.metadata.lastActiveStage == nil || j.resumeDone {
-		return false
-	}
-	if j.metadata.lastActiveStage.Name() == currentStageName {
-		if j.metadata.lastActiveStage.Status() == sdk_v1.StageStatus_StageCompleted {
-			j.resumeDone = true
-			return true
-		}
-		j.resumeDone = true
-		return false
-	}
-	return true
+func (j *Job) Payload() any {
+	return j.metadata.payload
 }
 
-type updateStageOption = func(stage *sdk_v1.SetStageStatusRequest) *sdk_v1.SetStageStatusRequest
-
-func withStageStatus(status sdk_v1.StageStatus) updateStageOption {
-	return func(stage *sdk_v1.SetStageStatusRequest) *sdk_v1.SetStageStatusRequest {
-		stage.Status = status
-		return stage
-	}
+func (j *Job) LastActiveStage() api.LastActiveStatus {
+	return j.metadata.lastActiveStage
 }
 
-func withStageError(err api.StageError) updateStageOption {
-	return func(stage *sdk_v1.SetStageStatusRequest) *sdk_v1.SetStageStatusRequest {
-		stage.Status = sdk_errors.ErrorTypeToStageStatusMapper[err.ErrorType()]
-		stage.Err = err.ToErrorMessage()
-		return stage
-	}
+func (j *Job) SetVariables(stage string, variables ...*sdk_v1.Variable) error {
+	return j.variableHandler.Set(j.metadata.jobKey, stage, variables...)
 }
 
-func (j *Job) updateStage(jobKey, name string, opts ...updateStageOption) error {
-	req := &sdk_v1.SetStageStatusRequest{JobKey: jobKey, Name: name}
-	for _, opt := range opts {
-		req = opt(req)
-	}
-	return j.stageProgressHandler.Set(req)
-}
-
-func (j *Job) clone() *Job {
-	clone := *j
-	clone.stageErr = nil
-	return &clone
+func (j *Job) GetVariables(stage string, names ...string) (*sdk_v1.Variables, error) {
+	return j.variableHandler.Get(j.metadata.jobKey, stage, names...)
 }
 
 // TODO move
