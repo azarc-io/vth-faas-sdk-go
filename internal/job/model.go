@@ -18,12 +18,13 @@ var (
 type Chain struct {
 	rootNode     *node
 	stagesMap    map[string]*stage
+	completeMap  map[string]*completeStage
 	initFunction func()
 }
 
 type node struct {
 	stages     []*stage
-	complete   *stage
+	complete   *completeStage
 	cancel     *node
 	compensate *node
 	nodeType   nodeType
@@ -45,8 +46,15 @@ func (n *node) appendBreadcrumb(nodeType nodeType, breadcrumb ...string) {
 type stage struct {
 	node *node
 	name string
-	cb   api.StageDefinitionFn
 	so   []api.StageOption
+	cb   api.StageDefinitionFn
+}
+
+type completeStage struct {
+	node *node
+	name string
+	so   []api.StageOption
+	cb   api.CompleteDefinitionFn
 }
 
 func (s stage) ApplyStageOptionsParams(ctx api.JobContext, stageName string) api.StageError {

@@ -6,6 +6,7 @@ package api
 import (
 	"context"
 	sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1"
+	"github.com/rs/zerolog"
 )
 
 type (
@@ -45,6 +46,7 @@ type (
 		CorrelationID() string
 		TransactionID() string
 		Payload() any
+		LastActiveStage() LastActiveStatus
 	}
 
 	JobContext interface {
@@ -52,6 +54,7 @@ type (
 		VariableHandler() VariableHandler
 		StageProgressHandler() StageProgressHandler
 		LastActiveStage() LastActiveStatus
+		Log() *zerolog.Logger
 	}
 
 	LastActiveStatus interface {
@@ -60,6 +63,11 @@ type (
 	}
 
 	StageContext interface {
+		Context
+		GetVariables(stage string, names ...string) (*sdk_v1.Variables, error)
+	}
+
+	CompleteContext interface {
 		Context
 		GetVariables(stage string, names ...string) (*sdk_v1.Variables, error)
 		SetVariables(stage string, variables ...*sdk_v1.Variable) error
@@ -72,6 +80,11 @@ type (
 		Context() Context
 	}
 
-	StageDefinitionFn = func(StageContext) (any, StageError)
-	StageOption       = func(StageOptionParams) StageError
+	StageDefinitionFn    = func(StageContext) (any, StageError)
+	CompleteDefinitionFn = func(CompleteContext) StageError
+	StageOption          = func(StageOptionParams) StageError
+
+	StageFunctions interface {
+		StageDefinitionFn | CompleteDefinitionFn
+	}
 )

@@ -17,7 +17,3 @@ func NewStageContext(ctx api.JobContext) api.StageContext {
 func (sc Stage) GetVariables(stage string, names ...string) (*sdk_v1.Variables, error) {
 	return sc.jobContext.VariableHandler().Get(sc.JobKey(), stage, names...)
 }
-
-func (sc Stage) SetVariables(stage string, variables ...*sdk_v1.Variable) error {
-	return sc.jobContext.VariableHandler().Set(sc.JobKey(), stage, variables...)
-}

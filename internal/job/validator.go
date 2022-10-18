@@ -60,16 +60,21 @@ var uniqueStageNamesValidator = func() *validateFn {
 	stageNames := map[string]string{}
 	return &validateFn{
 		fn: func(n *node) error {
-			var stagesFromNodes []*stage
-			stagesFromNodes = append(n.stages, n.complete)
-			for _, stage := range stagesFromNodes {
-				if stage == nil {
+			var stagesFromNodes []string
+			for _, stg := range n.stages {
+				stagesFromNodes = append(stagesFromNodes, stg.name)
+			}
+			if n.complete != nil {
+				stagesFromNodes = append(stagesFromNodes, n.complete.name)
+			}
+			for _, stageName := range stagesFromNodes {
+				if stageName == "" {
 					return nil
 				}
-				if bc, ok := stageNames[stage.name]; ok {
+				if bc, ok := stageNames[stageName]; ok {
 					return fmt.Errorf("unique stage name restriction violated: a stage or complete stage in '%s' and '%s' have the same name", bc, n.breadcrumb)
 				} else {
-					stageNames[stage.name] = n.breadcrumb
+					stageNames[stageName] = n.breadcrumb
 				}
 			}
 			return nil

@@ -72,6 +72,6 @@ func (w *JobWorker) validate() error {
 }
 
 func (w *JobWorker) Run(metadata api.Context) api.StageError {
-	jobContext := context.NewJobContext(metadata, w.stageProgressHandler, w.variableHandler)
+	jobContext := context.NewJobContext(metadata, w.stageProgressHandler, w.variableHandler, w.log)
 	return w.chain.Execute(jobContext)
 }

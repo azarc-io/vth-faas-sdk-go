@@ -17,12 +17,11 @@ func NewChain(node *node) *chainBuilder {
 
 func (c *chainBuilder) Build() (*Chain, error) {
 	newChain := &Chain{
-		rootNode:  c.rootNode,
-		stagesMap: map[string]*stage{},
+		rootNode:    c.rootNode,
+		stagesMap:   map[string]*stage{},
+		completeMap: map[string]*completeStage{},
 	}
-	for _, stg := range c.getStages([]*stage{}, newChain.rootNode) {
-		newChain.stagesMap[stg.name] = stg
-	}
+	c.createResumeOnRetryStagesMap(newChain)
 	addBreadcrumb(newChain.rootNode)
 	if err := c.validate([]*validateFn{atLeastOneStagePerNodeValidator, uniqueStageNamesValidator()}, newChain.rootNode); err != nil {
 		return nil, err
@@ -30,17 +29,27 @@ func (c *chainBuilder) Build() (*Chain, error) {
 	return newChain, nil
 }
 
-func (c *chainBuilder) getStages(stages []*stage, nodes ...*node) []*stage {
+func (c *chainBuilder) createResumeOnRetryStagesMap(newChain *Chain) {
+	stages, completeStages := c.getStages([]*stage{}, []*completeStage{}, newChain.rootNode)
+	for _, stg := range stages {
+		newChain.stagesMap[stg.name] = stg
+	}
+	for _, cStg := range completeStages {
+		newChain.completeMap[cStg.name] = cStg
+	}
+}
+
+func (c *chainBuilder) getStages(stages []*stage, completeStages []*completeStage, nodes ...*node) ([]*stage, []*completeStage) {
 	var nextNodes []*node
 	for _, n := range nodes {
-		stages = appendIfNotNil(stages, n.complete)
+		completeStages = appendIfNotNil(completeStages, n.complete)
 		stages = appendIfNotNil(stages, n.stages...)
 		nextNodes = appendIfNotNil(nextNodes, n.compensate, n.cancel)
 	}
 	if len(nextNodes) > 0 {
-		return c.getStages(stages, nextNodes...)
+		return c.getStages(stages, completeStages, nextNodes...)
 	}
-	return stages
+	return stages, completeStages
 }
 
 type nodeBuilder struct {
@@ -62,11 +71,11 @@ func (sb *nodeBuilder) Stage(name string, stageDefinitionFn api.StageDefinitionF
 	return sb
 }
 
-func (sb *nodeBuilder) Complete(name string, stageDefinitionFn api.StageDefinitionFn, options ...api.StageOption) *nodeBuilder {
-	sb.node.complete = &stage{
+func (sb *nodeBuilder) Complete(name string, completeDefinitionFn api.CompleteDefinitionFn, options ...api.StageOption) *nodeBuilder {
+	sb.node.complete = &completeStage{
 		node: sb.node,
 		name: name,
-		cb:   stageDefinitionFn,
+		cb:   completeDefinitionFn,
 		so:   options,
 	}
 	return sb
