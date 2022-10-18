@@ -13,6 +13,9 @@ func (c *Chain) Execute(ctx api.JobContext) api.StageError {
 
 func (c *Chain) runner(ctx api.JobContext, node *node) api.StageError {
 	for _, stg := range node.stages {
+		if err := stg.ApplyStageOptionsParams(ctx, stg.name); err != nil {
+			return err
+		}
 		er := updateStage(ctx, stg.name, withStageStatus(sdk_v1.StageStatus_StageStarted))
 		if er != nil {
 			// TODO log error -->> retry forever?

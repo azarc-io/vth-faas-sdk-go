@@ -56,6 +56,7 @@ func (sb *nodeBuilder) Stage(name string, stageDefinitionFn api.StageDefinitionF
 		node: sb.node,
 		name: name,
 		cb:   stageDefinitionFn,
+		so:   options,
 	}
 	sb.node.stages = append(sb.node.stages, s)
 	return sb
@@ -66,6 +67,7 @@ func (sb *nodeBuilder) Complete(name string, stageDefinitionFn api.StageDefiniti
 		node: sb.node,
 		name: name,
 		cb:   stageDefinitionFn,
+		so:   options,
 	}
 	return sb
 }
