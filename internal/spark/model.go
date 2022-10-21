@@ -1,4 +1,4 @@
-package job
+package spark
 
 import (
 	"fmt"
@@ -57,7 +57,7 @@ type completeStage struct {
 	cb   api.CompleteDefinitionFn
 }
 
-func (s stage) ApplyStageOptionsParams(ctx api.JobContext, stageName string) api.StageError {
+func (s stage) ApplyStageOptionsParams(ctx api.SparkContext, stageName string) api.StageError {
 	params := newStageOptionParams(ctx, stageName)
 	for _, stageOptions := range s.so {
 		if err := stageOptions(params); err != nil {
@@ -71,7 +71,7 @@ type stageOptionParams struct {
 	stageName string
 	sph       api.StageProgressHandler
 	vh        api.VariableHandler
-	ctx       api.JobContext
+	ctx       api.SparkContext
 }
 
 func (s stageOptionParams) StageName() string {
@@ -90,7 +90,7 @@ func (s stageOptionParams) Context() api.Context {
 	return s.ctx
 }
 
-func newStageOptionParams(ctx api.JobContext, stageName string) api.StageOptionParams {
+func newStageOptionParams(ctx api.SparkContext, stageName string) api.StageOptionParams {
 	return stageOptionParams{
 		stageName: stageName,
 		sph:       ctx.StageProgressHandler(),

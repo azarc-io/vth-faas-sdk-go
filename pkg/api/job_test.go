@@ -8,7 +8,7 @@ package api_test
 //	"testing"
 //)
 //
-//func (j *_Job) Execute(ctx api.JobContext) {
+//func (j *_Job) Execute(ctx api.SparkContext) {
 //	ctx.Stage("takeMoney", func(ctx api.StageContext) (interface{}, api.StageError) {
 //		var myData map[string]interface{}
 //		if v, err := ctx.GetVariable("data"); err != nil {
@@ -60,7 +60,7 @@ package api_test
 //	}).Canceled(func(ctx api.CancelContext) (any, api.StageError) {
 //		return nil, nil
 //	})
-//	println("##job executed")
+//	println("##spark executed")
 //}
 //
 //func TestContracts(t *testing.T) {
@@ -73,8 +73,8 @@ package api_test
 //		},
 //		StageChain: _StageChain{stages: make(map[string]api.StageDefinitionFn)},
 //	}
-//	job := _Job{jobCtx}
-//	job.Execute(&jobCtx)
+//	spark := _Job{jobCtx}
+//	spark.Execute(&jobCtx)
 //}
 //
 //type (
@@ -86,7 +86,7 @@ package api_test
 //	}
 //
 //	_Job struct {
-//		JobContext _JobContext
+//		SparkContext _JobContext
 //	}
 //
 //	_JobContext struct {
@@ -235,7 +235,7 @@ package api_test
 //	return
 //}
 //
-//// JobContext
+//// SparkContext
 //
 //func (jc _JobContext) JobKey() string {
 //	return jc.Args.JobKey

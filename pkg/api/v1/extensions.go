@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/samber/lo"
 	"google.golang.org/protobuf/types/known/structpb"
+	"reflect"
 )
 
 // TODO yaml, xml, json, toml, csv <- just the ones that golang support
@@ -26,13 +27,54 @@ func (x *StageResult) Bind(a any) error {
 }
 
 func NewSetStageResultReq(jobKey, name string, data any) (*SetStageResultRequest, error) {
-	b, err := json.Marshal(data)
+	// TODO fix me
+	pbValue, err := structpb.NewValue(data)
 	if err != nil {
-		return nil, err
-	}
-	pbValue, err := structpb.NewValue(b)
-	if err != nil {
-		return nil, err
+		switch reflect.TypeOf(data).Kind() {
+		case reflect.Slice:
+			b, err := json.Marshal(data)
+			if err != nil {
+				return nil, err
+			}
+			var m []any
+			err = json.Unmarshal(b, &m)
+			if err != nil {
+				return nil, err
+			}
+			pbValue, err = structpb.NewValue(m)
+			if err != nil {
+				return nil, err
+			}
+		case reflect.Array:
+			b, err := json.Marshal(data)
+			if err != nil {
+				return nil, err
+			}
+			var m []any
+			err = json.Unmarshal(b, &m)
+			if err != nil {
+				return nil, err
+			}
+			pbValue, err = structpb.NewValue(m)
+			if err != nil {
+				return nil, err
+			}
+		default:
+			b, err := json.Marshal(data)
+			if err != nil {
+				return nil, err
+			}
+			var m = map[string]any{}
+			err = json.Unmarshal(b, &m)
+			if err != nil {
+				return nil, err
+			}
+			pbValue, err = structpb.NewValue(m)
+			if err != nil {
+				return nil, err
+			}
+		}
+
 	}
 	return &SetStageResultRequest{
 		JobKey: jobKey,

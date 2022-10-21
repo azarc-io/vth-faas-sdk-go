@@ -24,7 +24,9 @@ func (i *inMemoryVariableHandler) Get(jobKey, stage string, names ...string) (*s
 	var vars []*sdk_v1.Variable
 	for _, n := range names {
 		key := i.key(n, stage, jobKey)
-		vars = append(vars, i.variables[key])
+		if v, ok := i.variables[key]; ok {
+			vars = append(vars, v)
+		}
 	}
 	if len(vars) == 0 {
 		i.t.Fatalf("no variables found for the params: ")

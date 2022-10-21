@@ -288,7 +288,7 @@ func (x *Error) ProtoReflect() protoreflect.Message {
 	return mi.MessageOf(x)
 }
 
-// Deprecated: Use Error.ProtoReflect.Descriptor instead.
+// Deprecated: Use SomethingBadHappened.ProtoReflect.Descriptor instead.
 func (*Error) Descriptor() ([]byte, []int) {
 	return file_pkg_api_v1_sdk_proto_rawDescGZIP(), []int{1}
 }
@@ -1521,7 +1521,7 @@ var file_pkg_api_v1_sdk_proto_goTypes = []interface{}{
 	(StageStatus)(0),                 // 1: sdk_v1.StageStatus
 	(JobStatus)(0),                   // 2: sdk_v1.JobStatus
 	(*Void)(nil),                     // 3: sdk_v1.Void
-	(*Error)(nil),                    // 4: sdk_v1.Error
+	(*Error)(nil),                    // 4: sdk_v1.SomethingBadHappened
 	(*RetryStrategy)(nil),            // 5: sdk_v1.RetryStrategy
 	(*LastActiveStage)(nil),          // 6: sdk_v1.LastActiveStage
 	(*ExecuteJobRequest)(nil),        // 7: sdk_v1.ExecuteJobRequest
@@ -1544,16 +1544,16 @@ var file_pkg_api_v1_sdk_proto_goTypes = []interface{}{
 	(*structpb.Value)(nil),           // 24: google.protobuf.Value
 }
 var file_pkg_api_v1_sdk_proto_depIdxs = []int32{
-	0,  // 0: sdk_v1.Error.error_type:type_name -> sdk_v1.ErrorType
-	24, // 1: sdk_v1.Error.metadata:type_name -> google.protobuf.Value
-	5,  // 2: sdk_v1.Error.retry:type_name -> sdk_v1.RetryStrategy
+	0,  // 0: sdk_v1.SomethingBadHappened.error_type:type_name -> sdk_v1.ErrorType
+	24, // 1: sdk_v1.SomethingBadHappened.metadata:type_name -> google.protobuf.Value
+	5,  // 2: sdk_v1.SomethingBadHappened.retry:type_name -> sdk_v1.RetryStrategy
 	1,  // 3: sdk_v1.LastActiveStage.status:type_name -> sdk_v1.StageStatus
 	6,  // 4: sdk_v1.ExecuteJobRequest.last_active_stage:type_name -> sdk_v1.LastActiveStage
 	2,  // 5: sdk_v1.SetJobStatusRequest.status:type_name -> sdk_v1.JobStatus
-	4,  // 6: sdk_v1.SetJobStatusRequest.err:type_name -> sdk_v1.Error
+	4,  // 6: sdk_v1.SetJobStatusRequest.err:type_name -> sdk_v1.SomethingBadHappened
 	24, // 7: sdk_v1.StageResult.data:type_name -> google.protobuf.Value
 	1,  // 8: sdk_v1.SetStageStatusRequest.status:type_name -> sdk_v1.StageStatus
-	4,  // 9: sdk_v1.SetStageStatusRequest.err:type_name -> sdk_v1.Error
+	4,  // 9: sdk_v1.SetStageStatusRequest.err:type_name -> sdk_v1.SomethingBadHappened
 	11, // 10: sdk_v1.GetStageResultResponse.result:type_name -> sdk_v1.StageResult
 	11, // 11: sdk_v1.SetStageResultRequest.result:type_name -> sdk_v1.StageResult
 	1,  // 12: sdk_v1.GetStageStatusResponse.status:type_name -> sdk_v1.StageStatus

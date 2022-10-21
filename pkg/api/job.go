@@ -6,16 +6,15 @@ package api
 import (
 	"context"
 	sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1"
-	"github.com/rs/zerolog"
 )
 
 type (
-	Job interface {
+	Spark interface {
 		Initialize() error
-		Execute(JobContext)
+		Execute(SparkContext)
 	}
 
-	JobWorker interface {
+	Worker interface {
 		Run(ctx Context) StageError
 	}
 
@@ -49,12 +48,12 @@ type (
 		LastActiveStage() LastActiveStatus
 	}
 
-	JobContext interface {
+	SparkContext interface {
 		Context
 		VariableHandler() VariableHandler
 		StageProgressHandler() StageProgressHandler
 		LastActiveStage() LastActiveStatus
-		Log() *zerolog.Logger
+		Log() Logger
 	}
 
 	LastActiveStatus interface {
@@ -65,12 +64,16 @@ type (
 	StageContext interface {
 		Context
 		GetVariables(stage string, names ...string) (*sdk_v1.Variables, error)
+		GetVariable(stage string, names string) (*sdk_v1.Variable, error)
+		Log() Logger
 	}
 
 	CompleteContext interface {
 		Context
 		GetVariables(stage string, names ...string) (*sdk_v1.Variables, error)
 		SetVariables(stage string, variables ...*sdk_v1.Variable) error
+		GetStageResult(name string) (*sdk_v1.StageResult, error)
+		Log() Logger
 	}
 
 	StageOptionParams interface {
@@ -84,7 +87,11 @@ type (
 	CompleteDefinitionFn = func(CompleteContext) StageError
 	StageOption          = func(StageOptionParams) StageError
 
-	StageFunctions interface {
-		StageDefinitionFn | CompleteDefinitionFn
+	Logger interface {
+		Info(format string, v ...any)
+		Warn(format string, v ...any)
+		Debug(format string, v ...any)
+		Error(err error, format string, v ...any)
+		AddFields(k string, v any) Logger
 	}
 )

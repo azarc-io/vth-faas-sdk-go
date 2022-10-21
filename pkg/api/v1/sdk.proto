@@ -15,8 +15,8 @@ message Error {
   string error = 1;
   uint32 error_code = 2;
   ErrorType error_type = 3;
-  optional RetryStrategy retry = 4;
-  optional google.protobuf.Value metadata = 5;
+  optional google.protobuf.Value metadata = 4;
+  optional RetryStrategy retry = 5;
 }
 
 message RetryStrategy {
@@ -35,13 +35,6 @@ enum ErrorType {
   Retry = 3;
 }
 
-enum StageType {
-  Standard = 0;
-  Compensate = 1;
-  Cancel = 2;
-  Complete = 3;
-}
-
 enum StageStatus {
   StagePending = 0;
   StageStarted = 1;
@@ -49,6 +42,22 @@ enum StageStatus {
   StageFailed = 3;
   StageSkipped = 4;
   StageCanceled = 5;
+}
+
+enum JobStatus {
+  JobWaiting = 0;
+  JobRunning = 1;
+  JobDone = 2;
+  JobCanceled = 3;
+  JobCompletionStarted = 4;
+  JobCompletionDone = 5;
+  JobCompletionDoneWithErrors = 6;
+  JobCompensationStarted = 7;
+  JobCompensationDone = 8;
+  JobCompensationDoneWithErrors = 9;
+  JobCancellationStarted = 10;
+  JobCancellationDone = 11;
+  JobCancellationDoneWithErrors = 12;
 }
 
 /************************************************************************/
@@ -68,23 +77,32 @@ message ExecuteJobRequest {
 }
 
 message ExecuteJobResponse {
-  string service_id = 1;
+  string agent_id = 1;
+}
+
+message SetJobStatusRequest {
+  string key = 1;
+  JobStatus status = 2;
+  optional Error err = 3;
 }
 
 message RegisterHeartbeatRequest {
-  string service_id = 1;
+  string agent_id = 1;
 }
 
 /************************************************************************/
 /* STAGE
 /************************************************************************/
 
+message StageResult {
+  google.protobuf.Value data = 1;
+}
+
 message SetStageStatusRequest {
   string name = 1;
   string job_key = 2;
-  uint32 level = 3;
-  StageStatus status = 4;
-  Error err = 5;
+  StageStatus status = 3;
+  Error err = 4;
 }
 
 message GetStageResultRequest {
@@ -93,13 +111,13 @@ message GetStageResultRequest {
 }
 
 message GetStageResultResponse {
-  bytes data = 1;
+  StageResult result = 1;
 }
 
 message SetStageResultRequest {
   string job_key = 1;
   string name = 2;
-  bytes data = 3;
+  StageResult result = 3;
 }
 
 message GetStageStatusRequest {
@@ -122,8 +140,9 @@ message Variable {
 }
 
 message GetVariablesRequest {
-  string job_key = 1;
-  repeated string name = 2;
+  string stage = 1;
+  string job_key = 2;
+  repeated string name = 3;
 }
 
 message GetVariablesResponse {
@@ -131,8 +150,9 @@ message GetVariablesResponse {
 }
 
 message SetVariablesRequest {
-  string job_key = 1;
-  map<string, Variable> variables = 2;
+  string stage = 1;
+  string job_key = 2;
+  map<string, Variable> variables = 3;
 }
 
 /************************************************************************/
@@ -157,5 +177,6 @@ service ManagerService {
   rpc GetVariables(GetVariablesRequest) returns (GetVariablesResponse);
   rpc SetVariables(SetVariablesRequest) returns (Void);
 
+  rpc SetJobStatus(SetJobStatusRequest) returns (Void);
   rpc RegisterHeartbeat(RegisterHeartbeatRequest) returns (Void);
 }

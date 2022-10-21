@@ -1,4 +1,4 @@
-package job
+package spark
 
 import (
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/api"
@@ -56,7 +56,7 @@ type nodeBuilder struct {
 	node *node
 }
 
-func NodeBuilder() *nodeBuilder {
+func NewNode() *nodeBuilder {
 	return &nodeBuilder{node: &node{}}
 }
 

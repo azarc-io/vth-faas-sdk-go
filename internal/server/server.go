@@ -15,13 +15,13 @@ import (
 
 type Server struct {
 	config    *config.Config
-	worker    api.JobWorker
+	worker    api.Worker
 	client    sdk_v1.ManagerServiceClient
 	svr       *grpc.Server
 	heartBeat *Heartbeat
 }
 
-func NewServer(cfg *config.Config, worker api.JobWorker, client sdk_v1.ManagerServiceClient) *Server {
+func NewServer(cfg *config.Config, worker api.Worker, client sdk_v1.ManagerServiceClient) *Server {
 	return &Server{config: cfg, worker: worker, client: client}
 }
 
@@ -63,7 +63,7 @@ func (s Server) ExecuteJob(ctx context.Context, request *sdk_v1.ExecuteJobReques
 	go func() { // TODO goroutine pool
 		err := s.worker.Run(jobContext)
 		if err != nil {
-			// we don't care about this error here, it is being sent to the manager service via grpc calls to update the job status
+			// we don't care about this error here, it is being sent to the manager service via grpc calls to update the spark status
 			// TODO fix me
 		}
 	}()

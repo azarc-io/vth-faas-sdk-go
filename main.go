@@ -42,6 +42,6 @@ func main() {
 type AgentService struct{}
 
 func (a AgentService) ExecuteJob(c ctx.Context, req *sdk_v1.ExecuteJobRequest) (*sdk_v1.ExecuteJobResponse, error) {
-	println("ExecuteJob req!, ", fmt.Sprintf("job: %s, tr: %s, co: %s", req.Key, req.TransactionId, req.CorrelationId))
+	println("ExecuteJob req!, ", fmt.Sprintf("spark: %s, tr: %s, co: %s", req.Key, req.TransactionId, req.CorrelationId))
 	return &sdk_v1.ExecuteJobResponse{AgentId: shortuuid.New()}, nil
 }

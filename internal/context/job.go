@@ -4,7 +4,6 @@ import (
 	ctx "context"
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/api"
 	sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1"
-	"github.com/rs/zerolog"
 )
 
 type Job struct {
@@ -12,10 +11,10 @@ type Job struct {
 	metadata             JobMetadata
 	stageProgressHandler api.StageProgressHandler
 	variableHandler      api.VariableHandler
-	log                  *zerolog.Logger
+	log                  api.Logger
 }
 
-func NewJobContext(metadata api.Context, sph api.StageProgressHandler, vh api.VariableHandler, log *zerolog.Logger) api.JobContext {
+func NewJobContext(metadata api.Context, sph api.StageProgressHandler, vh api.VariableHandler, log api.Logger) api.SparkContext {
 	m := JobMetadata{ctx: metadata.Ctx(), jobKey: metadata.JobKey(), correlationId: metadata.CorrelationID(), transactionId: metadata.TransactionID(), payload: metadata.Payload(), lastActiveStage: metadata.LastActiveStage()}
 	return &Job{metadata: m, stageProgressHandler: sph, variableHandler: vh, log: log}
 }
@@ -60,6 +59,6 @@ func (j *Job) GetVariables(stage string, names ...string) (*sdk_v1.Variables, er
 	return j.variableHandler.Get(j.metadata.jobKey, stage, names...)
 }
 
-func (j *Job) Log() *zerolog.Logger {
+func (j *Job) Log() api.Logger {
 	return j.log
 }

@@ -4,11 +4,10 @@ import (
 	"github.com/azarc-io/vth-faas-sdk-go/internal/clients"
 	"github.com/azarc-io/vth-faas-sdk-go/internal/context"
 	grpc_handler "github.com/azarc-io/vth-faas-sdk-go/internal/handlers/grpc"
-	"github.com/azarc-io/vth-faas-sdk-go/internal/job"
+	"github.com/azarc-io/vth-faas-sdk-go/internal/logger"
+	"github.com/azarc-io/vth-faas-sdk-go/internal/spark"
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/api"
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/config"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 )
 
 type Option = func(je *JobWorker) *JobWorker
@@ -27,7 +26,7 @@ func WithStageProgressHandler(sph api.StageProgressHandler) Option {
 	}
 }
 
-func WithLog(log *zerolog.Logger) Option {
+func WithLog(log api.Logger) Option {
 	return func(jw *JobWorker) *JobWorker {
 		jw.log = log
 		return jw
@@ -36,13 +35,13 @@ func WithLog(log *zerolog.Logger) Option {
 
 type JobWorker struct {
 	config               *config.Config
-	chain                *job.Chain
+	chain                *spark.Chain
 	variableHandler      api.VariableHandler
 	stageProgressHandler api.StageProgressHandler
-	log                  *zerolog.Logger
+	log                  api.Logger
 }
 
-func NewJobWorker(cfg *config.Config, chain *job.Chain, options ...Option) (api.JobWorker, error) {
+func NewSparkWorker(cfg *config.Config, chain *spark.Chain, options ...Option) (api.Worker, error) {
 	jw := &JobWorker{config: cfg, chain: chain}
 	for _, opt := range options {
 		jw = opt(jw)
@@ -65,8 +64,7 @@ func (w *JobWorker) validate() error {
 		w.stageProgressHandler = grpc_handler.NewStageProgressHandler(client)
 	}
 	if w.log == nil {
-		l := log.With().Str("module", "job_worker").CallerWithSkipFrameCount(3).Stack().Logger()
-		w.log = &l
+		w.log = logger.NewLogger()
 	}
 	return nil
 }

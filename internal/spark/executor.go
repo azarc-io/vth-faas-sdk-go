@@ -1,4 +1,4 @@
-package job
+package spark
 
 import (
 	"github.com/azarc-io/vth-faas-sdk-go/internal/context"
@@ -7,37 +7,40 @@ import (
 	sdk_errors "github.com/azarc-io/vth-faas-sdk-go/pkg/errors"
 )
 
-func (c *Chain) Execute(ctx api.JobContext) api.StageError {
+const (
+	stageLogField  = "stage"
+	jobKeyLogField = "job_key"
+)
+
+func (c *Chain) Execute(ctx api.SparkContext) api.StageError {
 	return c.runner(ctx, c.rootNode)
 }
 
-func (c *Chain) runner(ctx api.JobContext, node *node) api.StageError {
+func (c *Chain) runner(ctx api.SparkContext, node *node) api.StageError {
 	for _, stg := range node.stages {
-		log := ctx.Log().With().Str("stage", stg.name).Str("job_key", ctx.JobKey()).Logger()
+		ctx.Log().AddFields(stageLogField, stg.name).AddFields(jobKeyLogField, ctx.JobKey())
+
 		if err := stg.ApplyStageOptionsParams(ctx, stg.name); err != nil {
 			return err
 		}
+
 		er := updateStage(ctx, stg.name, withStageStatus(sdk_v1.StageStatus_StageStarted))
 		if er != nil {
-			log.Error().Err(er).Msg("error trying to update a stage status")
+			ctx.Log().Error(er, "error trying to update a stage status")
 			return sdk_errors.NewStageError(er)
 		}
+
 		result, err := stg.cb(context.NewStageContext(ctx))
+
 		if err != nil {
 			if e := updateStage(ctx, stg.name, withStageError(err)); e != nil {
-				log.Error().Err(err).Str("stage", stg.name).Str("job_key", ctx.JobKey()).Msg("error trying to update a stage status")
+				ctx.Log().Error(err, "error trying to update a stage status")
 				return sdk_errors.NewStageError(e)
 			}
 			switch err.ErrorType() {
 			case sdk_v1.ErrorType_Failed:
 				if node.compensate != nil {
-					if node.nodeType == nodeTypeRoot {
-						// TODO update stage to compensate starting
-					}
 					err := c.runner(ctx, node.compensate)
-					if node.nodeType == nodeTypeRoot {
-						// TODO update stage to compensate done / errored
-					}
 					return err
 				}
 				return err
@@ -71,6 +74,9 @@ func (c *Chain) runner(ctx api.JobContext, node *node) api.StageError {
 			return sdk_errors.NewStageError(err)
 		}
 	}
+	if node.complete != nil {
+		node.complete.cb(context.NewCompleteContext(ctx))
+	}
 	return nil
 }
 
@@ -91,7 +97,7 @@ func withStageError(err api.StageError) updateStageOption {
 	}
 }
 
-func updateStage(ctx api.JobContext, name string, opts ...updateStageOption) error {
+func updateStage(ctx api.SparkContext, name string, opts ...updateStageOption) error {
 	req := &sdk_v1.SetStageStatusRequest{JobKey: ctx.JobKey(), Name: name}
 	for _, opt := range opts {
 		req = opt(req)

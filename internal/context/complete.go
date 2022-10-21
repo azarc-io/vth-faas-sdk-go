@@ -7,11 +7,19 @@ import (
 
 type Complete struct {
 	api.Context
-	jobContext api.JobContext
+	jobContext api.SparkContext
 }
 
-func NewCompleteContext(ctx api.JobContext) api.CompleteContext {
+func NewCompleteContext(ctx api.SparkContext) api.CompleteContext {
 	return Complete{jobContext: ctx, Context: ctx}
+}
+
+func (sc Complete) Log() api.Logger {
+	return sc.jobContext.Log()
+}
+
+func (sc Complete) GetStageResult(name string) (*sdk_v1.StageResult, error) {
+	return sc.jobContext.StageProgressHandler().GetResult(sc.JobKey(), name)
 }
 
 func (sc Complete) GetVariables(stage string, names ...string) (*sdk_v1.Variables, error) {
