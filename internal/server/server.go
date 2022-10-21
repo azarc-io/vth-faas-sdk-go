@@ -3,7 +3,6 @@ package server
 import (
 	"context"
 	api_ctx "github.com/azarc-io/vth-faas-sdk-go/internal/context"
-	"github.com/azarc-io/vth-faas-sdk-go/pkg/api"
 	sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1"
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/config"
 	"github.com/rs/zerolog/log"
@@ -15,13 +14,13 @@ import (
 
 type Server struct {
 	config    *config.Config
-	worker    api.Worker
+	worker    sdk_v1.Worker
 	client    sdk_v1.ManagerServiceClient
 	svr       *grpc.Server
 	heartBeat *Heartbeat
 }
 
-func NewServer(cfg *config.Config, worker api.Worker, client sdk_v1.ManagerServiceClient) *Server {
+func NewServer(cfg *config.Config, worker sdk_v1.Worker, client sdk_v1.ManagerServiceClient) *Server {
 	return &Server{config: cfg, worker: worker, client: client}
 }
 
@@ -61,7 +60,7 @@ func (s Server) Stop() {
 func (s Server) ExecuteJob(ctx context.Context, request *sdk_v1.ExecuteJobRequest) (*sdk_v1.ExecuteJobResponse, error) {
 	jobContext := api_ctx.NewJobMetadata(ctx, request.Key, request.CorrelationId, request.TransactionId, nil)
 	go func() { // TODO goroutine pool
-		err := s.worker.Run(jobContext)
+		err := s.worker.Execute(jobContext)
 		if err != nil {
 			// we don't care about this error here, it is being sent to the manager service via grpc calls to update the spark status
 			// TODO fix me

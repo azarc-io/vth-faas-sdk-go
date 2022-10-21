@@ -1,4 +1,4 @@
-package api_test
+package sdk_v1_test
 
 //import (
 //	"errors"
@@ -11,7 +11,7 @@ package api_test
 //func (j *_Job) Execute(ctx api.SparkContext) {
 //	ctx.Stage("takeMoney", func(ctx api.StageContext) (interface{}, api.StageError) {
 //		var myData map[string]interface{}
-//		if v, err := ctx.GetVariable("data"); err != nil {
+//		if v, err := ctx.Input("data"); err != nil {
 //			if err := v.Bind(&myData); err != nil {
 //				return nil, sdk_errors.NewFromOptions(sdk_errors.WithReasonFromError(err))
 //			}
@@ -19,7 +19,7 @@ package api_test
 //		return "receipt_id", nil
 //	}).Stage("generateEmailReceipt", func(ctx api.StageContext) (interface{}, api.StageError) {
 //		var myData map[string]interface{}
-//		if v, err := ctx.GetVariable("data"); err != nil {
+//		if v, err := ctx.Input("data"); err != nil {
 //			if err := v.Bind(&myData); err != nil {
 //				return nil, sdk_errors.NewFromOptions(sdk_errors.WithReasonFromError(err))
 //			}
@@ -27,7 +27,7 @@ package api_test
 //		return "receipt_id", nil
 //	}).Stage("generatePdfReceipt", func(ctx api.StageContext) (interface{}, api.StageError) {
 //		var myData map[string]interface{}
-//		if v, err := ctx.GetVariable("data"); err != nil {
+//		if v, err := ctx.Input("data"); err != nil {
 //			if err := v.Bind(&myData); err != nil {
 //				return nil, sdk_errors.NewFromOptions(sdk_errors.WithReasonFromError(err))
 //			}
@@ -140,7 +140,7 @@ package api_test
 //
 //// StageContext
 //
-//func (sc _StageContext) GetVariable(string) sdk_v1.Variable {
+//func (sc _StageContext) Input(string) sdk_v1.Variable {
 //	return sdk_v1.Variable{}
 //}
 //
@@ -154,7 +154,7 @@ package api_test
 //	return true
 //}
 //
-//func (cc _CompensationContext) GetVariable(s string) sdk_v1.Variable {
+//func (cc _CompensationContext) Input(s string) sdk_v1.Variable {
 //	return sdk_v1.Variable{}
 //}
 //
@@ -189,7 +189,7 @@ package api_test
 //	return _CancelChain{}
 //}
 //
-//func (sc *_StageChain) Run() {
+//func (sc *_StageChain) Execute() {
 //	return
 //}
 //
@@ -203,7 +203,7 @@ package api_test
 //	return _CancelChain{}
 //}
 //
-//func (_ _CompleteChain) Run() {
+//func (_ _CompleteChain) Execute() {
 //	return
 //}
 //
@@ -217,7 +217,7 @@ package api_test
 //	return _CompleteChain{}
 //}
 //
-//func (_ _CompensationChain) Run() {
+//func (_ _CompensationChain) Execute() {
 //	return
 //}
 //
@@ -231,7 +231,7 @@ package api_test
 //	return _CompleteChain{}
 //}
 //
-//func (_ _CancelChain) Run() {
+//func (_ _CancelChain) Execute() {
 //	return
 //}
 //

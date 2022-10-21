@@ -4,7 +4,7 @@ import (
 	ctx "context"
 	"github.com/azarc-io/vth-faas-sdk-go/internal/context"
 	"github.com/azarc-io/vth-faas-sdk-go/internal/handlers/test/inmemory"
-	"github.com/azarc-io/vth-faas-sdk-go/internal/worker"
+	"github.com/azarc-io/vth-faas-sdk-go/internal/worker/v1"
 	sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1"
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/config"
 	"github.com/golang/mock/gomock"
@@ -41,15 +41,19 @@ func TestDemoSparkBuilder(t *testing.T) {
 
 	// get the spark chain
 	spark, err := checkout.Spark()
+	if err != nil {
+		t.Error(err)
+		return
+	}
 
-	sparkWorker, err := worker.NewSparkWorker(cfg, spark,
-		worker.WithStageProgressHandler(stageProgressHandler),
-		worker.WithVariableHandler(variablesHandler))
+	sparkWorker, err := v1.NewSparkWorker(cfg, spark,
+		v1.WithStageProgressHandler(stageProgressHandler),
+		v1.WithVariableHandler(variablesHandler))
 	if err != nil {
 		t.Error(err)
 	}
 
-	err = sparkWorker.Run(context.NewJobMetadata(ctx.Background(), "jobKey", "correlationId", "transactionId", nil))
+	err = sparkWorker.Execute(context.NewJobMetadata(ctx.Background(), "jobKey", "correlationId", "transactionId", nil))
 
 	if err != nil {
 		t.Fatal(err)

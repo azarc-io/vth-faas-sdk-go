@@ -1,4 +1,4 @@
-package worker
+package v1
 
 import (
 	"github.com/azarc-io/vth-faas-sdk-go/internal/clients"
@@ -6,27 +6,27 @@ import (
 	grpc_handler "github.com/azarc-io/vth-faas-sdk-go/internal/handlers/grpc"
 	"github.com/azarc-io/vth-faas-sdk-go/internal/logger"
 	"github.com/azarc-io/vth-faas-sdk-go/internal/spark"
-	"github.com/azarc-io/vth-faas-sdk-go/pkg/api"
+	"github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1"
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/config"
 )
 
 type Option = func(je *JobWorker) *JobWorker
 
-func WithVariableHandler(vh api.VariableHandler) Option {
+func WithVariableHandler(vh sdk_v1.VariableHandler) Option {
 	return func(jw *JobWorker) *JobWorker {
 		jw.variableHandler = vh
 		return jw
 	}
 }
 
-func WithStageProgressHandler(sph api.StageProgressHandler) Option {
+func WithStageProgressHandler(sph sdk_v1.StageProgressHandler) Option {
 	return func(jw *JobWorker) *JobWorker {
 		jw.stageProgressHandler = sph
 		return jw
 	}
 }
 
-func WithLog(log api.Logger) Option {
+func WithLog(log sdk_v1.Logger) Option {
 	return func(jw *JobWorker) *JobWorker {
 		jw.log = log
 		return jw
@@ -36,12 +36,12 @@ func WithLog(log api.Logger) Option {
 type JobWorker struct {
 	config               *config.Config
 	chain                *spark.Chain
-	variableHandler      api.VariableHandler
-	stageProgressHandler api.StageProgressHandler
-	log                  api.Logger
+	variableHandler      sdk_v1.VariableHandler
+	stageProgressHandler sdk_v1.StageProgressHandler
+	log                  sdk_v1.Logger
 }
 
-func NewSparkWorker(cfg *config.Config, chain *spark.Chain, options ...Option) (api.Worker, error) {
+func NewSparkWorker(cfg *config.Config, chain *spark.Chain, options ...Option) (sdk_v1.Worker, error) {
 	jw := &JobWorker{config: cfg, chain: chain}
 	for _, opt := range options {
 		jw = opt(jw)
@@ -69,7 +69,7 @@ func (w *JobWorker) validate() error {
 	return nil
 }
 
-func (w *JobWorker) Run(metadata api.Context) api.StageError {
+func (w *JobWorker) Execute(metadata sdk_v1.Context) sdk_v1.StageError {
 	jobContext := context.NewJobContext(metadata, w.stageProgressHandler, w.variableHandler, w.log)
 	return w.chain.Execute(jobContext)
 }

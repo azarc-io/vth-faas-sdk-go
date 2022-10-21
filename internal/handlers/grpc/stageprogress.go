@@ -2,7 +2,6 @@ package grpc
 
 import (
 	"context"
-	"github.com/azarc-io/vth-faas-sdk-go/pkg/api"
 	sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1"
 )
 
@@ -10,7 +9,7 @@ type StageProgressHandler struct {
 	client sdk_v1.ManagerServiceClient
 }
 
-func NewStageProgressHandler(client sdk_v1.ManagerServiceClient) api.StageProgressHandler {
+func NewStageProgressHandler(client sdk_v1.ManagerServiceClient) sdk_v1.StageProgressHandler {
 	return &StageProgressHandler{client: client}
 }
 

@@ -2,7 +2,6 @@ package inmemory
 
 import (
 	"fmt"
-	"github.com/azarc-io/vth-faas-sdk-go/pkg/api"
 	sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1"
 	"testing"
 )
@@ -12,7 +11,7 @@ type inMemoryVariableHandler struct {
 	t         *testing.T
 }
 
-func NewVariableHandler(t *testing.T, variables *sdk_v1.SetVariablesRequest) api.VariableHandler {
+func NewVariableHandler(t *testing.T, variables *sdk_v1.SetVariablesRequest) sdk_v1.VariableHandler {
 	i := &inMemoryVariableHandler{t: t, variables: make(map[string]*sdk_v1.Variable)}
 	for k, v := range variables.GetVariables() {
 		i.variables[i.key(k, variables.Stage, variables.JobKey)] = v

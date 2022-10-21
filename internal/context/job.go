@@ -2,28 +2,27 @@ package context
 
 import (
 	ctx "context"
-	"github.com/azarc-io/vth-faas-sdk-go/pkg/api"
 	sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1"
 )
 
 type Job struct {
 	ctx                  ctx.Context
 	metadata             JobMetadata
-	stageProgressHandler api.StageProgressHandler
-	variableHandler      api.VariableHandler
-	log                  api.Logger
+	stageProgressHandler sdk_v1.StageProgressHandler
+	variableHandler      sdk_v1.VariableHandler
+	log                  sdk_v1.Logger
 }
 
-func NewJobContext(metadata api.Context, sph api.StageProgressHandler, vh api.VariableHandler, log api.Logger) api.SparkContext {
+func NewJobContext(metadata sdk_v1.Context, sph sdk_v1.StageProgressHandler, vh sdk_v1.VariableHandler, log sdk_v1.Logger) sdk_v1.SparkContext {
 	m := JobMetadata{ctx: metadata.Ctx(), jobKey: metadata.JobKey(), correlationId: metadata.CorrelationID(), transactionId: metadata.TransactionID(), payload: metadata.Payload(), lastActiveStage: metadata.LastActiveStage()}
 	return &Job{metadata: m, stageProgressHandler: sph, variableHandler: vh, log: log}
 }
 
-func (j *Job) VariableHandler() api.VariableHandler {
+func (j *Job) VariableHandler() sdk_v1.VariableHandler {
 	return j.variableHandler
 }
 
-func (j *Job) StageProgressHandler() api.StageProgressHandler {
+func (j *Job) StageProgressHandler() sdk_v1.StageProgressHandler {
 	return j.stageProgressHandler
 }
 
@@ -47,7 +46,7 @@ func (j *Job) Payload() any {
 	return j.metadata.payload
 }
 
-func (j *Job) LastActiveStage() api.LastActiveStatus {
+func (j *Job) LastActiveStage() sdk_v1.LastActiveStatus {
 	return j.metadata.lastActiveStage
 }
 
@@ -59,6 +58,6 @@ func (j *Job) GetVariables(stage string, names ...string) (*sdk_v1.Variables, er
 	return j.variableHandler.Get(j.metadata.jobKey, stage, names...)
 }
 
-func (j *Job) Log() api.Logger {
+func (j *Job) Log() sdk_v1.Logger {
 	return j.log
 }

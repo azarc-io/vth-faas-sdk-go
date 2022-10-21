@@ -2,7 +2,6 @@ package grpc
 
 import (
 	"context"
-	"github.com/azarc-io/vth-faas-sdk-go/pkg/api"
 	sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1"
 )
 
@@ -10,7 +9,7 @@ type VariableHandler struct {
 	client sdk_v1.ManagerServiceClient
 }
 
-func NewVariableHandler() api.VariableHandler {
+func NewVariableHandler() sdk_v1.VariableHandler {
 	return VariableHandler{}
 }
 

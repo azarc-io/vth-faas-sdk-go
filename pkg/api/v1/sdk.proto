@@ -33,6 +33,7 @@ enum ErrorType {
   Canceled = 1;
   Skip = 2;
   Retry = 3;
+  Fatal = 4; // TODO os.Exit
 }
 
 enum StageStatus {

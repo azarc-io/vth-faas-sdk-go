@@ -2,7 +2,6 @@ package inmemory
 
 import (
 	"fmt"
-	"github.com/azarc-io/vth-faas-sdk-go/pkg/api"
 	sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1"
 	"reflect"
 	"testing"
@@ -15,7 +14,7 @@ type inMemoryStageProgressHandler struct {
 	jobs    map[string]*sdk_v1.SetJobStatusRequest
 }
 
-func NewStageProgressHandler(t *testing.T, seeds ...any) api.StageProgressHandler {
+func NewStageProgressHandler(t *testing.T, seeds ...any) sdk_v1.StageProgressHandler {
 	handler := inMemoryStageProgressHandler{t, map[string]*sdk_v1.SetStageStatusRequest{}, map[string]*sdk_v1.SetStageResultRequest{}, map[string]*sdk_v1.SetJobStatusRequest{}}
 	for _, seed := range seeds {
 		switch seed.(type) {

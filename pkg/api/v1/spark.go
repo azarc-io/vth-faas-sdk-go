@@ -1,11 +1,10 @@
 //go:generate mockgen -destination=../../internal/handlers/test/mock/mock_stageprogress.go -package=mock github.com/azarc-io/vth-faas-sdk-go/pkg/api StageProgressHandler
 //go:generate mockgen -destination=../../internal/handlers/test/mock/mock_variable.go -package=mock github.com/azarc-io/vth-faas-sdk-go/pkg/api VariableHandler
 
-package api
+package sdk_v1
 
 import (
 	"context"
-	sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1"
 )
 
 type (
@@ -15,28 +14,28 @@ type (
 	}
 
 	Worker interface {
-		Run(ctx Context) StageError
+		Execute(ctx Context) StageError
 	}
 
 	VariableHandler interface {
-		Get(jobKey, stage string, names ...string) (*sdk_v1.Variables, error)
-		Set(jobKey, stage string, variables ...*sdk_v1.Variable) error
+		Get(jobKey, stage string, names ...string) (*Variables, error)
+		Set(jobKey, stage string, variables ...*Variable) error
 	}
 
 	StageProgressHandler interface {
-		Get(jobKey, name string) (*sdk_v1.StageStatus, error)
-		Set(stageStatus *sdk_v1.SetStageStatusRequest) error
-		GetResult(jobKey, name string) (*sdk_v1.StageResult, error)
-		SetResult(resultResult *sdk_v1.SetStageResultRequest) error
-		SetJobStatus(jobStatus *sdk_v1.SetJobStatusRequest) error
+		Get(jobKey, name string) (*StageStatus, error)
+		Set(stageStatus *SetStageStatusRequest) error
+		GetResult(jobKey, name string) (*StageResult, error)
+		SetResult(resultResult *SetStageResultRequest) error
+		SetJobStatus(jobStatus *SetJobStatusRequest) error
 	}
 
 	StageError interface {
 		Error() string
 		Code() uint32
 		Metadata() map[string]any
-		ErrorType() sdk_v1.ErrorType
-		ToErrorMessage() *sdk_v1.Error
+		ErrorType() ErrorType
+		ToErrorMessage() *Error
 	}
 
 	Context interface {
@@ -58,21 +57,21 @@ type (
 
 	LastActiveStatus interface {
 		Name() string
-		Status() sdk_v1.StageStatus
+		Status() StageStatus
 	}
 
 	StageContext interface {
 		Context
-		GetVariables(stage string, names ...string) (*sdk_v1.Variables, error)
-		GetVariable(stage string, names string) (*sdk_v1.Variable, error)
+		Inputs(stage string, names ...string) (*Variables, error)
+		Input(stage string, names string) (*Variable, error)
 		Log() Logger
 	}
 
 	CompleteContext interface {
 		Context
-		GetVariables(stage string, names ...string) (*sdk_v1.Variables, error)
-		SetVariables(stage string, variables ...*sdk_v1.Variable) error
-		GetStageResult(name string) (*sdk_v1.StageResult, error)
+		GetVariables(stage string, names ...string) (*Variables, error)
+		Output(stage string, variables ...*Variable) error
+		StageResult(name string) (*StageResult, error)
 		Log() Logger
 	}
 

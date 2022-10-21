@@ -1565,19 +1565,19 @@ var file_pkg_api_v1_sdk_proto_depIdxs = []int32{
 	7,  // 18: sdk_v1.AgentService.ExecuteJob:input_type -> sdk_v1.ExecuteJobRequest
 	16, // 19: sdk_v1.ManagerService.GetStageStatus:input_type -> sdk_v1.GetStageStatusRequest
 	12, // 20: sdk_v1.ManagerService.SetStageStatus:input_type -> sdk_v1.SetStageStatusRequest
-	13, // 21: sdk_v1.ManagerService.GetStageResult:input_type -> sdk_v1.GetStageResultRequest
+	13, // 21: sdk_v1.ManagerService.StageResult:input_type -> sdk_v1.GetStageResultRequest
 	15, // 22: sdk_v1.ManagerService.SetStageResult:input_type -> sdk_v1.SetStageResultRequest
-	19, // 23: sdk_v1.ManagerService.GetVariables:input_type -> sdk_v1.GetVariablesRequest
-	21, // 24: sdk_v1.ManagerService.SetVariables:input_type -> sdk_v1.SetVariablesRequest
+	19, // 23: sdk_v1.ManagerService.Inputs:input_type -> sdk_v1.GetVariablesRequest
+	21, // 24: sdk_v1.ManagerService.Output:input_type -> sdk_v1.SetVariablesRequest
 	9,  // 25: sdk_v1.ManagerService.SetJobStatus:input_type -> sdk_v1.SetJobStatusRequest
 	10, // 26: sdk_v1.ManagerService.RegisterHeartbeat:input_type -> sdk_v1.RegisterHeartbeatRequest
 	8,  // 27: sdk_v1.AgentService.ExecuteJob:output_type -> sdk_v1.ExecuteJobResponse
 	17, // 28: sdk_v1.ManagerService.GetStageStatus:output_type -> sdk_v1.GetStageStatusResponse
 	3,  // 29: sdk_v1.ManagerService.SetStageStatus:output_type -> sdk_v1.Void
-	14, // 30: sdk_v1.ManagerService.GetStageResult:output_type -> sdk_v1.GetStageResultResponse
+	14, // 30: sdk_v1.ManagerService.StageResult:output_type -> sdk_v1.GetStageResultResponse
 	3,  // 31: sdk_v1.ManagerService.SetStageResult:output_type -> sdk_v1.Void
-	20, // 32: sdk_v1.ManagerService.GetVariables:output_type -> sdk_v1.GetVariablesResponse
-	3,  // 33: sdk_v1.ManagerService.SetVariables:output_type -> sdk_v1.Void
+	20, // 32: sdk_v1.ManagerService.Inputs:output_type -> sdk_v1.GetVariablesResponse
+	3,  // 33: sdk_v1.ManagerService.Output:output_type -> sdk_v1.Void
 	3,  // 34: sdk_v1.ManagerService.SetJobStatus:output_type -> sdk_v1.Void
 	3,  // 35: sdk_v1.ManagerService.RegisterHeartbeat:output_type -> sdk_v1.Void
 	27, // [27:36] is the sub-list for method output_type

@@ -2,7 +2,6 @@ package context
 
 import (
 	"context"
-	"github.com/azarc-io/vth-faas-sdk-go/pkg/api"
 	sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1"
 )
 
@@ -12,7 +11,7 @@ type JobMetadata struct {
 	correlationId   string
 	transactionId   string
 	payload         any
-	lastActiveStage api.LastActiveStatus
+	lastActiveStage sdk_v1.LastActiveStatus
 }
 
 func NewJobMetadata(ctx context.Context, jobKey, correlationId, transactionId string, payload any) JobMetadata {
@@ -56,7 +55,7 @@ func (j JobMetadata) Ctx() context.Context {
 	return j.ctx
 }
 
-func (j JobMetadata) LastActiveStage() api.LastActiveStatus {
+func (j JobMetadata) LastActiveStage() sdk_v1.LastActiveStatus {
 	return j.lastActiveStage
 }
 

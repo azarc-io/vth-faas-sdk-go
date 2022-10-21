@@ -2,28 +2,27 @@ package context
 
 import (
 	"errors"
-	"github.com/azarc-io/vth-faas-sdk-go/pkg/api"
 	sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1"
 )
 
 type Stage struct {
-	api.Context
-	jobContext api.SparkContext
+	sdk_v1.Context
+	jobContext sdk_v1.SparkContext
 }
 
-func (sc Stage) Log() api.Logger {
+func (sc Stage) Log() sdk_v1.Logger {
 	return sc.jobContext.Log()
 }
 
-func NewStageContext(ctx api.SparkContext) api.StageContext {
+func NewStageContext(ctx sdk_v1.SparkContext) sdk_v1.StageContext {
 	return Stage{jobContext: ctx, Context: ctx}
 }
 
-func (sc Stage) GetVariables(stage string, names ...string) (*sdk_v1.Variables, error) {
+func (sc Stage) Inputs(stage string, names ...string) (*sdk_v1.Variables, error) {
 	return sc.jobContext.VariableHandler().Get(sc.JobKey(), stage, names...)
 }
 
-func (sc Stage) GetVariable(stage string, name string) (*sdk_v1.Variable, error) {
+func (sc Stage) Input(stage string, name string) (*sdk_v1.Variable, error) {
 	vars, err := sc.jobContext.VariableHandler().Get(sc.JobKey(), stage, name)
 	if err != nil {
 		return nil, err

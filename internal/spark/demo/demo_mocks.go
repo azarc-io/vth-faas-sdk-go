@@ -5,9 +5,9 @@
 package demo
 
 import (
+	api "github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1"
 	reflect "reflect"
 
-	api "github.com/azarc-io/vth-faas-sdk-go/pkg/api"
 	gomock "github.com/golang/mock/gomock"
 )
 

@@ -72,7 +72,7 @@ var uniqueStageNamesValidator = func() *validateFn {
 					return nil
 				}
 				if bc, ok := stageNames[stageName]; ok {
-					return fmt.Errorf("unique stage name restriction violated: a stage or complete stage in '%s' and '%s' have the same name", bc, n.breadcrumb)
+					return fmt.Errorf("unique stage name restriction violated: a stage or complete stage in '%s' and '%s' have the same name: '%s'", bc, n.breadcrumb, stageName)
 				} else {
 					stageNames[stageName] = n.breadcrumb
 				}

@@ -1,7 +1,7 @@
 package spark
 
 import (
-	"github.com/azarc-io/vth-faas-sdk-go/pkg/api"
+	"github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1"
 )
 
 type chainBuilder struct {
@@ -60,7 +60,7 @@ func NewNode() *nodeBuilder {
 	return &nodeBuilder{node: &node{}}
 }
 
-func (sb *nodeBuilder) Stage(name string, stageDefinitionFn api.StageDefinitionFn, options ...api.StageOption) *nodeBuilder {
+func (sb *nodeBuilder) Stage(name string, stageDefinitionFn sdk_v1.StageDefinitionFn, options ...sdk_v1.StageOption) *nodeBuilder {
 	s := &stage{
 		node: sb.node,
 		name: name,
@@ -71,7 +71,7 @@ func (sb *nodeBuilder) Stage(name string, stageDefinitionFn api.StageDefinitionF
 	return sb
 }
 
-func (sb *nodeBuilder) Complete(name string, completeDefinitionFn api.CompleteDefinitionFn, options ...api.StageOption) *nodeBuilder {
+func (sb *nodeBuilder) Complete(name string, completeDefinitionFn sdk_v1.CompleteDefinitionFn, options ...sdk_v1.StageOption) *nodeBuilder {
 	sb.node.complete = &completeStage{
 		node: sb.node,
 		name: name,

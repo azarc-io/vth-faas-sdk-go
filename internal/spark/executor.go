@@ -2,7 +2,6 @@ package spark
 
 import (
 	"github.com/azarc-io/vth-faas-sdk-go/internal/context"
-	"github.com/azarc-io/vth-faas-sdk-go/pkg/api"
 	sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1"
 	sdk_errors "github.com/azarc-io/vth-faas-sdk-go/pkg/errors"
 )
@@ -12,11 +11,11 @@ const (
 	jobKeyLogField = "job_key"
 )
 
-func (c *Chain) Execute(ctx api.SparkContext) api.StageError {
+func (c *Chain) Execute(ctx sdk_v1.SparkContext) sdk_v1.StageError {
 	return c.runner(ctx, c.rootNode)
 }
 
-func (c *Chain) runner(ctx api.SparkContext, node *node) api.StageError {
+func (c *Chain) runner(ctx sdk_v1.SparkContext, node *node) sdk_v1.StageError {
 	for _, stg := range node.stages {
 		ctx.Log().AddFields(stageLogField, stg.name).AddFields(jobKeyLogField, ctx.JobKey())
 
@@ -89,7 +88,7 @@ func withStageStatus(status sdk_v1.StageStatus) updateStageOption {
 	}
 }
 
-func withStageError(err api.StageError) updateStageOption {
+func withStageError(err sdk_v1.StageError) updateStageOption {
 	return func(stage *sdk_v1.SetStageStatusRequest) *sdk_v1.SetStageStatusRequest {
 		stage.Status = sdk_errors.ErrorTypeToStageStatusMapper[err.ErrorType()]
 		stage.Err = err.ToErrorMessage()
@@ -97,7 +96,7 @@ func withStageError(err api.StageError) updateStageOption {
 	}
 }
 
-func updateStage(ctx api.SparkContext, name string, opts ...updateStageOption) error {
+func updateStage(ctx sdk_v1.SparkContext, name string, opts ...updateStageOption) error {
 	req := &sdk_v1.SetStageStatusRequest{JobKey: ctx.JobKey(), Name: name}
 	for _, opt := range opts {
 		req = opt(req)
