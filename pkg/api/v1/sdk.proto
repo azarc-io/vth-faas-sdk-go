@@ -74,7 +74,7 @@ message ExecuteJobRequest {
   string key = 1;
   string transaction_id = 2;
   string correlation_id = 3;
-  LastActiveStage last_active_stage = 4;
+  optional LastActiveStage last_active_stage = 4;
 }
 
 message ExecuteJobResponse {

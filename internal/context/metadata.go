@@ -11,28 +11,21 @@ type JobMetadata struct {
 	correlationId   string
 	transactionId   string
 	payload         any
-	lastActiveStage sdk_v1.LastActiveStatus
+	lastActiveStage *sdk_v1.LastActiveStage
 }
 
-func NewJobMetadata(ctx context.Context, jobKey, correlationId, transactionId string, payload any) JobMetadata {
-	return JobMetadata{ctx: ctx, jobKey: jobKey, correlationId: correlationId, transactionId: transactionId, payload: payload}
+func NewJobMetadata(ctx context.Context, jobKey, correlationId, transactionId string, lastActiveStage *sdk_v1.LastActiveStage) JobMetadata {
+	return JobMetadata{ctx: ctx, jobKey: jobKey, correlationId: correlationId, transactionId: transactionId, lastActiveStage: lastActiveStage}
 }
 
 func NewJobMetadataFromGrpcRequest(ctx context.Context, req *sdk_v1.ExecuteJobRequest) JobMetadata {
-	jm := JobMetadata{
-		ctx:           ctx,
-		jobKey:        req.Key,
-		correlationId: req.CorrelationId,
-		transactionId: req.TransactionId,
-		payload:       nil, // TODO fix that
+	return JobMetadata{
+		ctx:             ctx,
+		jobKey:          req.Key,
+		correlationId:   req.CorrelationId,
+		transactionId:   req.TransactionId,
+		lastActiveStage: req.LastActiveStage,
 	}
-	if req.LastActiveStage != nil {
-		jm.lastActiveStage = LastActiveStatus{
-			name:   req.LastActiveStage.Name,
-			status: req.LastActiveStage.Status,
-		}
-	}
-	return jm
 }
 
 func (j JobMetadata) JobKey() string {
@@ -55,19 +48,6 @@ func (j JobMetadata) Ctx() context.Context {
 	return j.ctx
 }
 
-func (j JobMetadata) LastActiveStage() sdk_v1.LastActiveStatus {
+func (j JobMetadata) LastActiveStage() *sdk_v1.LastActiveStage {
 	return j.lastActiveStage
-}
-
-type LastActiveStatus struct {
-	name   string
-	status sdk_v1.StageStatus
-}
-
-func (l LastActiveStatus) Name() string {
-	return l.name
-}
-
-func (l LastActiveStatus) Status() sdk_v1.StageStatus {
-	return l.status
 }

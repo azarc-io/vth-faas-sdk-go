@@ -12,11 +12,16 @@ const (
 )
 
 func (c *Chain) Execute(ctx sdk_v1.SparkContext) sdk_v1.StageError {
-	return c.runner(ctx, c.rootNode)
+	n, err := c.getNodeToResume(ctx.LastActiveStage())
+	if err != nil {
+		return sdk_errors.NewStageError(err)
+	}
+	return c.runner(ctx, n)
 }
 
 func (c *Chain) runner(ctx sdk_v1.SparkContext, node *node) sdk_v1.StageError {
-	for _, stg := range node.stages {
+	stages := getStagesToResume(node, ctx.LastActiveStage())
+	for _, stg := range stages {
 		ctx.Log().AddFields(stageLogField, stg.name).AddFields(jobKeyLogField, ctx.JobKey())
 
 		if err := stg.ApplyStageOptionsParams(ctx, stg.name); err != nil {
@@ -39,8 +44,7 @@ func (c *Chain) runner(ctx sdk_v1.SparkContext, node *node) sdk_v1.StageError {
 			switch err.ErrorType() {
 			case sdk_v1.ErrorType_Failed:
 				if node.compensate != nil {
-					err := c.runner(ctx, node.compensate)
-					return err
+					return c.runner(ctx, node.compensate)
 				}
 				return err
 			case sdk_v1.ErrorType_Canceled:
@@ -53,7 +57,7 @@ func (c *Chain) runner(ctx sdk_v1.SparkContext, node *node) sdk_v1.StageError {
 			case sdk_v1.ErrorType_Skip:
 				continue // =)
 			default:
-				// TODO log error unsupported error
+				ctx.Log().Error(err, "unsupported error type returned from stage '%s'", stg.name)
 				return err
 			}
 		}
@@ -74,7 +78,7 @@ func (c *Chain) runner(ctx sdk_v1.SparkContext, node *node) sdk_v1.StageError {
 		}
 	}
 	if node.complete != nil {
-		node.complete.cb(context.NewCompleteContext(ctx))
+		return node.complete.cb(context.NewCompleteContext(ctx))
 	}
 	return nil
 }
@@ -102,4 +106,17 @@ func updateStage(ctx sdk_v1.SparkContext, name string, opts ...updateStageOption
 		req = opt(req)
 	}
 	return ctx.StageProgressHandler().Set(req)
+}
+
+func getStagesToResume(n *node, lastActiveStage *sdk_v1.LastActiveStage) []*stage {
+	if lastActiveStage == nil {
+		return n.stages
+	}
+	var stages []*stage
+	for idx, stg := range n.stages {
+		if stg.name == lastActiveStage.Name {
+			stages = append(stages, n.stages[idx:]...)
+		}
+	}
+	return stages
 }

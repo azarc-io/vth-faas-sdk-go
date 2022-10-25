@@ -14,7 +14,7 @@ type Job struct {
 }
 
 func NewJobContext(metadata sdk_v1.Context, sph sdk_v1.StageProgressHandler, vh sdk_v1.VariableHandler, log sdk_v1.Logger) sdk_v1.SparkContext {
-	m := JobMetadata{ctx: metadata.Ctx(), jobKey: metadata.JobKey(), correlationId: metadata.CorrelationID(), transactionId: metadata.TransactionID(), payload: metadata.Payload(), lastActiveStage: metadata.LastActiveStage()}
+	m := JobMetadata{ctx: metadata.Ctx(), jobKey: metadata.JobKey(), correlationId: metadata.CorrelationID(), transactionId: metadata.TransactionID(), lastActiveStage: metadata.LastActiveStage()}
 	return &Job{metadata: m, stageProgressHandler: sph, variableHandler: vh, log: log}
 }
 
@@ -46,7 +46,7 @@ func (j *Job) Payload() any {
 	return j.metadata.payload
 }
 
-func (j *Job) LastActiveStage() sdk_v1.LastActiveStatus {
+func (j *Job) LastActiveStage() *sdk_v1.LastActiveStage {
 	return j.metadata.lastActiveStage
 }
 

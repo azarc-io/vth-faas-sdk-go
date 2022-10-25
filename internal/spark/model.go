@@ -21,6 +21,19 @@ type Chain struct {
 	initFunction func()
 }
 
+func (c *Chain) getNodeToResume(lastActiveStage *sdk_v1.LastActiveStage) (*node, error) {
+	if lastActiveStage == nil {
+		return c.rootNode, nil
+	}
+	if s, ok := c.stagesMap[lastActiveStage.Name]; ok {
+		return s.node, nil
+	}
+	if s, ok := c.completeMap[lastActiveStage.Name]; ok {
+		return s.node, nil
+	}
+	return nil, fmt.Errorf("stage '%s' not found in the node chain", lastActiveStage.Name)
+}
+
 type node struct {
 	stages     []*stage
 	complete   *completeStage

@@ -43,21 +43,15 @@ type (
 		JobKey() string
 		CorrelationID() string
 		TransactionID() string
-		Payload() any
-		LastActiveStage() LastActiveStatus
+		LastActiveStage() *LastActiveStage
 	}
 
 	SparkContext interface {
 		Context
 		VariableHandler() VariableHandler
 		StageProgressHandler() StageProgressHandler
-		LastActiveStage() LastActiveStatus
+		LastActiveStage() *LastActiveStage
 		Log() Logger
-	}
-
-	LastActiveStatus interface {
-		Name() string
-		Status() StageStatus
 	}
 
 	StageContext interface {
