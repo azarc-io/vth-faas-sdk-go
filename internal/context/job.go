@@ -7,7 +7,7 @@ import (
 
 type Job struct {
 	ctx                  ctx.Context
-	metadata             JobMetadata
+	metadata             *JobMetadata
 	stageProgressHandler sdk_v1.StageProgressHandler
 	variableHandler      sdk_v1.VariableHandler
 	log                  sdk_v1.Logger
@@ -15,7 +15,7 @@ type Job struct {
 
 func NewJobContext(metadata sdk_v1.Context, sph sdk_v1.StageProgressHandler, vh sdk_v1.VariableHandler, log sdk_v1.Logger) sdk_v1.SparkContext {
 	m := JobMetadata{ctx: metadata.Ctx(), jobKey: metadata.JobKey(), correlationId: metadata.CorrelationID(), transactionId: metadata.TransactionID(), lastActiveStage: metadata.LastActiveStage()}
-	return &Job{metadata: m, stageProgressHandler: sph, variableHandler: vh, log: log}
+	return &Job{metadata: &m, stageProgressHandler: sph, variableHandler: vh, log: log}
 }
 
 func (j *Job) VariableHandler() sdk_v1.VariableHandler {
@@ -42,14 +42,18 @@ func (j *Job) TransactionID() string {
 	return j.metadata.transactionId
 }
 
-func (j *Job) Payload() any {
-	return j.metadata.payload
-}
-
 func (j *Job) LastActiveStage() *sdk_v1.LastActiveStage {
 	return j.metadata.lastActiveStage
 }
 
 func (j *Job) Log() sdk_v1.Logger {
 	return j.log
+}
+
+func (j *Job) WithoutLastActiveStage() sdk_v1.SparkContext {
+	newCtx := *j
+	md := *newCtx.metadata
+	newCtx.metadata = &md
+	newCtx.metadata.lastActiveStage = nil
+	return &newCtx
 }

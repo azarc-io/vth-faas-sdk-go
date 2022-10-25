@@ -44,12 +44,12 @@ func (c *Chain) runner(ctx sdk_v1.SparkContext, node *node) sdk_v1.StageError {
 			switch err.ErrorType() {
 			case sdk_v1.ErrorType_Failed:
 				if node.compensate != nil {
-					return c.runner(ctx, node.compensate)
+					return c.runner(ctx.WithoutLastActiveStage(), node.compensate)
 				}
 				return err
 			case sdk_v1.ErrorType_Canceled:
 				if node.cancel != nil {
-					return c.runner(ctx, node.cancel)
+					return c.runner(ctx.WithoutLastActiveStage(), node.cancel)
 				}
 				return err
 			case sdk_v1.ErrorType_Retry:

@@ -52,6 +52,7 @@ type (
 		StageProgressHandler() StageProgressHandler
 		LastActiveStage() *LastActiveStage
 		Log() Logger
+		WithoutLastActiveStage() SparkContext
 	}
 
 	StageContext interface {

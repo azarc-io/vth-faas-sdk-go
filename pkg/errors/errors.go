@@ -98,6 +98,7 @@ func WithMetadata(metadata any) Option {
 func WithRetry(times, backoffMillis uint) Option {
 	return func(err *Stage) *Stage {
 		err.retry = &RetryConfig{times, backoffMillis}
+		err.errorType = sdk_v1.ErrorType_Retry
 		return err
 	}
 }

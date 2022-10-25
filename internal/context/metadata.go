@@ -10,7 +10,6 @@ type JobMetadata struct {
 	jobKey          string
 	correlationId   string
 	transactionId   string
-	payload         any
 	lastActiveStage *sdk_v1.LastActiveStage
 }
 
@@ -38,10 +37,6 @@ func (j JobMetadata) CorrelationID() string {
 
 func (j JobMetadata) TransactionID() string {
 	return j.transactionId
-}
-
-func (j JobMetadata) Payload() any {
-	return j.payload
 }
 
 func (j JobMetadata) Ctx() context.Context {

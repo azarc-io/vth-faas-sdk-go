@@ -1,0 +1,216 @@
+package test
+
+import (
+	ctx "context"
+	"errors"
+	"github.com/azarc-io/vth-faas-sdk-go/internal/context"
+	"github.com/azarc-io/vth-faas-sdk-go/internal/handlers/test/inmemory"
+	"github.com/azarc-io/vth-faas-sdk-go/internal/spark"
+	v1 "github.com/azarc-io/vth-faas-sdk-go/internal/worker/v1"
+	sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1"
+	sdk_errors "github.com/azarc-io/vth-faas-sdk-go/pkg/errors"
+	"testing"
+)
+
+func TestResumeOnRetry(t *testing.T) {
+	newSB := func() *stageBehaviour {
+		return NewStageBehaviour(t, "stage1", "stage2", "stage3", "complete", "compensate", "canceled")
+	}
+
+	tests := []struct {
+		name            string
+		stageBehaviour  *stageBehaviour
+		lastActiveStage *sdk_v1.LastActiveStage
+		assertFn        func(t *testing.T, sb *stageBehaviour)
+	}{
+		{
+			name:            "should execute all stages and complete",
+			stageBehaviour:  newSB(),
+			lastActiveStage: nil,
+			assertFn: func(t *testing.T, sb *stageBehaviour) {
+				for _, stage := range []string{"stage1", "stage2", "stage3", "complete"} {
+					if !sb.Executed(stage) {
+						t.Errorf("stage '%s' expected to be executed", stage)
+					}
+				}
+			},
+		},
+		{
+			name:           "should execute only complete stage",
+			stageBehaviour: newSB(),
+			lastActiveStage: &sdk_v1.LastActiveStage{
+				Name: "complete",
+			},
+			assertFn: func(t *testing.T, sb *stageBehaviour) {
+				for _, stage := range []string{"stage1", "stage2", "stage3", "canceled", "compensate"} {
+					if sb.Executed(stage) {
+						t.Errorf("stage '%s' expected to not be executed", stage)
+					}
+				}
+				if !sb.Executed("complete") {
+					t.Error("stage 'complete' expected to be executed")
+				}
+			},
+		},
+		{
+			name:           "should execute stage3 and complete stages",
+			stageBehaviour: newSB(),
+			lastActiveStage: &sdk_v1.LastActiveStage{
+				Name: "stage3",
+			},
+			assertFn: func(t *testing.T, sb *stageBehaviour) {
+				for _, stage := range []string{"stage1", "stage2", "canceled", "compensate"} {
+					if sb.Executed(stage) {
+						t.Errorf("stage '%s' expected to not be executed", stage)
+					}
+				}
+				for _, stage := range []string{"stage3", "complete"} {
+					if !sb.Executed(stage) {
+						t.Errorf("stage '%s' expected to be executed", stage)
+					}
+				}
+			},
+		},
+		{
+			name:           "should execute only stage2 and compensate",
+			stageBehaviour: newSB().Change("stage2", false, sdk_errors.NewStageError(errors.New("stage2 error"))),
+			lastActiveStage: &sdk_v1.LastActiveStage{
+				Name: "stage2",
+			},
+			assertFn: func(t *testing.T, sb *stageBehaviour) {
+				for _, stage := range []string{"stage1", "stage3", "complete", "canceled"} {
+					if sb.Executed(stage) {
+						t.Errorf("stage '%s' expected to not be executed", stage)
+					}
+				}
+				for _, stage := range []string{"stage2", "compensate"} {
+					if !sb.Executed(stage) {
+						t.Errorf("stage '%s' expected to not be executed", stage)
+					}
+				}
+			},
+		},
+		{
+			name: "should execute only stage2 and cancel",
+			stageBehaviour: newSB().
+				Change("stage2", false, sdk_errors.NewStageError(errors.New("stage2 cancel"), sdk_errors.WithErrorType(sdk_v1.ErrorType_Canceled))),
+			lastActiveStage: &sdk_v1.LastActiveStage{
+				Name: "stage2",
+			},
+			assertFn: func(t *testing.T, sb *stageBehaviour) {
+				for _, stage := range []string{"stage1", "stage3", "complete", "compensate"} {
+					if sb.Executed(stage) {
+						t.Errorf("stage '%s' expected to not be executed", stage)
+					}
+				}
+				for _, stage := range []string{"stage2", "canceled"} {
+					if !sb.Executed(stage) {
+						t.Errorf("stage '%s' expected to be executed", stage)
+					}
+				}
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			test.stageBehaviour.ResetExecutions()
+			chain := CreateTestChain(t, test.stageBehaviour)
+			worker := v1.NewSparkTestWorker(t, chain, v1.WithVariableHandler(inmemory.NewVariableHandler(t, nil)), v1.WithStageProgressHandler(inmemory.NewStageProgressHandler(t)))
+			err := worker.Execute(context.NewJobMetadata(ctx.Background(), "jobKey", "correlationId", "transactionId", test.lastActiveStage))
+			if err != nil {
+				t.Error(err)
+			}
+			test.assertFn(t, test.stageBehaviour)
+		})
+	}
+}
+
+func CreateTestChain(t *testing.T, sb *stageBehaviour) *spark.Chain {
+	chain, err := spark.NewChain(
+		spark.NewNode().
+			Stage("stage1", stageFn("stage1", sb)).
+			Stage("stage2", stageFn("stage2", sb)).
+			Stage("stage3", stageFn("stage3", sb)).
+			Compensate(
+				spark.NewNode().Stage("compensate", stageFn("compensate", sb)).Build(),
+			).
+			Canceled(
+				spark.NewNode().Stage("canceled", stageFn("canceled", sb)).Build(),
+			).
+			Complete("complete", func(context sdk_v1.CompleteContext) sdk_v1.StageError {
+				sb.exec("complete")
+				return sb.shouldErr("complete")
+			}).Build(),
+	).Build()
+	if err != nil {
+		t.Fatal(err)
+		return nil
+	}
+	return chain
+}
+
+func stageFn(name string, sm *stageBehaviour) sdk_v1.StageDefinitionFn {
+	return func(context sdk_v1.StageContext) (any, sdk_v1.StageError) {
+		sm.exec(name)
+		return nil, sm.shouldErr(name)
+	}
+}
+
+type behaviour struct {
+	executed bool
+	err      sdk_v1.StageError
+}
+
+type stageBehaviour struct {
+	t *testing.T
+	m map[string]*behaviour
+}
+
+func NewStageBehaviour(t *testing.T, stages ...string) *stageBehaviour {
+	m := map[string]*behaviour{}
+	for _, stage := range stages {
+		m[stage] = &behaviour{}
+	}
+	return &stageBehaviour{t, m}
+}
+
+func (s *stageBehaviour) Executed(stage string) bool {
+	defer func() {
+		if r := recover(); r != nil {
+			s.t.Fatalf("error checking if stage '%s' is executed >> error: %v", stage, r)
+		}
+	}()
+	return s.m[stage].executed
+}
+
+func (s *stageBehaviour) Change(stageName string, executed bool, shouldError sdk_v1.StageError) *stageBehaviour {
+	s.m[stageName] = &behaviour{executed: executed, err: shouldError}
+	return s
+}
+
+func (s *stageBehaviour) ResetExecutions() {
+	for _, v := range s.m {
+		v.executed = false
+	}
+}
+
+func (s *stageBehaviour) exec(stage string) {
+	defer func() {
+		if r := recover(); r != nil {
+			s.t.Fatalf("error exec stage: %s >> error: %v", stage, r)
+		}
+	}()
+	b := s.m[stage]
+	b.executed = true
+}
+
+func (s *stageBehaviour) shouldErr(stage string) sdk_v1.StageError {
+	defer func() {
+		if r := recover(); r != nil {
+			s.t.Fatalf("error shouldErr stage: %s >> error: %v", stage, r)
+		}
+	}()
+	b := s.m[stage]
+	return b.err
+}
