@@ -36,7 +36,7 @@ func TestDemoSparkBuilder(t *testing.T) {
 	var2, _ := sdk_v1.NewVariable("another", "application/json", map[string]any{"key": "value"})
 	var3, _ := sdk_v1.NewVariable("items", "application/json", []any{map[string]any{"id": "1", "name": "itemName"}})
 	variablesHandler := inmemory.NewVariableHandler(t,
-		sdk_v1.NewSetVariablesRequest("jobKey", "", var1, var2, var3),
+		sdk_v1.NewSetVariablesRequest("jobKey", var1, var2, var3),
 	)
 
 	// get the spark chain

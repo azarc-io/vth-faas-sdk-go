@@ -35,14 +35,14 @@ func (m *MockVariableHandler) EXPECT() *MockVariableHandlerMockRecorder {
 }
 
 // Get mocks base method.
-func (m *MockVariableHandler) Get(arg0, arg1 string, arg2 ...string) (*sdk_v1.Variables, error) {
+func (m *MockVariableHandler) Get(arg0, arg1 string, arg2 ...string) (*sdk_v1.Inputs, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "Get", varargs...)
-	ret0, _ := ret[0].(*sdk_v1.Variables)
+	ret0, _ := ret[0].(*sdk_v1.Inputs)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

@@ -5,9 +5,10 @@
 package demo
 
 import (
-	api "github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1"
 	reflect "reflect"
 
+	spark "github.com/azarc-io/vth-faas-sdk-go/internal/spark"
+	v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -35,10 +36,10 @@ func (m *MockCheckoutService) EXPECT() *MockCheckoutServiceMockRecorder {
 }
 
 // CancelPaymentTransaction mocks base method.
-func (m *MockCheckoutService) CancelPaymentTransaction() api.StageDefinitionFn {
+func (m *MockCheckoutService) CancelPaymentTransaction() v1.StageDefinitionFn {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CancelPaymentTransaction")
-	ret0, _ := ret[0].(api.StageDefinitionFn)
+	ret0, _ := ret[0].(v1.StageDefinitionFn)
 	return ret0
 }
 
@@ -49,10 +50,10 @@ func (mr *MockCheckoutServiceMockRecorder) CancelPaymentTransaction() *gomock.Ca
 }
 
 // ConfirmPaymentTransaction mocks base method.
-func (m *MockCheckoutService) ConfirmPaymentTransaction() api.StageDefinitionFn {
+func (m *MockCheckoutService) ConfirmPaymentTransaction() v1.CompleteDefinitionFn {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ConfirmPaymentTransaction")
-	ret0, _ := ret[0].(api.StageDefinitionFn)
+	ret0, _ := ret[0].(v1.CompleteDefinitionFn)
 	return ret0
 }
 
@@ -63,10 +64,10 @@ func (mr *MockCheckoutServiceMockRecorder) ConfirmPaymentTransaction() *gomock.C
 }
 
 // CreateTransaction mocks base method.
-func (m *MockCheckoutService) CreateTransaction() api.StageDefinitionFn {
+func (m *MockCheckoutService) CreateTransaction() v1.StageDefinitionFn {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateTransaction")
-	ret0, _ := ret[0].(api.StageDefinitionFn)
+	ret0, _ := ret[0].(v1.StageDefinitionFn)
 	return ret0
 }
 
@@ -77,10 +78,10 @@ func (mr *MockCheckoutServiceMockRecorder) CreateTransaction() *gomock.Call {
 }
 
 // ReserveInventoryItems mocks base method.
-func (m *MockCheckoutService) ReserveInventoryItems() api.StageDefinitionFn {
+func (m *MockCheckoutService) ReserveInventoryItems() v1.StageDefinitionFn {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ReserveInventoryItems")
-	ret0, _ := ret[0].(api.StageDefinitionFn)
+	ret0, _ := ret[0].(v1.StageDefinitionFn)
 	return ret0
 }
 
@@ -91,10 +92,10 @@ func (mr *MockCheckoutServiceMockRecorder) ReserveInventoryItems() *gomock.Call 
 }
 
 // RestoreInventoryItems mocks base method.
-func (m *MockCheckoutService) RestoreInventoryItems() api.StageDefinitionFn {
+func (m *MockCheckoutService) RestoreInventoryItems() v1.StageDefinitionFn {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RestoreInventoryItems")
-	ret0, _ := ret[0].(api.StageDefinitionFn)
+	ret0, _ := ret[0].(v1.StageDefinitionFn)
 	return ret0
 }
 
@@ -105,10 +106,10 @@ func (mr *MockCheckoutServiceMockRecorder) RestoreInventoryItems() *gomock.Call 
 }
 
 // SendApologiesEmail mocks base method.
-func (m *MockCheckoutService) SendApologiesEmail() api.StageDefinitionFn {
+func (m *MockCheckoutService) SendApologiesEmail() v1.StageDefinitionFn {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SendApologiesEmail")
-	ret0, _ := ret[0].(api.StageDefinitionFn)
+	ret0, _ := ret[0].(v1.StageDefinitionFn)
 	return ret0
 }
 
@@ -119,10 +120,10 @@ func (mr *MockCheckoutServiceMockRecorder) SendApologiesEmail() *gomock.Call {
 }
 
 // SendCancelEmail mocks base method.
-func (m *MockCheckoutService) SendCancelEmail() api.StageDefinitionFn {
+func (m *MockCheckoutService) SendCancelEmail() v1.StageDefinitionFn {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SendCancelEmail")
-	ret0, _ := ret[0].(api.StageDefinitionFn)
+	ret0, _ := ret[0].(v1.StageDefinitionFn)
 	return ret0
 }
 
@@ -132,18 +133,19 @@ func (mr *MockCheckoutServiceMockRecorder) SendCancelEmail() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendCancelEmail", reflect.TypeOf((*MockCheckoutService)(nil).SendCancelEmail))
 }
 
-// SendConfirmationEmail mocks base method.
-func (m *MockCheckoutService) SendConfirmationEmail() api.CompleteDefinitionFn {
+// Spark mocks base method.
+func (m *MockCheckoutService) Spark() (*spark.Chain, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SendConfirmationEmail")
-	ret0, _ := ret[0].(api.CompleteDefinitionFn)
-	return ret0
+	ret := m.ctrl.Call(m, "Spark")
+	ret0, _ := ret[0].(*spark.Chain)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
-// SendConfirmationEmail indicates an expected call of SendConfirmationEmail.
-func (mr *MockCheckoutServiceMockRecorder) SendConfirmationEmail() *gomock.Call {
+// Spark indicates an expected call of Spark.
+func (mr *MockCheckoutServiceMockRecorder) Spark() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendConfirmationEmail", reflect.TypeOf((*MockCheckoutService)(nil).SendConfirmationEmail))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Spark", reflect.TypeOf((*MockCheckoutService)(nil).Spark))
 }
 
 // MockPaymentProvider is a mock of PaymentProvider interface.
@@ -310,14 +312,14 @@ func (mr *MockMailerMockRecorder) Confirmation() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Confirmation", reflect.TypeOf((*MockMailer)(nil).Confirmation))
 }
 
-// Error mocks base method.
+// SomethingBadHappened mocks base method.
 func (m *MockMailer) SomethingBadHappened() {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "SomethingBadHappened")
 }
 
-// Error indicates an expected call of Error.
-func (mr *MockMailerMockRecorder) Error() *gomock.Call {
+// SomethingBadHappened indicates an expected call of SomethingBadHappened.
+func (mr *MockMailerMockRecorder) SomethingBadHappened() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SomethingBadHappened", reflect.TypeOf((*MockMailer)(nil).SomethingBadHappened))
 }

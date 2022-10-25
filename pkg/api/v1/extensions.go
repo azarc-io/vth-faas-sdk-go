@@ -2,6 +2,7 @@ package sdk_v1
 
 import (
 	"encoding/json"
+	"errors"
 	"github.com/samber/lo"
 	"google.golang.org/protobuf/types/known/structpb"
 	"reflect"
@@ -23,49 +24,29 @@ func (x *StageResult) Raw() ([]byte, error) {
 }
 
 func (x *StageResult) Bind(a any) error {
-	return serdesMap["application/json"].unmarshal(x.Data, a) // TODO fix this
+	return serdesMap["application/json"].unmarshal(x.Data, a)
 }
 
 func NewSetStageResultReq(jobKey, name string, data any) (*SetStageResultRequest, error) {
-	// TODO fix me
 	pbValue, err := structpb.NewValue(data)
 	if err != nil {
 		switch reflect.TypeOf(data).Kind() {
-		case reflect.Slice:
-			b, err := json.Marshal(data)
-			if err != nil {
-				return nil, err
+		case reflect.Slice, reflect.Array:
+			arr := reflect.ValueOf(data)
+			var anyArr []any
+			for i := 0; i < arr.Len(); i++ {
+				m, err := toMap(arr.Index(i).Interface())
+				if err != nil {
+					return nil, err
+				}
+				anyArr = append(anyArr, m)
 			}
-			var m []any
-			err = json.Unmarshal(b, &m)
-			if err != nil {
-				return nil, err
-			}
-			pbValue, err = structpb.NewValue(m)
-			if err != nil {
-				return nil, err
-			}
-		case reflect.Array:
-			b, err := json.Marshal(data)
-			if err != nil {
-				return nil, err
-			}
-			var m []any
-			err = json.Unmarshal(b, &m)
-			if err != nil {
-				return nil, err
-			}
-			pbValue, err = structpb.NewValue(m)
+			pbValue, err = structpb.NewValue(anyArr)
 			if err != nil {
 				return nil, err
 			}
 		default:
-			b, err := json.Marshal(data)
-			if err != nil {
-				return nil, err
-			}
-			var m = map[string]any{}
-			err = json.Unmarshal(b, &m)
+			m, err := toMap(data)
 			if err != nil {
 				return nil, err
 			}
@@ -74,13 +55,25 @@ func NewSetStageResultReq(jobKey, name string, data any) (*SetStageResultRequest
 				return nil, err
 			}
 		}
-
 	}
 	return &SetStageResultRequest{
 		JobKey: jobKey,
 		Name:   name,
 		Result: &StageResult{Data: pbValue},
 	}, nil
+}
+
+func toMap(data any) (map[string]any, error) {
+	b, err := json.Marshal(data)
+	if err != nil {
+		return nil, err
+	}
+	var m = map[string]any{}
+	err = json.Unmarshal(b, &m)
+	if err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 func NewVariable(name, mimeType string, value any) (*Variable, error) {
@@ -122,9 +115,8 @@ func NewSetStageStatusReq(jobKey, stageName string, status StageStatus, err ...*
 	return sssr
 }
 
-func NewGetVariablesRequest(jobKey, stage string, names ...string) *GetVariablesRequest {
+func NewGetVariablesRequest(jobKey string, names ...string) *GetVariablesRequest {
 	vr := &GetVariablesRequest{
-		Stage:  stage,
 		JobKey: jobKey,
 	}
 	for _, name := range names {
@@ -133,12 +125,12 @@ func NewGetVariablesRequest(jobKey, stage string, names ...string) *GetVariables
 	return vr
 }
 
-func NewSetVariablesRequest(jobKey, stage string, variables ...*Variable) *SetVariablesRequest {
+func NewSetVariablesRequest(jobKey string, variables ...*Variable) *SetVariablesRequest {
 	m := map[string]*Variable{}
 	for _, v := range variables {
 		m[v.Name] = v
 	}
-	return &SetVariablesRequest{Stage: stage, JobKey: jobKey, Variables: m}
+	return &SetVariablesRequest{JobKey: jobKey, Variables: m}
 }
 
 func NewGetStageStatusReq(jobKey, stageName string) *GetStageStatusRequest {
@@ -182,16 +174,48 @@ var serdesMap = map[string]serdes{
 	},
 }
 
-type Variables struct {
+type Input struct {
+	variable *Variable
+	err      error
+}
+
+func (i *Input) Raw() ([]byte, error) {
+	if i.err != nil {
+		return nil, i.err
+	}
+	return i.variable.Value.MarshalJSON()
+}
+
+func (i *Input) Bind(a any) error {
+	if i.err != nil {
+		return i.err
+	}
+	return serdesMap[i.variable.MimeType].unmarshal(i.variable.Value, a)
+}
+
+type Inputs struct {
 	vars []*Variable
+	err  error
 }
 
-func NewVariables(vars ...*Variable) *Variables {
-	return &Variables{vars}
+func NewInputs(err error, vars ...*Variable) *Inputs {
+	return &Inputs{vars: vars, err: err}
 }
 
-func (v Variables) Get(name string) (*Variable, bool) {
-	return lo.Find(v.vars, func(variable *Variable) bool {
+func (v Inputs) Get(name string) *Input {
+	found, ok := lo.Find(v.vars, func(variable *Variable) bool {
 		return variable.Name == name
 	})
+	if ok {
+		return &Input{found, v.err}
+	}
+	err := v.err
+	if err == nil {
+		err = errors.New("input variable not found")
+	}
+	return &Input{nil, err}
+}
+
+func (v Inputs) Error() error {
+	return v.err
 }

@@ -50,14 +50,6 @@ func (j *Job) LastActiveStage() sdk_v1.LastActiveStatus {
 	return j.metadata.lastActiveStage
 }
 
-func (j *Job) SetVariables(stage string, variables ...*sdk_v1.Variable) error {
-	return j.variableHandler.Set(j.metadata.jobKey, stage, variables...)
-}
-
-func (j *Job) GetVariables(stage string, names ...string) (*sdk_v1.Variables, error) {
-	return j.variableHandler.Get(j.metadata.jobKey, stage, names...)
-}
-
 func (j *Job) Log() sdk_v1.Logger {
 	return j.log
 }

@@ -18,8 +18,8 @@ type (
 	}
 
 	VariableHandler interface {
-		Get(jobKey, stage string, names ...string) (*Variables, error)
-		Set(jobKey, stage string, variables ...*Variable) error
+		Get(jobKey string, names ...string) *Inputs
+		Set(jobKey string, variables ...*Variable) error
 	}
 
 	StageProgressHandler interface {
@@ -62,17 +62,15 @@ type (
 
 	StageContext interface {
 		Context
-		Inputs(stage string, names ...string) (*Variables, error)
-		Input(stage string, names string) (*Variable, error)
+		Inputs(names ...string) *Inputs
+		Input(names string) *Input
+		StageResult(name string) (*StageResult, error)
 		Log() Logger
 	}
 
 	CompleteContext interface {
-		Context
-		GetVariables(stage string, names ...string) (*Variables, error)
-		Output(stage string, variables ...*Variable) error
-		StageResult(name string) (*StageResult, error)
-		Log() Logger
+		StageContext
+		Output(variables ...*Variable) error
 	}
 
 	StageOptionParams interface {
