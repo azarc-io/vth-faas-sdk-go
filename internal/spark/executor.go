@@ -30,7 +30,7 @@ func (c *Chain) runner(ctx sdk_v1.SparkContext, node *node) sdk_v1.StageError {
 
 		er := updateStage(ctx, stg.name, withStageStatus(sdk_v1.StageStatus_StageStarted))
 		if er != nil {
-			ctx.Log().Error(er, "error trying to update a stage status")
+			ctx.Log().Error(er, "error updating stage status to 'started'")
 			return sdk_errors.NewStageError(er)
 		}
 
@@ -38,7 +38,7 @@ func (c *Chain) runner(ctx sdk_v1.SparkContext, node *node) sdk_v1.StageError {
 
 		if err != nil {
 			if e := updateStage(ctx, stg.name, withStageError(err)); e != nil {
-				ctx.Log().Error(err, "error trying to update a stage status")
+				ctx.Log().Error(err, "error updating stage status")
 				return sdk_errors.NewStageError(e)
 			}
 			switch err.ErrorType() {
@@ -55,7 +55,7 @@ func (c *Chain) runner(ctx sdk_v1.SparkContext, node *node) sdk_v1.StageError {
 			case sdk_v1.ErrorType_Retry:
 				return err
 			case sdk_v1.ErrorType_Skip:
-				continue // =)
+				continue
 			default:
 				ctx.Log().Error(err, "unsupported error type returned from stage '%s'", stg.name)
 				return err
@@ -64,16 +64,16 @@ func (c *Chain) runner(ctx sdk_v1.SparkContext, node *node) sdk_v1.StageError {
 		if result != nil {
 			req, err := sdk_v1.NewSetStageResultReq(ctx.JobKey(), stg.name, result)
 			if err != nil {
-				// TODO log error -->> retry forever?
+				ctx.Log().Error(err, "error creating set stage status request")
 				return sdk_errors.NewStageError(err)
 			}
 			if err := ctx.StageProgressHandler().SetResult(req); err != nil {
-				// TODO log error -->> retry forever?
+				ctx.Log().Error(err, "error on set stage status request")
 				return sdk_errors.NewStageError(err)
 			}
 		}
 		if err := updateStage(ctx, stg.name, withStageStatus(sdk_v1.StageStatus_StageCompleted)); err != nil {
-			// TODO log error -->> retry forever?
+			ctx.Log().Error(err, "error setting the stage status to 'completed'")
 			return sdk_errors.NewStageError(err)
 		}
 	}
