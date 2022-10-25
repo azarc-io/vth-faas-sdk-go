@@ -8,7 +8,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-func CreateManagerServiceClient(config *config.Config) (sdk_v1.ManagerServiceClient, error) { // TODO check on micro how the grpc client connections are handle
+func CreateManagerServiceClient(config *config.Config) (sdk_v1.ManagerServiceClient, error) {
 	retryOpts := []grpc_retry.CallOption{
 		grpc_retry.WithBackoff(grpc_retry.BackoffExponential(config.ManagerService.RetryBackoff)),
 	}

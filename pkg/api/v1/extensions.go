@@ -3,13 +3,11 @@ package sdk_v1
 import (
 	"encoding/json"
 	"errors"
+	"github.com/azarc-io/vth-faas-sdk-go/pkg/api"
 	"github.com/samber/lo"
 	"google.golang.org/protobuf/types/known/structpb"
 	"reflect"
 )
-
-// TODO yaml, xml, json, toml, csv <- just the ones that golang support
-// we need to use the correct encoder based on the mime_type field of the message
 
 func (x *Variable) Raw() ([]byte, error) {
 	return x.Value.MarshalJSON()
@@ -24,7 +22,7 @@ func (x *StageResult) Raw() ([]byte, error) {
 }
 
 func (x *StageResult) Bind(a any) error {
-	return serdesMap["application/json"].unmarshal(x.Data, a)
+	return serdesMap[api.MimeTypeJson].unmarshal(x.Data, a)
 }
 
 func NewSetStageResultReq(jobKey, name string, data any) (*SetStageResultRequest, error) {
@@ -147,7 +145,7 @@ type serdes struct {
 }
 
 var serdesMap = map[string]serdes{
-	"application/json": {
+	api.MimeTypeJson: {
 		unmarshal: func(value *structpb.Value, a any) error {
 			data, err := value.MarshalJSON()
 			if err != nil {

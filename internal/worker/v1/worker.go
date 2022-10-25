@@ -10,30 +10,7 @@ import (
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/config"
 )
 
-type Option = func(je *JobWorker) *JobWorker
-
-func WithVariableHandler(vh sdk_v1.VariableHandler) Option {
-	return func(jw *JobWorker) *JobWorker {
-		jw.variableHandler = vh
-		return jw
-	}
-}
-
-func WithStageProgressHandler(sph sdk_v1.StageProgressHandler) Option {
-	return func(jw *JobWorker) *JobWorker {
-		jw.stageProgressHandler = sph
-		return jw
-	}
-}
-
-func WithLog(log sdk_v1.Logger) Option {
-	return func(jw *JobWorker) *JobWorker {
-		jw.log = log
-		return jw
-	}
-}
-
-type JobWorker struct {
+type SparkWorker struct {
 	config               *config.Config
 	chain                *spark.Chain
 	variableHandler      sdk_v1.VariableHandler
@@ -42,7 +19,7 @@ type JobWorker struct {
 }
 
 func NewSparkWorker(cfg *config.Config, chain *spark.Chain, options ...Option) (sdk_v1.Worker, error) {
-	jw := &JobWorker{config: cfg, chain: chain}
+	jw := &SparkWorker{config: cfg, chain: chain}
 	for _, opt := range options {
 		jw = opt(jw)
 	}
@@ -52,16 +29,25 @@ func NewSparkWorker(cfg *config.Config, chain *spark.Chain, options ...Option) (
 	return jw, nil
 }
 
-func (w *JobWorker) validate() error {
-	if w.variableHandler == nil {
-		w.variableHandler = grpc_handler.NewVariableHandler()
-	}
-	if w.stageProgressHandler == nil {
-		client, err := clients.CreateManagerServiceClient(w.config)
+func (w *SparkWorker) Execute(metadata sdk_v1.Context) sdk_v1.StageError {
+	jobContext := context.NewJobContext(metadata, w.stageProgressHandler, w.variableHandler, w.log)
+	return w.chain.Execute(jobContext)
+}
+
+func (w *SparkWorker) validate() error {
+	var grpcClient sdk_v1.ManagerServiceClient
+	if w.variableHandler == nil || w.stageProgressHandler == nil {
+		var err error
+		grpcClient, err = clients.CreateManagerServiceClient(w.config)
 		if err != nil {
 			return err
 		}
-		w.stageProgressHandler = grpc_handler.NewStageProgressHandler(client)
+	}
+	if w.variableHandler == nil {
+		w.variableHandler = grpc_handler.NewVariableHandler(grpcClient)
+	}
+	if w.stageProgressHandler == nil {
+		w.stageProgressHandler = grpc_handler.NewStageProgressHandler(grpcClient)
 	}
 	if w.log == nil {
 		w.log = logger.NewLogger()
@@ -69,7 +55,25 @@ func (w *JobWorker) validate() error {
 	return nil
 }
 
-func (w *JobWorker) Execute(metadata sdk_v1.Context) sdk_v1.StageError {
-	jobContext := context.NewJobContext(metadata, w.stageProgressHandler, w.variableHandler, w.log)
-	return w.chain.Execute(jobContext)
+type Option = func(je *SparkWorker) *SparkWorker
+
+func WithVariableHandler(vh sdk_v1.VariableHandler) Option {
+	return func(jw *SparkWorker) *SparkWorker {
+		jw.variableHandler = vh
+		return jw
+	}
+}
+
+func WithStageProgressHandler(sph sdk_v1.StageProgressHandler) Option {
+	return func(jw *SparkWorker) *SparkWorker {
+		jw.stageProgressHandler = sph
+		return jw
+	}
+}
+
+func WithLog(log sdk_v1.Logger) Option {
+	return func(jw *SparkWorker) *SparkWorker {
+		jw.log = log
+		return jw
+	}
 }

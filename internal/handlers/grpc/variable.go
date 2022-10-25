@@ -9,8 +9,8 @@ type VariableHandler struct {
 	client sdk_v1.ManagerServiceClient
 }
 
-func NewVariableHandler() sdk_v1.VariableHandler {
-	return VariableHandler{}
+func NewVariableHandler(client sdk_v1.ManagerServiceClient) sdk_v1.VariableHandler {
+	return VariableHandler{client}
 }
 
 func (g VariableHandler) Set(jobKey string, variables ...*sdk_v1.Variable) error {
