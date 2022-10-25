@@ -77,9 +77,8 @@ func (c CheckoutSpark) ReserveInventoryItems(ctx sdk_v1.StageContext) (any, sdk_
 }
 
 func (c CheckoutSpark) ConfirmPaymentTransaction(ctx sdk_v1.CompleteContext) sdk_v1.StageError {
-	result, err := ctx.StageResult("create_payment_transaction")
 	var transaction Transaction
-	err = result.Bind(&transaction)
+	err := ctx.StageResult("create_payment_transaction").Bind(&transaction)
 	if err != nil {
 		ctx.Log().Error(err, "error binding transaction variable")
 		return sdk_errors.NewStageError(err)

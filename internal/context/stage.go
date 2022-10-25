@@ -21,7 +21,7 @@ func (sc Stage) Input(name string) *sdk_v1.Input {
 	return sc.jobContext.VariableHandler().Get(sc.JobKey(), name).Get(name)
 }
 
-func (sc Stage) StageResult(name string) (*sdk_v1.StageResult, error) {
+func (sc Stage) StageResult(name string) *sdk_v1.Result {
 	return sc.jobContext.StageProgressHandler().GetResult(sc.JobKey(), name)
 }
 

@@ -25,7 +25,7 @@ type (
 	StageProgressHandler interface {
 		Get(jobKey, name string) (*StageStatus, error)
 		Set(stageStatus *SetStageStatusRequest) error
-		GetResult(jobKey, name string) (*StageResult, error)
+		GetResult(jobKey, name string) *Result
 		SetResult(resultResult *SetStageResultRequest) error
 		SetJobStatus(jobStatus *SetJobStatusRequest) error
 	}
@@ -64,7 +64,7 @@ type (
 		Context
 		Inputs(names ...string) *Inputs
 		Input(names string) *Input
-		StageResult(name string) (*StageResult, error)
+		StageResult(name string) *Result
 		Log() Logger
 	}
 

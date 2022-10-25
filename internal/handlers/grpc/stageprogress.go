@@ -18,22 +18,25 @@ func (g *StageProgressHandler) Get(jobKey, name string) (*sdk_v1.StageStatus, er
 	return &resp.Status, err
 }
 
-func (g *StageProgressHandler) Set(stageStatus *sdk_v1.SetStageStatusRequest) error { //TODO receive ctx
+func (g *StageProgressHandler) Set(stageStatus *sdk_v1.SetStageStatusRequest) error {
 	_, err := g.client.SetStageStatus(context.Background(), stageStatus)
 	return err
 }
 
-func (g *StageProgressHandler) GetResult(jobKey, name string) (*sdk_v1.StageResult, error) { //TODO receive ctx
+func (g *StageProgressHandler) GetResult(jobKey, name string) *sdk_v1.Result {
 	result, err := g.client.GetStageResult(context.Background(), sdk_v1.NewStageResultReq(jobKey, name))
-	return result.Result, err
+	if err != nil {
+		return sdk_v1.NewResult(err, nil)
+	}
+	return sdk_v1.NewResult(nil, result.Result)
 }
 
-func (g *StageProgressHandler) SetResult(result *sdk_v1.SetStageResultRequest) error { //TODO receive ctx
+func (g *StageProgressHandler) SetResult(result *sdk_v1.SetStageResultRequest) error {
 	_, err := g.client.SetStageResult(context.Background(), result)
 	return err
 }
 
-func (g *StageProgressHandler) SetJobStatus(jobStatus *sdk_v1.SetJobStatusRequest) error { //TODO receive ctx
+func (g *StageProgressHandler) SetJobStatus(jobStatus *sdk_v1.SetJobStatusRequest) error {
 	_, err := g.client.SetJobStatus(context.Background(), jobStatus)
 	return err
 }

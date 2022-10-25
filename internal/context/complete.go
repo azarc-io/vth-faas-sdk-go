@@ -21,12 +21,12 @@ func (sc Complete) Input(name string) *sdk_v1.Input {
 	return sc.jobContext.VariableHandler().Get(sc.JobKey(), name).Get(name)
 }
 
-func (sc Complete) Output(variables ...*sdk_v1.Variable) error {
-	return sc.jobContext.VariableHandler().Set(sc.JobKey(), variables...)
+func (sc Complete) StageResult(name string) *sdk_v1.Result {
+	return sc.jobContext.StageProgressHandler().GetResult(sc.JobKey(), name)
 }
 
-func (sc Complete) StageResult(name string) (*sdk_v1.StageResult, error) {
-	return sc.jobContext.StageProgressHandler().GetResult(sc.JobKey(), name)
+func (sc Complete) Output(variables ...*sdk_v1.Variable) error {
+	return sc.jobContext.VariableHandler().Set(sc.JobKey(), variables...)
 }
 
 func (sc Complete) Log() sdk_v1.Logger {

@@ -219,3 +219,29 @@ func (v Inputs) Get(name string) *Input {
 func (v Inputs) Error() error {
 	return v.err
 }
+
+type Result struct {
+	result *StageResult
+	err    error
+}
+
+func NewResult(err error, result *StageResult) *Result {
+	return &Result{
+		result: result,
+		err:    err,
+	}
+}
+
+func (r *Result) Raw() ([]byte, error) {
+	if r.err != nil {
+		return nil, r.err
+	}
+	return r.result.Raw()
+}
+
+func (r *Result) Bind(a any) error {
+	if r.err != nil {
+		return r.err
+	}
+	return r.result.Bind(a)
+}

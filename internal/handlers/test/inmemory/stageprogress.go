@@ -44,12 +44,12 @@ func (i inMemoryStageProgressHandler) Set(stageStatus *sdk_v1.SetStageStatusRequ
 	return nil
 }
 
-func (i inMemoryStageProgressHandler) GetResult(jobKey, name string) (*sdk_v1.StageResult, error) {
+func (i inMemoryStageProgressHandler) GetResult(jobKey, name string) *sdk_v1.Result {
 	if variable, ok := i.results[i.key(jobKey, name)]; ok {
-		return variable.Result, nil
+		return sdk_v1.NewResult(nil, variable.Result)
 	}
 	i.t.Fatalf("stage result no found for params >> jobKey: %s, stageName: %s", jobKey, name)
-	return nil, nil
+	return nil
 }
 
 func (i inMemoryStageProgressHandler) SetResult(result *sdk_v1.SetStageResultRequest) error {
