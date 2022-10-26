@@ -69,7 +69,7 @@ type completeStage struct {
 	cb   sdk_v1.CompleteDefinitionFn
 }
 
-func (s stage) ApplyStageOptionsParams(ctx sdk_v1.SparkContext, stageName string) sdk_v1.StageError {
+func (s stage) ApplyConditionalExecutionOptions(ctx sdk_v1.SparkContext, stageName string) sdk_v1.StageError {
 	params := newStageOptionParams(ctx, stageName)
 	for _, stageOptions := range s.so {
 		if err := stageOptions(params); err != nil {
@@ -118,7 +118,7 @@ func WithStageStatus(stageName string, status sdk_v1.StageStatus) sdk_v1.StageOp
 			return sdk_errors.NewStageError(err, sdk_errors.WithErrorType(sdk_v1.ErrorType_Failed))
 		}
 		if *stageStatus != status {
-			return sdk_errors.NewStageError(fmt.Errorf("conditional stage execution skipped this stage"), sdk_errors.WithErrorType(sdk_v1.ErrorType_Skip))
+			return sdk_errors.NewStageError(fmt.Errorf("conditional stage execution: stage '%s' skipped", stageName), sdk_errors.WithErrorType(sdk_v1.ErrorType_Skip))
 		}
 		return nil
 	}

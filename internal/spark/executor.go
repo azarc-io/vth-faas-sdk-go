@@ -24,8 +24,13 @@ func (c *Chain) runner(ctx sdk_v1.SparkContext, node *node) sdk_v1.StageError {
 	for _, stg := range stages {
 		ctx.Log().AddFields(stageLogField, stg.name).AddFields(jobKeyLogField, ctx.JobKey())
 
-		if err := stg.ApplyStageOptionsParams(ctx, stg.name); err != nil {
-			return err
+		if err := stg.ApplyConditionalExecutionOptions(ctx, stg.name); err != nil {
+			er := updateStage(ctx, stg.name, withStageError(err))
+			if er != nil {
+				ctx.Log().Error(er, "error updating stage status to 'started'")
+				return sdk_errors.NewStageError(er)
+			}
+			continue
 		}
 
 		er := updateStage(ctx, stg.name, withStageStatus(sdk_v1.StageStatus_StageStarted))
@@ -44,12 +49,18 @@ func (c *Chain) runner(ctx sdk_v1.SparkContext, node *node) sdk_v1.StageError {
 			switch err.ErrorType() {
 			case sdk_v1.ErrorType_Failed:
 				if node.compensate != nil {
-					return c.runner(ctx.WithoutLastActiveStage(), node.compensate)
+					e := c.runner(ctx.WithoutLastActiveStage(), node.compensate)
+					if e != nil {
+						return e
+					}
 				}
 				return err
 			case sdk_v1.ErrorType_Canceled:
 				if node.cancel != nil {
-					return c.runner(ctx.WithoutLastActiveStage(), node.cancel)
+					e := c.runner(ctx.WithoutLastActiveStage(), node.cancel)
+					if er != nil {
+						return e
+					}
 				}
 				return err
 			case sdk_v1.ErrorType_Retry:

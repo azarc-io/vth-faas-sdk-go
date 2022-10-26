@@ -9,6 +9,7 @@ import (
 	v1 "github.com/azarc-io/vth-faas-sdk-go/internal/worker/v1"
 	sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1"
 	sdk_errors "github.com/azarc-io/vth-faas-sdk-go/pkg/errors"
+	"github.com/samber/lo"
 	"testing"
 )
 
@@ -22,6 +23,7 @@ func TestResumeOnRetry(t *testing.T) {
 		stageBehaviour  *stageBehaviour
 		lastActiveStage *sdk_v1.LastActiveStage
 		assertFn        func(t *testing.T, sb *stageBehaviour)
+		errorType       *sdk_v1.ErrorType
 	}{
 		{
 			name:            "should execute all stages and complete",
@@ -34,6 +36,7 @@ func TestResumeOnRetry(t *testing.T) {
 					}
 				}
 			},
+			errorType: nil,
 		},
 		{
 			name:           "should execute only complete stage",
@@ -51,6 +54,7 @@ func TestResumeOnRetry(t *testing.T) {
 					t.Error("stage 'complete' expected to be executed")
 				}
 			},
+			errorType: nil,
 		},
 		{
 			name:           "should execute stage3 and complete stages",
@@ -70,10 +74,11 @@ func TestResumeOnRetry(t *testing.T) {
 					}
 				}
 			},
+			errorType: nil,
 		},
 		{
 			name:           "should execute only stage2 and compensate",
-			stageBehaviour: newSB().Change("stage2", false, sdk_errors.NewStageError(errors.New("stage2 error"))),
+			stageBehaviour: newSB().Change("stage2", sdk_errors.NewStageError(errors.New("stage2 error"))),
 			lastActiveStage: &sdk_v1.LastActiveStage{
 				Name: "stage2",
 			},
@@ -89,11 +94,12 @@ func TestResumeOnRetry(t *testing.T) {
 					}
 				}
 			},
+			errorType: lo.ToPtr(sdk_v1.ErrorType_Failed),
 		},
 		{
 			name: "should execute only stage2 and cancel",
 			stageBehaviour: newSB().
-				Change("stage2", false, sdk_errors.NewStageError(errors.New("stage2 cancel"), sdk_errors.WithErrorType(sdk_v1.ErrorType_Canceled))),
+				Change("stage2", sdk_errors.NewStageError(errors.New("stage2 cancel"), sdk_errors.WithErrorType(sdk_v1.ErrorType_Canceled))),
 			lastActiveStage: &sdk_v1.LastActiveStage{
 				Name: "stage2",
 			},
@@ -109,24 +115,31 @@ func TestResumeOnRetry(t *testing.T) {
 					}
 				}
 			},
+			errorType: lo.ToPtr(sdk_v1.ErrorType_Canceled),
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			test.stageBehaviour.ResetExecutions()
-			chain := CreateTestChain(t, test.stageBehaviour)
+			chain := createChainForResumeOnRetryTests(t, test.stageBehaviour)
 			worker := v1.NewSparkTestWorker(t, chain, v1.WithVariableHandler(inmemory.NewVariableHandler(t, nil)), v1.WithStageProgressHandler(inmemory.NewStageProgressHandler(t)))
 			err := worker.Execute(context.NewJobMetadata(ctx.Background(), "jobKey", "correlationId", "transactionId", test.lastActiveStage))
-			if err != nil {
-				t.Error(err)
+			if test.errorType != nil {
+				if err == nil {
+					t.Errorf("error '%s' is expected from chain execution, got none", test.errorType)
+				} else {
+					if *test.errorType != err.ErrorType() {
+						t.Errorf("error expected: %v; got: %v;", test.errorType, err.ErrorType())
+					}
+				}
 			}
 			test.assertFn(t, test.stageBehaviour)
 		})
 	}
 }
 
-func CreateTestChain(t *testing.T, sb *stageBehaviour) *spark.Chain {
+func createChainForResumeOnRetryTests(t *testing.T, sb *stageBehaviour) *spark.Chain {
 	chain, err := spark.NewChain(
 		spark.NewNode().
 			Stage("stage1", stageFn("stage1", sb)).
@@ -176,16 +189,16 @@ func NewStageBehaviour(t *testing.T, stages ...string) *stageBehaviour {
 }
 
 func (s *stageBehaviour) Executed(stage string) bool {
-	defer func() {
-		if r := recover(); r != nil {
-			s.t.Fatalf("error checking if stage '%s' is executed >> error: %v", stage, r)
-		}
-	}()
-	return s.m[stage].executed
+	if b, ok := s.m[stage]; ok {
+		return b.executed
+	}
+	s.t.Fatalf("error shouldErr stage: %s not mapped", stage)
+	return false
+
 }
 
-func (s *stageBehaviour) Change(stageName string, executed bool, shouldError sdk_v1.StageError) *stageBehaviour {
-	s.m[stageName] = &behaviour{executed: executed, err: shouldError}
+func (s *stageBehaviour) Change(stageName string, shouldError sdk_v1.StageError) *stageBehaviour {
+	s.m[stageName] = &behaviour{executed: false, err: shouldError}
 	return s
 }
 
@@ -196,21 +209,17 @@ func (s *stageBehaviour) ResetExecutions() {
 }
 
 func (s *stageBehaviour) exec(stage string) {
-	defer func() {
-		if r := recover(); r != nil {
-			s.t.Fatalf("error exec stage: %s >> error: %v", stage, r)
-		}
-	}()
-	b := s.m[stage]
-	b.executed = true
+	if b, ok := s.m[stage]; ok {
+		b.executed = true
+		return
+	}
+	s.t.Fatalf("error exec stage: %s not mapped", stage)
 }
 
 func (s *stageBehaviour) shouldErr(stage string) sdk_v1.StageError {
-	defer func() {
-		if r := recover(); r != nil {
-			s.t.Fatalf("error shouldErr stage: %s >> error: %v", stage, r)
-		}
-	}()
-	b := s.m[stage]
-	return b.err
+	if b, ok := s.m[stage]; ok {
+		return b.err
+	}
+	s.t.Fatalf("error shouldErr stage: %s not mapped", stage)
+	return nil
 }
