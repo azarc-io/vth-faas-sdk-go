@@ -1,4 +1,4 @@
-package test
+package tests
 
 import (
 	ctx "context"
@@ -125,13 +125,14 @@ func TestResumeOnRetry(t *testing.T) {
 			chain := createChainForResumeOnRetryTests(t, test.stageBehaviour)
 			worker := v1.NewSparkTestWorker(t, chain, v1.WithIOHandler(inmemory.NewIOHandler(t)), v1.WithStageProgressHandler(inmemory.NewStageProgressHandler(t)))
 			err := worker.Execute(context.NewJobMetadata(ctx.Background(), "jobKey", "correlationId", "transactionId", test.lastActiveStage))
+			if err != nil && test.errorType == nil {
+				t.Errorf("a unexpected error occured: %v", err)
+			}
 			if test.errorType != nil {
 				if err == nil {
 					t.Errorf("error '%s' is expected from chain execution, got none", test.errorType)
-				} else {
-					if *test.errorType != err.ErrorType() {
-						t.Errorf("error expected: %v; got: %v;", test.errorType, err.ErrorType())
-					}
+				} else if *test.errorType != err.ErrorType() {
+					t.Errorf("error expected: %v; got: %v;", test.errorType, err.ErrorType())
 				}
 			}
 			test.assertFn(t, test.stageBehaviour)

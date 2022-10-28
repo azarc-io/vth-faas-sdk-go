@@ -1,4 +1,4 @@
-package test
+package tests
 
 import (
 	ctx "context"
@@ -7,7 +7,6 @@ import (
 	"github.com/azarc-io/vth-faas-sdk-go/internal/spark"
 	v1 "github.com/azarc-io/vth-faas-sdk-go/internal/worker/v1"
 	sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1"
-	"github.com/samber/lo"
 	"testing"
 )
 
@@ -46,7 +45,7 @@ func TestConditionalStageExecution(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				if stage2Status != lo.ToPtr(sdk_v1.StageStatus_StageSkipped) {
+				if *stage2Status != sdk_v1.StageStatus_StageSkipped {
 					t.Errorf("'stage2' should be in 'skipped' status, got: %s", stage2Status)
 				}
 			},
@@ -69,18 +68,18 @@ func TestConditionalStageExecution(t *testing.T) {
 			},
 			assertFn: func(t *testing.T, sb *stageBehaviour, sph sdk_v1.StageProgressHandler) {
 				if !sb.Executed("stage1") {
-					t.Error("'stage1' should executed")
+					t.Error("'stage1' should have executed")
 				}
 				for _, stage := range []string{"stage2", "stage3"} {
-					if !sb.Executed(stage) {
-						t.Errorf("'%s' not executed", stage)
+					if sb.Executed(stage) {
+						t.Errorf("'%s' should not have executed", stage)
 					}
 					status, err := sph.Get("jobKey", stage)
 					if err != nil {
 						t.Fatal(err)
 					}
-					if status != lo.ToPtr(sdk_v1.StageStatus_StageSkipped) {
-						t.Errorf("'stage2' should be in 'skipped' status, got: %s", status)
+					if *status != sdk_v1.StageStatus_StageSkipped {
+						t.Errorf("'%s' should be in 'skipped' status, got: %s", stage, status)
 					}
 				}
 			},
@@ -88,13 +87,14 @@ func TestConditionalStageExecution(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			chain, _ := test.chainFn() // sb
+			chain, sb := test.chainFn()
 			stageProgressHandler := inmemory.NewStageProgressHandler(t)
 			worker := v1.NewSparkTestWorker(t, chain, v1.WithIOHandler(inmemory.NewIOHandler(t)), v1.WithStageProgressHandler(stageProgressHandler))
 			err := worker.Execute(context.NewJobMetadata(ctx.Background(), "jobKey", "correlationId", "transactionId", nil))
 			if err != nil {
 				t.Error(err)
 			}
+			test.assertFn(t, sb, stageProgressHandler)
 		})
 	}
 }

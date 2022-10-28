@@ -7,15 +7,18 @@ import (
 	"testing"
 )
 
-type inMemoryStageProgressHandler struct {
-	t       *testing.T
-	stages  map[string]*sdk_v1.SetStageStatusRequest
-	results map[string]*sdk_v1.SetStageResultRequest
-	jobs    map[string]*sdk_v1.SetJobStatusRequest
+type StageProgressHandler struct {
+	t            *testing.T
+	stages       map[string]*sdk_v1.SetStageStatusRequest
+	results      map[string]*sdk_v1.SetStageResultRequest
+	jobs         map[string]*sdk_v1.SetJobStatusRequest
+	behaviourSet map[string]error
 }
 
-func NewStageProgressHandler(t *testing.T, seeds ...any) sdk_v1.StageProgressHandler {
-	handler := inMemoryStageProgressHandler{t, map[string]*sdk_v1.SetStageStatusRequest{}, map[string]*sdk_v1.SetStageResultRequest{}, map[string]*sdk_v1.SetJobStatusRequest{}}
+func NewStageProgressHandler(t *testing.T, seeds ...any) *StageProgressHandler {
+	handler := StageProgressHandler{t,
+		map[string]*sdk_v1.SetStageStatusRequest{}, map[string]*sdk_v1.SetStageResultRequest{},
+		map[string]*sdk_v1.SetJobStatusRequest{}, map[string]error{}}
 	for _, seed := range seeds {
 		switch seed.(type) {
 		case *sdk_v1.SetStageStatusRequest:
@@ -28,10 +31,10 @@ func NewStageProgressHandler(t *testing.T, seeds ...any) sdk_v1.StageProgressHan
 			handler.t.Fatalf("invalid seed type. accepted values are: *sdk_v1.SetStageStatusRequest, *sdk_v1.SetStageResultRequest, but got: %s", reflect.TypeOf(seed).String())
 		}
 	}
-	return handler
+	return &handler
 }
 
-func (i inMemoryStageProgressHandler) Get(jobKey, name string) (*sdk_v1.StageStatus, error) {
+func (i *StageProgressHandler) Get(jobKey, name string) (*sdk_v1.StageStatus, error) {
 	if stage, ok := i.stages[i.key(jobKey, name)]; ok {
 		return &stage.Status, nil
 	}
@@ -39,12 +42,15 @@ func (i inMemoryStageProgressHandler) Get(jobKey, name string) (*sdk_v1.StageSta
 	return nil, nil
 }
 
-func (i inMemoryStageProgressHandler) Set(stageStatus *sdk_v1.SetStageStatusRequest) error {
+func (i *StageProgressHandler) Set(stageStatus *sdk_v1.SetStageStatusRequest) error {
+	if err, ok := i.behaviourSet[stageStatus.Name]; ok {
+		return err
+	}
 	i.stages[i.key(stageStatus.JobKey, stageStatus.Name)] = stageStatus
 	return nil
 }
 
-func (i inMemoryStageProgressHandler) GetResult(jobKey, name string) *sdk_v1.Result {
+func (i *StageProgressHandler) GetResult(jobKey, name string) *sdk_v1.Result {
 	if variable, ok := i.results[i.key(jobKey, name)]; ok {
 		return sdk_v1.NewResult(nil, variable.Result)
 	}
@@ -52,16 +58,33 @@ func (i inMemoryStageProgressHandler) GetResult(jobKey, name string) *sdk_v1.Res
 	return nil
 }
 
-func (i inMemoryStageProgressHandler) SetResult(result *sdk_v1.SetStageResultRequest) error {
+func (i *StageProgressHandler) SetResult(result *sdk_v1.SetStageResultRequest) error {
 	i.results[i.key(result.JobKey, result.Name)] = result
 	return nil
 }
 
-func (i inMemoryStageProgressHandler) SetJobStatus(jobStatus *sdk_v1.SetJobStatusRequest) error {
+func (i *StageProgressHandler) SetJobStatus(jobStatus *sdk_v1.SetJobStatusRequest) error {
 	i.jobs[jobStatus.Key] = jobStatus
 	return nil
 }
 
-func (i inMemoryStageProgressHandler) key(jobKey, name string) string {
+func (i *StageProgressHandler) AddBehaviour() *Behaviour {
+	return &Behaviour{i: i}
+}
+
+func (i *StageProgressHandler) ResetBehaviour() {
+	i.behaviourSet = map[string]error{}
+}
+
+func (i *StageProgressHandler) key(jobKey, name string) string {
 	return fmt.Sprintf("%s_%s", jobKey, name)
+}
+
+type Behaviour struct {
+	i *StageProgressHandler
+}
+
+func (b *Behaviour) Set(stageName string, err error) *StageProgressHandler {
+	b.i.behaviourSet[stageName] = err
+	return b.i
 }
