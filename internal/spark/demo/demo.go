@@ -2,7 +2,9 @@
 package demo
 
 import (
+	"github.com/azarc-io/vth-faas-sdk-go/internal/handlers"
 	"github.com/azarc-io/vth-faas-sdk-go/internal/spark"
+	"github.com/azarc-io/vth-faas-sdk-go/pkg/api"
 	sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1"
 	sdk_errors "github.com/azarc-io/vth-faas-sdk-go/pkg/errors"
 )
@@ -83,12 +85,16 @@ func (c CheckoutSpark) ConfirmPaymentTransaction(ctx sdk_v1.CompleteContext) sdk
 		ctx.Log().Error(err, "error binding transaction variable")
 		return sdk_errors.NewStageError(err)
 	}
-
 	err = c.paymentProvider.ConfirmTransaction(transaction)
-
 	if err != nil {
 		return sdk_errors.NewStageError(err)
 	}
+
+	err = ctx.Output(&handlers.Variable{Name: "newVar", MimeType: api.MimeTypeJson, Value: "someValue"})
+	if err != nil {
+		return sdk_errors.NewStageError(err)
+	}
+
 	return nil
 }
 

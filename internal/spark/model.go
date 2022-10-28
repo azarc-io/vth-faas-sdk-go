@@ -82,7 +82,7 @@ func (s stage) ApplyConditionalExecutionOptions(ctx sdk_v1.SparkContext, stageNa
 type stageOptionParams struct {
 	stageName string
 	sph       sdk_v1.StageProgressHandler
-	vh        sdk_v1.VariableHandler
+	vh        sdk_v1.IOHandler
 	ctx       sdk_v1.SparkContext
 }
 
@@ -94,7 +94,7 @@ func (s stageOptionParams) StageProgressHandler() sdk_v1.StageProgressHandler {
 	return s.sph
 }
 
-func (s stageOptionParams) VariableHandler() sdk_v1.VariableHandler {
+func (s stageOptionParams) IOHandler() sdk_v1.IOHandler {
 	return s.vh
 }
 
@@ -106,7 +106,7 @@ func newStageOptionParams(ctx sdk_v1.SparkContext, stageName string) sdk_v1.Stag
 	return stageOptionParams{
 		stageName: stageName,
 		sph:       ctx.StageProgressHandler(),
-		vh:        ctx.VariableHandler(),
+		vh:        ctx.IOHandler(),
 		ctx:       ctx,
 	}
 }

@@ -1,4 +1,4 @@
-package v1
+package v1 // TODO do not add that to the binary
 
 import (
 	"github.com/azarc-io/vth-faas-sdk-go/internal/spark"

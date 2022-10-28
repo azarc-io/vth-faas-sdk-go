@@ -5,6 +5,7 @@ package sdk_v1
 
 import (
 	"context"
+	"github.com/azarc-io/vth-faas-sdk-go/internal/handlers"
 )
 
 type (
@@ -17,9 +18,10 @@ type (
 		Execute(ctx Context) StageError
 	}
 
-	VariableHandler interface {
-		Get(jobKey string, names ...string) *Inputs
-		Set(jobKey string, variables ...*Variable) error
+	IOHandler interface {
+		Inputs(jobKey string, names ...string) *Inputs
+		Input(jobKey, name string) *Input
+		Output(jobKey string, variables ...*handlers.Variable) error
 	}
 
 	StageProgressHandler interface {
@@ -48,7 +50,7 @@ type (
 
 	SparkContext interface {
 		Context
-		VariableHandler() VariableHandler
+		IOHandler() IOHandler
 		StageProgressHandler() StageProgressHandler
 		LastActiveStage() *LastActiveStage
 		Log() Logger
@@ -65,13 +67,13 @@ type (
 
 	CompleteContext interface {
 		StageContext
-		Output(variables ...*Variable) error
+		Output(variables ...*handlers.Variable) error
 	}
 
 	StageOptionParams interface {
 		StageName() string
 		StageProgressHandler() StageProgressHandler
-		VariableHandler() VariableHandler
+		IOHandler() IOHandler
 		Context() Context
 	}
 

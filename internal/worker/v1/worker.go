@@ -13,7 +13,7 @@ import (
 type SparkWorker struct {
 	config               *config.Config
 	chain                *spark.Chain
-	variableHandler      sdk_v1.VariableHandler
+	variableHandler      sdk_v1.IOHandler
 	stageProgressHandler sdk_v1.StageProgressHandler
 	log                  sdk_v1.Logger
 }
@@ -44,7 +44,7 @@ func (w *SparkWorker) validate() error {
 		}
 	}
 	if w.variableHandler == nil {
-		w.variableHandler = grpc_handler.NewVariableHandler(grpcClient)
+		w.variableHandler = grpc_handler.NewIOHandler(grpcClient)
 	}
 	if w.stageProgressHandler == nil {
 		w.stageProgressHandler = grpc_handler.NewStageProgressHandler(grpcClient)
@@ -57,7 +57,7 @@ func (w *SparkWorker) validate() error {
 
 type Option = func(je *SparkWorker) *SparkWorker
 
-func WithVariableHandler(vh sdk_v1.VariableHandler) Option {
+func WithIOHandler(vh sdk_v1.IOHandler) Option {
 	return func(jw *SparkWorker) *SparkWorker {
 		jw.variableHandler = vh
 		return jw

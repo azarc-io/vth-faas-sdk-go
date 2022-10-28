@@ -3,6 +3,8 @@ package sdk_v1
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"github.com/azarc-io/vth-faas-sdk-go/internal/handlers"
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/api"
 	"github.com/samber/lo"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -77,7 +79,7 @@ func toMap(data any) (map[string]any, error) {
 func NewVariable(name, mimeType string, value any) (*Variable, error) {
 	pbValue, err := serdesMap[mimeType].marshal(value)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error creating variable named '%s': %w", name, err)
 	}
 	return &Variable{
 		Name:     name,
@@ -123,20 +125,20 @@ func NewGetVariablesRequest(jobKey string, names ...string) *GetVariablesRequest
 	return vr
 }
 
-func NewSetVariablesRequest(jobKey string, variables ...*Variable) *SetVariablesRequest {
+func NewSetVariablesRequest(jobKey string, variables ...*handlers.Variable) (*SetVariablesRequest, error) {
 	m := map[string]*Variable{}
 	for _, v := range variables {
-		m[v.Name] = v
+		variable, err := NewVariable(v.Name, v.MimeType, v.Value)
+		if err != nil {
+			return nil, err
+		}
+		m[v.Name] = variable
 	}
-	return &SetVariablesRequest{JobKey: jobKey, Variables: m}
+	return &SetVariablesRequest{JobKey: jobKey, Variables: m}, nil
 }
 
 func NewGetStageStatusReq(jobKey, stageName string) *GetStageStatusRequest {
 	return &GetStageStatusRequest{JobKey: jobKey, Name: stageName}
-}
-
-func Ptr[T any](t T) *T {
-	return &t
 }
 
 type serdes struct {

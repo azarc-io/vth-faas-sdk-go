@@ -123,7 +123,7 @@ func TestResumeOnRetry(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			test.stageBehaviour.ResetExecutions()
 			chain := createChainForResumeOnRetryTests(t, test.stageBehaviour)
-			worker := v1.NewSparkTestWorker(t, chain, v1.WithVariableHandler(inmemory.NewVariableHandler(t, nil)), v1.WithStageProgressHandler(inmemory.NewStageProgressHandler(t)))
+			worker := v1.NewSparkTestWorker(t, chain, v1.WithIOHandler(inmemory.NewIOHandler(t)), v1.WithStageProgressHandler(inmemory.NewStageProgressHandler(t)))
 			err := worker.Execute(context.NewJobMetadata(ctx.Background(), "jobKey", "correlationId", "transactionId", test.lastActiveStage))
 			if test.errorType != nil {
 				if err == nil {

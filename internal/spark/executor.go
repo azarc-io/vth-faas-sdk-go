@@ -89,12 +89,25 @@ func (c *Chain) runner(ctx sdk_v1.SparkContext, node *node) sdk_v1.StageError {
 		}
 	}
 	if node.complete != nil {
-		return node.complete.cb(context.NewCompleteContext(ctx))
+		err := node.complete.cb(context.NewCompleteContext(ctx))
+		if e := updateStage(ctx, node.complete.name, withStageStatusOrError(sdk_v1.StageStatus_StageCompleted, err)); e != nil {
+			ctx.Log().Error(e, "error setting the completed stage status to 'completed'")
+			return sdk_errors.NewStageError(e)
+		}
 	}
 	return nil
 }
 
 type updateStageOption = func(stage *sdk_v1.SetStageStatusRequest) *sdk_v1.SetStageStatusRequest
+
+func withStageStatusOrError(status sdk_v1.StageStatus, err sdk_v1.StageError) updateStageOption {
+	return func(stage *sdk_v1.SetStageStatusRequest) *sdk_v1.SetStageStatusRequest {
+		if err != nil {
+			return withStageError(err)(stage)
+		}
+		return withStageStatus(status)(stage)
+	}
+}
 
 func withStageStatus(status sdk_v1.StageStatus) updateStageOption {
 	return func(stage *sdk_v1.SetStageStatusRequest) *sdk_v1.SetStageStatusRequest {
@@ -105,6 +118,9 @@ func withStageStatus(status sdk_v1.StageStatus) updateStageOption {
 
 func withStageError(err sdk_v1.StageError) updateStageOption {
 	return func(stage *sdk_v1.SetStageStatusRequest) *sdk_v1.SetStageStatusRequest {
+		if err == nil {
+			return stage
+		}
 		stage.Status = sdk_errors.ErrorTypeToStageStatusMapper[err.ErrorType()]
 		stage.Err = err.ToErrorMessage()
 		return stage

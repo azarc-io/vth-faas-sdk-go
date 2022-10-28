@@ -14,11 +14,11 @@ func NewStageContext(ctx sdk_v1.SparkContext) sdk_v1.StageContext {
 }
 
 func (sc Stage) Inputs(names ...string) *sdk_v1.Inputs {
-	return sc.jobContext.VariableHandler().Get(sc.JobKey(), names...)
+	return sc.jobContext.IOHandler().Inputs(sc.JobKey(), names...)
 }
 
 func (sc Stage) Input(name string) *sdk_v1.Input {
-	return sc.jobContext.VariableHandler().Get(sc.JobKey(), name).Get(name)
+	return sc.jobContext.IOHandler().Input(sc.JobKey(), name)
 }
 
 func (sc Stage) StageResult(name string) *sdk_v1.Result {

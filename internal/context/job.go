@@ -9,16 +9,16 @@ type Job struct {
 	ctx                  ctx.Context
 	metadata             *JobMetadata
 	stageProgressHandler sdk_v1.StageProgressHandler
-	variableHandler      sdk_v1.VariableHandler
+	variableHandler      sdk_v1.IOHandler
 	log                  sdk_v1.Logger
 }
 
-func NewJobContext(metadata sdk_v1.Context, sph sdk_v1.StageProgressHandler, vh sdk_v1.VariableHandler, log sdk_v1.Logger) sdk_v1.SparkContext {
+func NewJobContext(metadata sdk_v1.Context, sph sdk_v1.StageProgressHandler, vh sdk_v1.IOHandler, log sdk_v1.Logger) sdk_v1.SparkContext {
 	m := JobMetadata{ctx: metadata.Ctx(), jobKey: metadata.JobKey(), correlationId: metadata.CorrelationID(), transactionId: metadata.TransactionID(), lastActiveStage: metadata.LastActiveStage()}
 	return &Job{metadata: &m, stageProgressHandler: sph, variableHandler: vh, log: log}
 }
 
-func (j *Job) VariableHandler() sdk_v1.VariableHandler {
+func (j *Job) IOHandler() sdk_v1.IOHandler {
 	return j.variableHandler
 }
 
