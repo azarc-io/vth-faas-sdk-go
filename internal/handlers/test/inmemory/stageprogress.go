@@ -2,7 +2,9 @@ package inmemory
 
 import (
 	"fmt"
+	"github.com/azarc-io/vth-faas-sdk-go/pkg/api"
 	sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1"
+	"github.com/stretchr/testify/assert"
 	"reflect"
 	"testing"
 )
@@ -83,6 +85,35 @@ func (i *StageProgressHandler) AddBehaviour() *Behaviour {
 
 func (i *StageProgressHandler) ResetBehaviour() {
 	i.behaviourSet = map[string]StageBehaviourParams{}
+}
+
+func (i *StageProgressHandler) AssertStageStatus(jobKey, stageName string, expectedStatus sdk_v1.StageStatus) {
+	status, err := i.Get(jobKey, stageName)
+	if err != nil {
+		i.t.Error(err)
+		return
+	}
+	assert.Equal(i.t, expectedStatus, status, "spark status expected: '%s' got: '%s'", expectedStatus, status)
+}
+
+func (i *StageProgressHandler) AssertStageResult(jobKey, stageName string, expectedStageResult any) {
+	r := i.GetResult(jobKey, stageName)
+	resB, err := r.Raw()
+	if err != nil {
+		i.t.Error(err)
+		return
+	}
+	req, err := sdk_v1.NewSetStageResultReq(jobKey, api.MimeTypeJson, expectedStageResult)
+	if err != nil {
+		i.t.Error(err)
+		return
+	}
+	reqB, err := req.Result.Raw()
+	if err != nil {
+		i.t.Error(err)
+		return
+	}
+	assert.Equal(i.t, reqB, resB)
 }
 
 func (i *StageProgressHandler) key(jobKey, name string) string {

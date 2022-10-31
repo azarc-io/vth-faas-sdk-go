@@ -1,0 +1,5 @@
+chain validation error : 
+	no stage defined for node: root
+	unique stage name restriction violated: a stage or complete stage in 'root > canceled' and 'root > canceled > canceled' have the same name: 'canceled'
+	unique stage name restriction violated: a stage or complete stage in 'root > canceled' and 'root > canceled > canceled > canceled' have the same name: 'canceled'
+	unique stage name restriction violated: a stage or complete stage in 'root > canceled' and 'root > canceled > canceled > canceled > canceled' have the same name: 'canceled'

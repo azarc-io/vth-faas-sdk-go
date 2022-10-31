@@ -23,7 +23,7 @@ func (c *chainBuilder) Build() (*Chain, error) {
 	}
 	c.createResumeOnRetryStagesMap(newChain)
 	addBreadcrumb(newChain.rootNode)
-	if err := c.validate([]*validateFn{atLeastOneStagePerNodeValidator, uniqueStageNamesValidator()}, newChain.rootNode); err != nil {
+	if err := c.validate([]*validateFn{stageNamesMustNoBeEmpty, atLeastOneStagePerNodeValidator, uniqueStageNamesValidator()}, newChain.rootNode); err != nil {
 		return nil, err
 	}
 	return newChain, nil

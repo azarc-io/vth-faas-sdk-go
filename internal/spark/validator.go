@@ -56,6 +56,24 @@ var atLeastOneStagePerNodeValidator = &validateFn{
 	},
 }
 
+var stageNamesMustNoBeEmpty = &validateFn{
+	fn: func(n *node) error {
+		var stagesFromNodes []string
+		for _, stg := range n.stages {
+			stagesFromNodes = append(stagesFromNodes, stg.name)
+		}
+		if n.complete != nil {
+			stagesFromNodes = append(stagesFromNodes, n.complete.name)
+		}
+		for _, name := range stagesFromNodes {
+			if name == "" {
+				return fmt.Errorf("stage with empty name <\"\"> found at '%s'", n.breadcrumb)
+			}
+		}
+		return nil
+	},
+}
+
 var uniqueStageNamesValidator = func() *validateFn {
 	stageNames := map[string]string{}
 	return &validateFn{
