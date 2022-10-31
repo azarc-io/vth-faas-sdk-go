@@ -8,17 +8,19 @@ import (
 )
 
 type StageProgressHandler struct {
-	t            *testing.T
-	stages       map[string]*sdk_v1.SetStageStatusRequest
-	results      map[string]*sdk_v1.SetStageResultRequest
-	jobs         map[string]*sdk_v1.SetJobStatusRequest
-	behaviourSet map[string]error
+	t                  *testing.T
+	stages             map[string]*sdk_v1.SetStageStatusRequest
+	results            map[string]*sdk_v1.SetStageResultRequest
+	jobs               map[string]*sdk_v1.SetJobStatusRequest
+	behaviourSet       map[string]StageBehaviourParams
+	behaviourSetResult map[string]ResultBehaviourParams
 }
 
 func NewStageProgressHandler(t *testing.T, seeds ...any) *StageProgressHandler {
 	handler := StageProgressHandler{t,
 		map[string]*sdk_v1.SetStageStatusRequest{}, map[string]*sdk_v1.SetStageResultRequest{},
-		map[string]*sdk_v1.SetJobStatusRequest{}, map[string]error{}}
+		map[string]*sdk_v1.SetJobStatusRequest{}, map[string]StageBehaviourParams{},
+		map[string]ResultBehaviourParams{}}
 	for _, seed := range seeds {
 		switch seed.(type) {
 		case *sdk_v1.SetStageStatusRequest:
@@ -43,8 +45,10 @@ func (i *StageProgressHandler) Get(jobKey, name string) (*sdk_v1.StageStatus, er
 }
 
 func (i *StageProgressHandler) Set(stageStatus *sdk_v1.SetStageStatusRequest) error {
-	if err, ok := i.behaviourSet[stageStatus.Name]; ok {
-		return err
+	if bp, ok := i.behaviourSet[stageStatus.Name]; ok {
+		if bp.status == stageStatus.Status && bp.err != nil {
+			return bp.err
+		}
 	}
 	i.stages[i.key(stageStatus.JobKey, stageStatus.Name)] = stageStatus
 	return nil
@@ -59,6 +63,11 @@ func (i *StageProgressHandler) GetResult(jobKey, name string) *sdk_v1.Result {
 }
 
 func (i *StageProgressHandler) SetResult(result *sdk_v1.SetStageResultRequest) error {
+	if br, ok := i.behaviourSetResult[result.Name]; ok {
+		if br.jobKey == result.GetJobKey() && br.name == result.Name && br.err != nil {
+			return br.err
+		}
+	}
 	i.results[i.key(result.JobKey, result.Name)] = result
 	return nil
 }
@@ -73,7 +82,7 @@ func (i *StageProgressHandler) AddBehaviour() *Behaviour {
 }
 
 func (i *StageProgressHandler) ResetBehaviour() {
-	i.behaviourSet = map[string]error{}
+	i.behaviourSet = map[string]StageBehaviourParams{}
 }
 
 func (i *StageProgressHandler) key(jobKey, name string) string {
@@ -84,7 +93,23 @@ type Behaviour struct {
 	i *StageProgressHandler
 }
 
-func (b *Behaviour) Set(stageName string, err error) *StageProgressHandler {
-	b.i.behaviourSet[stageName] = err
+func (b *Behaviour) Set(stageName string, status sdk_v1.StageStatus, err error) *StageProgressHandler {
+	b.i.behaviourSet[stageName] = StageBehaviourParams{err: err, status: status}
 	return b.i
+}
+
+func (b *Behaviour) SetResult(jobKey, stageName string, err error) *StageProgressHandler {
+	b.i.behaviourSetResult[stageName] = ResultBehaviourParams{jobKey: jobKey, name: stageName, err: err}
+	return b.i
+}
+
+type StageBehaviourParams struct {
+	err    error
+	status sdk_v1.StageStatus
+}
+
+type ResultBehaviourParams struct {
+	jobKey string
+	name   string
+	err    error
 }

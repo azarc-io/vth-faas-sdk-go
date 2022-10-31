@@ -78,7 +78,7 @@ func TestResumeOnRetry(t *testing.T) {
 		},
 		{
 			name:           "should execute only stage2 and compensate",
-			stageBehaviour: newSB().Change("stage2", sdk_errors.NewStageError(errors.New("stage2 error"))),
+			stageBehaviour: newSB().Change("stage2", nil, sdk_errors.NewStageError(errors.New("stage2 error"))),
 			lastActiveStage: &sdk_v1.LastActiveStage{
 				Name: "stage2",
 			},
@@ -99,7 +99,7 @@ func TestResumeOnRetry(t *testing.T) {
 		{
 			name: "should execute only stage2 and cancel",
 			stageBehaviour: newSB().
-				Change("stage2", sdk_errors.NewStageError(errors.New("stage2 cancel"), sdk_errors.WithErrorType(sdk_v1.ErrorType_Canceled))),
+				Change("stage2", nil, sdk_errors.NewStageError(errors.New("stage2 cancel"), sdk_errors.WithErrorType(sdk_v1.ErrorType_Canceled))),
 			lastActiveStage: &sdk_v1.LastActiveStage{
 				Name: "stage2",
 			},
@@ -167,12 +167,13 @@ func createChainForResumeOnRetryTests(t *testing.T, sb *stageBehaviour) *spark.C
 func stageFn(name string, sm *stageBehaviour) sdk_v1.StageDefinitionFn {
 	return func(context sdk_v1.StageContext) (any, sdk_v1.StageError) {
 		sm.exec(name)
-		return nil, sm.shouldErr(name)
+		return sm.shouldReturn(name), sm.shouldErr(name)
 	}
 }
 
 type behaviour struct {
 	executed bool
+	result   any
 	err      sdk_v1.StageError
 }
 
@@ -198,8 +199,8 @@ func (s *stageBehaviour) Executed(stage string) bool {
 
 }
 
-func (s *stageBehaviour) Change(stageName string, shouldError sdk_v1.StageError) *stageBehaviour {
-	s.m[stageName] = &behaviour{executed: false, err: shouldError}
+func (s *stageBehaviour) Change(stageName string, result any, shouldError sdk_v1.StageError) *stageBehaviour {
+	s.m[stageName] = &behaviour{executed: false, err: shouldError, result: result}
 	return s
 }
 
@@ -220,6 +221,14 @@ func (s *stageBehaviour) exec(stage string) {
 func (s *stageBehaviour) shouldErr(stage string) sdk_v1.StageError {
 	if b, ok := s.m[stage]; ok {
 		return b.err
+	}
+	s.t.Fatalf("error shouldErr stage: %s not mapped", stage)
+	return nil
+}
+
+func (s *stageBehaviour) shouldReturn(stage string) any {
+	if b, ok := s.m[stage]; ok {
+		return b.result
 	}
 	s.t.Fatalf("error shouldErr stage: %s not mapped", stage)
 	return nil

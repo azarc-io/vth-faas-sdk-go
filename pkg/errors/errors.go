@@ -12,13 +12,20 @@ var (
 	BindValueFailed   = errors.New("bind value failed")
 	VariableNotFound  = errors.New("variable not found")
 
-	ErrorTypeToStageStatusMapper = map[sdk_v1.ErrorType]sdk_v1.StageStatus{
+	errorTypeToStageStatusMapper = map[sdk_v1.ErrorType]sdk_v1.StageStatus{
 		sdk_v1.ErrorType_Retry:    sdk_v1.StageStatus_StageFailed,
 		sdk_v1.ErrorType_Skip:     sdk_v1.StageStatus_StageSkipped,
 		sdk_v1.ErrorType_Canceled: sdk_v1.StageStatus_StageCanceled,
 		sdk_v1.ErrorType_Failed:   sdk_v1.StageStatus_StageFailed,
 	}
 )
+
+func ErrorTypeToStageStatusMapper(errType sdk_v1.ErrorType) sdk_v1.StageStatus {
+	if err, ok := errorTypeToStageStatusMapper[errType]; ok {
+		return err
+	}
+	return sdk_v1.StageStatus_StageFailed
+}
 
 type Option = func(err *Stage) *Stage
 
