@@ -23,6 +23,11 @@ jobs:
         with:
           go-version: ${{ matrix.go-version }}
 
+      - name: Install Buf
+        uses: bufbuild/buf-setup-action@v1
+        with:
+          version: "1.9.0"
+
       - name: Checkout code
         uses: actions/checkout@v3
 
@@ -48,13 +53,21 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Lint
+      - name: Lint proto
+        uses: bufbuild/buf-lint-action@v1
+
+      - name: Lint code
         uses: golangci/golangci-lint-action@v3
         with:
           version: v1.50.1
           # skip cache because of flaky behaviors
           skip-build-cache: true
           skip-pkg-cache: true
+
+      - uses: bufbuild/buf-breaking-action@v1
+        with:
+          # The 'main' branch of the GitHub repository that defines the module.
+          against: "https://github.com/${GITHUB_REPOSITORY}.git#branch=main"
 
       - name: Test
         if: always()
