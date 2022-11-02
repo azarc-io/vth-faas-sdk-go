@@ -1,0 +1,32 @@
+# This is an example .goreleaser.yml file with some sensible defaults.
+# Make sure to check the documentation at https://goreleaser.com
+before:
+  hooks:
+    # You may remove this if you don't use go modules.
+    - go mod tidy
+    # you may remove this if you don't need go generate
+    - buf generate
+
+release:
+  github:
+    owner: azarc-io
+    name: vth-faas-sdk-go
+  name_template: 'Release {{.Tag}}'
+  draft: false
+
+builds:
+  - skip: true
+
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+
+checksum:
+  name_template: 'SHA256SUMS'
+  algorithm: sha256
