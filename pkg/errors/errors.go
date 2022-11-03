@@ -15,7 +15,7 @@ var (
 	errorTypeToStageStatusMapper = map[sdk_v1.ErrorType]sdk_v1.StageStatus{
 		sdk_v1.ErrorType_ERROR_TYPE_RETRY:              sdk_v1.StageStatus_STAGE_STATUS_FAILED,
 		sdk_v1.ErrorType_ERROR_TYPE_SKIP:               sdk_v1.StageStatus_STAGE_STATUS_SKIPPED,
-		sdk_v1.ErrorType_ERROR_TYPE_CANCELED:           sdk_v1.StageStatus_STAGE_STATUS_CANCELED,
+		sdk_v1.ErrorType_ERROR_TYPE_CANCELLED:          sdk_v1.StageStatus_STAGE_STATUS_CANCELED,
 		sdk_v1.ErrorType_ERROR_TYPE_FAILED_UNSPECIFIED: sdk_v1.StageStatus_STAGE_STATUS_FAILED,
 	}
 )

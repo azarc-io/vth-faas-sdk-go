@@ -28,13 +28,13 @@ func (c CheckoutSpark) Spark() (*spark.Chain, error) {
 			Compensate(
 				spark.NewNode().
 					Stage("cancel_payment_transaction", c.CancelPaymentTransaction,
-						spark.WithStageStatus("create_payment_transaction", sdk_v1.StageStatus_StageCompleted)).
+						spark.WithStageStatus("create_payment_transaction", sdk_v1.StageStatus_STAGE_STATUS_COMPLETED)).
 					Stage("restore_inventory_items", c.RestoreInventoryItems,
-						spark.WithStageStatus("create_payment_transaction", sdk_v1.StageStatus_StageCompleted)).
+						spark.WithStageStatus("create_payment_transaction", sdk_v1.StageStatus_STAGE_STATUS_COMPLETED)).
 					Stage("send_apologies_email", c.SendApologiesEmail,
-						spark.WithStageStatus("create_payment_transaction", sdk_v1.StageStatus_StageCompleted)).
+						spark.WithStageStatus("create_payment_transaction", sdk_v1.StageStatus_STAGE_STATUS_COMPLETED)).
 					Build()).
-			Canceled(
+			Cancelled(
 				spark.NewNode().
 					Stage("send_cancel_email", c.SendCancelEmail).
 					Build()).
@@ -72,7 +72,7 @@ func (c CheckoutSpark) ReserveInventoryItems(ctx sdk_v1.StageContext) (any, sdk_
 	err = c.inventoryManagementService.Reserve(inventoryItems)
 
 	if err != nil {
-		return nil, sdk_errors.NewStageError(err, sdk_errors.WithErrorType(sdk_v1.ErrorType_Canceled))
+		return nil, sdk_errors.NewStageError(err, sdk_errors.WithErrorType(sdk_v1.ErrorType_ERROR_TYPE_CANCELLED))
 	}
 	return inventoryItems, nil
 

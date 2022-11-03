@@ -94,7 +94,7 @@ func (c *Chain) handleStageError(ctx sdk_v1.SparkContext, node *node, stg *stage
 			}
 		}
 		return err
-	case sdk_v1.ErrorType_ERROR_TYPE_CANCELED:
+	case sdk_v1.ErrorType_ERROR_TYPE_CANCELLED:
 		if node.cancel != nil {
 			e := c.runner(ctx.WithoutLastActiveStage(), node.cancel)
 			if e != nil {

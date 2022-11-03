@@ -30,7 +30,7 @@ func TestPaymentTransaction(t *testing.T) {
 		&handlers.Variable{Name: "items", MimeType: api.MimeTypeJson, Value: []any{map[string]any{"id": "1", "name": "itemName"}}})
 	assert.Nil(t, err)
 
-	err = worker.Execute(context.NewJobMetadata(ctx.Background(),
+	err = worker.Execute(context.NewSparkMetadata(ctx.Background(),
 		"jobKey", "correlationId", "transactionId", nil))
 
 	assert.Nil(t, err)
@@ -41,7 +41,7 @@ func TestPaymentTransaction(t *testing.T) {
 
 	stage1Status, err := sp.Get("jobKey", "confirm_payment_transaction")
 	assert.Nil(t, err)
-	assert.Equal(t, lo.ToPtr(sdk_v1.StageStatus_StageCompleted), stage1Status)
+	assert.Equal(t, lo.ToPtr(sdk_v1.StageStatus_STAGE_STATUS_COMPLETED), stage1Status)
 }
 
 func createTestMocks(t *testing.T) (*MockMailer, *MockPaymentProvider, *MockInventoryManagementService, *gomock.Controller) {

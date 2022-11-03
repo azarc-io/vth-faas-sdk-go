@@ -90,7 +90,7 @@ func TestConditionalStageExecution(t *testing.T) {
 			chain, sb := test.chainFn()
 			stageProgressHandler := inmemory.NewStageProgressHandler(t)
 			worker := v1.NewSparkTestWorker(t, chain, v1.WithIOHandler(inmemory.NewIOHandler(t)), v1.WithStageProgressHandler(stageProgressHandler))
-			err := worker.Execute(context.NewJobMetadata(ctx.Background(), "jobKey", "correlationId", "transactionId", nil))
+			err := worker.Execute(context.NewSparkMetadata(ctx.Background(), "jobKey", "correlationId", "transactionId", nil))
 			if err != nil {
 				t.Error(err)
 			}

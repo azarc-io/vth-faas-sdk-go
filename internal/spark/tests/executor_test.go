@@ -205,7 +205,7 @@ func TestSparkExecutor(t *testing.T) {
 			chainFn: func() (*spark.Chain, *stageBehaviour) {
 				sb := NewStageBehaviour(t, "stage1").
 					Change("stage1", nil,
-						sdk_errors.NewStageError(errors.New("err-stage1"), sdk_errors.WithErrorType(sdk_v1.ErrorType_ERROR_TYPE_CANCELED)))
+						sdk_errors.NewStageError(errors.New("err-stage1"), sdk_errors.WithErrorType(sdk_v1.ErrorType_ERROR_TYPE_CANCELLED)))
 				chain, err := spark.NewChain(
 					spark.NewNode().
 						Stage("stage1", stageFn("stage1", sb)).
@@ -255,7 +255,7 @@ func TestSparkExecutor(t *testing.T) {
 					Change("stage1", nil,
 						sdk_errors.NewStageError(errors.New("err-stage1"), sdk_errors.WithErrorType(sdk_v1.ErrorType_ERROR_TYPE_FAILED_UNSPECIFIED))).
 					Change("compensate", nil,
-						sdk_errors.NewStageError(errors.New("err-compensate"), sdk_errors.WithErrorType(sdk_v1.ErrorType_ERROR_TYPE_CANCELED)))
+						sdk_errors.NewStageError(errors.New("err-compensate"), sdk_errors.WithErrorType(sdk_v1.ErrorType_ERROR_TYPE_CANCELLED)))
 				chain, err := spark.NewChain(
 					spark.NewNode().
 						Stage("stage1", stageFn("stage1", sb)).
@@ -271,18 +271,18 @@ func TestSparkExecutor(t *testing.T) {
 				assert.Nil(t, err)
 				assert.Equal(t, lo.ToPtr(sdk_v1.StageStatus_STAGE_STATUS_CANCELED), stageCompensate, "'compensate' should be in 'completed' status, got: %s", stageCompensate)
 			},
-			errorType: lo.ToPtr(sdk_v1.ErrorType_ERROR_TYPE_CANCELED),
+			errorType: lo.ToPtr(sdk_v1.ErrorType_ERROR_TYPE_CANCELLED),
 		},
 		{
 			name: "if a stage returns a error type canceled and the chain has a cancel node configured, it must run and returns the original error",
 			chainFn: func() (*spark.Chain, *stageBehaviour) {
 				sb := NewStageBehaviour(t, "stage1", "cancel").
 					Change("stage1", nil,
-						sdk_errors.NewStageError(errors.New("err-stage1"), sdk_errors.WithErrorType(sdk_v1.ErrorType_ERROR_TYPE_CANCELED)))
+						sdk_errors.NewStageError(errors.New("err-stage1"), sdk_errors.WithErrorType(sdk_v1.ErrorType_ERROR_TYPE_CANCELLED)))
 				chain, err := spark.NewChain(
 					spark.NewNode().
 						Stage("stage1", stageFn("stage1", sb)).
-						Canceled(spark.NewNode().Stage("cancel", stageFn("cancel", sb)).Build()).
+						Cancelled(spark.NewNode().Stage("cancel", stageFn("cancel", sb)).Build()).
 						Build()).
 					Build()
 				assert.Nil(t, err, "error creating spark node chain: %v", err)
@@ -294,20 +294,20 @@ func TestSparkExecutor(t *testing.T) {
 				assert.Nil(t, err)
 				assert.Equal(t, lo.ToPtr(sdk_v1.StageStatus_STAGE_STATUS_COMPLETED), stage1Status, "'cancel' should be in 'completed' status, got: %s", stage1Status)
 			},
-			errorType: lo.ToPtr(sdk_v1.ErrorType_ERROR_TYPE_CANCELED),
+			errorType: lo.ToPtr(sdk_v1.ErrorType_ERROR_TYPE_CANCELLED),
 		},
 		{
 			name: "if a cancel stage fails, the status must be updated and the error should be returned accordingly",
 			chainFn: func() (*spark.Chain, *stageBehaviour) {
 				sb := NewStageBehaviour(t, "stage1", "cancel").
 					Change("stage1", nil,
-						sdk_errors.NewStageError(errors.New("err-stage1"), sdk_errors.WithErrorType(sdk_v1.ErrorType_ERROR_TYPE_CANCELED))).
+						sdk_errors.NewStageError(errors.New("err-stage1"), sdk_errors.WithErrorType(sdk_v1.ErrorType_ERROR_TYPE_CANCELLED))).
 					Change("cancel", nil,
 						sdk_errors.NewStageError(errors.New("err-cancel"), sdk_errors.WithErrorType(sdk_v1.ErrorType_ERROR_TYPE_RETRY)))
 				chain, err := spark.NewChain(
 					spark.NewNode().
 						Stage("stage1", stageFn("stage1", sb)).
-						Canceled(spark.NewNode().Stage("cancel", stageFn("cancel", sb)).Build()).
+						Cancelled(spark.NewNode().Stage("cancel", stageFn("cancel", sb)).Build()).
 						Build()).
 					Build()
 				assert.Nil(t, err, "error creating spark node chain: %v", err)
@@ -542,7 +542,7 @@ func TestSparkExecutor(t *testing.T) {
 			}
 			zerolog.SetGlobalLevel(zerolog.Disabled)
 			worker := v1.NewSparkTestWorker(t, chain, v1.WithIOHandler(inmemory.NewIOHandler(t)), v1.WithStageProgressHandler(sph))
-			err := worker.Execute(context.NewJobMetadata(ctx.Background(), "jobKey", "correlationId", "transactionId", test.lastActiveStage))
+			err := worker.Execute(context.NewSparkMetadata(ctx.Background(), "jobKey", "correlationId", "transactionId", test.lastActiveStage))
 			if err != nil && test.errorType == nil {
 				t.Errorf("a unexpected error occured: %v", err)
 			}

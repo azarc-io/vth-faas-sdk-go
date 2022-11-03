@@ -25,7 +25,7 @@ type ErrorType int32
 
 const (
 	ErrorType_ERROR_TYPE_FAILED_UNSPECIFIED ErrorType = 0
-	ErrorType_ERROR_TYPE_CANCELED           ErrorType = 1
+	ErrorType_ERROR_TYPE_CANCELLED          ErrorType = 1
 	ErrorType_ERROR_TYPE_SKIP               ErrorType = 2
 	ErrorType_ERROR_TYPE_RETRY              ErrorType = 3
 	ErrorType_ERROR_TYPE_FATAL              ErrorType = 4

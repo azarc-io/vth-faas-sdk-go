@@ -81,7 +81,7 @@ func (sb *nodeBuilder) Complete(name string, completeDefinitionFn sdk_v1.Complet
 	return sb
 }
 
-func (sb *nodeBuilder) Canceled(newNode *node) *nodeBuilder {
+func (sb *nodeBuilder) Cancelled(newNode *node) *nodeBuilder {
 	sb.node.cancel = newNode
 	return sb
 }

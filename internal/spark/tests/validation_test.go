@@ -35,7 +35,7 @@ func Test(t *testing.T) {
 						Stage("stage3", noOpStage).
 						Complete("complete", noOpComplete).
 						Compensate(spark.NewNode().Stage("compensate", noOpStage).Build()).
-						Canceled(spark.NewNode().Stage("canceled", noOpStage).Build()).
+						Cancelled(spark.NewNode().Stage("canceled", noOpStage).Build()).
 						Build()).
 					Build()
 			},
@@ -50,7 +50,7 @@ func Test(t *testing.T) {
 						Stage("stage3", noOpStage).
 						Complete("complete", noOpComplete).
 						Compensate(spark.NewNode().Stage("compensate", noOpStage).Build()).
-						Canceled(spark.NewNode().Stage("canceled", noOpStage).Build()).
+						Cancelled(spark.NewNode().Stage("canceled", noOpStage).Build()).
 						Build()).
 					Build()
 			},
@@ -63,7 +63,7 @@ func Test(t *testing.T) {
 					spark.NewNode().
 						Complete("complete", noOpComplete).
 						Compensate(spark.NewNode().Stage("compensate", noOpStage).Build()).
-						Canceled(spark.NewNode().Stage("canceled", noOpStage).Build()).
+						Cancelled(spark.NewNode().Stage("canceled", noOpStage).Build()).
 						Build()).
 					Build()
 			},
@@ -74,10 +74,10 @@ func Test(t *testing.T) {
 			chainFn: func() (*spark.Chain, error) {
 				return spark.NewChain(
 					spark.NewNode().Stage("stage1", noOpStage).
-						Canceled(spark.NewNode().Stage("canceled", noOpStage).
-							Canceled(spark.NewNode().Stage("canceled", noOpStage).
-								Canceled(spark.NewNode().Stage("canceled", noOpStage).
-									Canceled(spark.NewNode().Stage("canceled", noOpStage).Build()).
+						Cancelled(spark.NewNode().Stage("canceled", noOpStage).
+							Cancelled(spark.NewNode().Stage("canceled", noOpStage).
+								Cancelled(spark.NewNode().Stage("canceled", noOpStage).
+									Cancelled(spark.NewNode().Stage("canceled", noOpStage).Build()).
 									Build(),
 								).Build()).
 							Build(),
@@ -96,7 +96,7 @@ func Test(t *testing.T) {
 						Stage("stage3", noOpStage).
 						Complete("", noOpComplete).
 						Compensate(spark.NewNode().Stage("compensate", noOpStage).Build()).
-						Canceled(spark.NewNode().Stage("canceled", noOpStage).Build()).
+						Cancelled(spark.NewNode().Stage("canceled", noOpStage).Build()).
 						Build()).
 					Build()
 			},

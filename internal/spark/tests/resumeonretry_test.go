@@ -99,7 +99,7 @@ func TestResumeOnRetry(t *testing.T) {
 		{
 			name: "should execute only stage2 and cancel",
 			stageBehaviour: newSB().
-				Change("stage2", nil, sdk_errors.NewStageError(errors.New("stage2 cancel"), sdk_errors.WithErrorType(sdk_v1.ErrorType_ERROR_TYPE_CANCELED))),
+				Change("stage2", nil, sdk_errors.NewStageError(errors.New("stage2 cancel"), sdk_errors.WithErrorType(sdk_v1.ErrorType_ERROR_TYPE_CANCELLED))),
 			lastActiveStage: &sdk_v1.LastActiveStage{
 				Name: "stage2",
 			},
@@ -115,7 +115,7 @@ func TestResumeOnRetry(t *testing.T) {
 					}
 				}
 			},
-			errorType: lo.ToPtr(sdk_v1.ErrorType_ERROR_TYPE_CANCELED),
+			errorType: lo.ToPtr(sdk_v1.ErrorType_ERROR_TYPE_CANCELLED),
 		},
 	}
 
@@ -124,7 +124,7 @@ func TestResumeOnRetry(t *testing.T) {
 			test.stageBehaviour.ResetExecutions()
 			chain := createChainForResumeOnRetryTests(t, test.stageBehaviour)
 			worker := v1.NewSparkTestWorker(t, chain, v1.WithIOHandler(inmemory.NewIOHandler(t)), v1.WithStageProgressHandler(inmemory.NewStageProgressHandler(t)))
-			err := worker.Execute(context.NewJobMetadata(ctx.Background(), "jobKey", "correlationId", "transactionId", test.lastActiveStage))
+			err := worker.Execute(context.NewSparkMetadata(ctx.Background(), "jobKey", "correlationId", "transactionId", test.lastActiveStage))
 			if err != nil && test.errorType == nil {
 				t.Errorf("a unexpected error occured: %v", err)
 			}
@@ -149,7 +149,7 @@ func createChainForResumeOnRetryTests(t *testing.T, sb *stageBehaviour) *spark.C
 			Compensate(
 				spark.NewNode().Stage("compensate", stageFn("compensate", sb)).Build(),
 			).
-			Canceled(
+			Cancelled(
 				spark.NewNode().Stage("canceled", stageFn("canceled", sb)).Build(),
 			).
 			Complete("complete", func(context sdk_v1.CompleteContext) sdk_v1.StageError {

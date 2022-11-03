@@ -47,7 +47,7 @@ func TestDemoSparkBuilder(t *testing.T) {
 		v1.WithStageProgressHandler(stageProgressHandler),
 		v1.WithIOHandler(variablesHandler))
 
-	err = sparkWorker.Execute(context.NewJobMetadata(ctx.Background(), "jobKey", "correlationId", "transactionId", nil))
+	err = sparkWorker.Execute(context.NewSparkMetadata(ctx.Background(), "jobKey", "correlationId", "transactionId", nil))
 
 	if err != nil {
 		t.Fatal(err)

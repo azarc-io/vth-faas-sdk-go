@@ -58,7 +58,7 @@ func (s Server) Stop() {
 }
 
 func (s Server) ExecuteJob(ctx context.Context, request *sdk_v1.ExecuteJobRequest) (*sdk_v1.ExecuteJobResponse, error) {
-	jobContext := api_ctx.NewJobMetadata(ctx, request.Key, request.CorrelationId, request.TransactionId, nil)
+	jobContext := api_ctx.NewSparkMetadata(ctx, request.Key, request.CorrelationId, request.TransactionId, nil)
 	go func() { // TODO goroutine pool
 		err := s.worker.Execute(jobContext)
 		if err != nil {
