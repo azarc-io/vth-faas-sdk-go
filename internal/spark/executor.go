@@ -33,7 +33,7 @@ func (c *Chain) runner(ctx sdk_v1.SparkContext, node *node) sdk_v1.StageError {
 			continue
 		}
 
-		er := updateStage(ctx, stg.name, withStageStatus(sdk_v1.StageStatus_StageStarted))
+		er := updateStage(ctx, stg.name, withStageStatus(sdk_v1.StageStatus_STAGE_STATUS_STARTED))
 
 		if er != nil {
 			ctx.Log().Error(er, "error updating stage status to 'started'")
@@ -43,7 +43,7 @@ func (c *Chain) runner(ctx sdk_v1.SparkContext, node *node) sdk_v1.StageError {
 		result, err := stg.cb(context.NewStageContext(ctx))
 
 		if err := c.handleStageError(ctx, node, stg, err); err != nil {
-			if err.ErrorType() == sdk_v1.ErrorType_Skip {
+			if err.ErrorType() == sdk_v1.ErrorType_ERROR_TYPE_SKIP {
 				continue
 			}
 			return err
@@ -53,21 +53,21 @@ func (c *Chain) runner(ctx sdk_v1.SparkContext, node *node) sdk_v1.StageError {
 			return err
 		}
 
-		if err := updateStage(ctx, stg.name, withStageStatus(sdk_v1.StageStatus_StageCompleted)); err != nil {
+		if err := updateStage(ctx, stg.name, withStageStatus(sdk_v1.StageStatus_STAGE_STATUS_COMPLETED)); err != nil {
 			ctx.Log().Error(err, "error setting the stage status to 'completed'")
 			return sdk_errors.NewStageError(err)
 		}
 	}
 
 	if node.complete != nil {
-		if er := updateStage(ctx, node.complete.name, withStageStatus(sdk_v1.StageStatus_StageStarted)); er != nil {
+		if er := updateStage(ctx, node.complete.name, withStageStatus(sdk_v1.StageStatus_STAGE_STATUS_STARTED)); er != nil {
 			ctx.Log().Error(er, "error setting the completed stage status to 'started'")
 			return sdk_errors.NewStageError(er)
 		}
 
 		err := node.complete.cb(context.NewCompleteContext(ctx))
 
-		if e := updateStage(ctx, node.complete.name, withStageStatusOrError(sdk_v1.StageStatus_StageCompleted, err)); e != nil {
+		if e := updateStage(ctx, node.complete.name, withStageStatusOrError(sdk_v1.StageStatus_STAGE_STATUS_COMPLETED, err)); e != nil {
 			ctx.Log().Error(e, "error setting the completed stage status to 'completed'")
 			return sdk_errors.NewStageError(e)
 		}
@@ -86,7 +86,7 @@ func (c *Chain) handleStageError(ctx sdk_v1.SparkContext, node *node, stg *stage
 		return sdk_errors.NewStageError(e)
 	}
 	switch err.ErrorType() {
-	case sdk_v1.ErrorType_Failed:
+	case sdk_v1.ErrorType_ERROR_TYPE_FAILED_UNSPECIFIED:
 		if node.compensate != nil {
 			e := c.runner(ctx.WithoutLastActiveStage(), node.compensate)
 			if e != nil {
@@ -94,7 +94,7 @@ func (c *Chain) handleStageError(ctx sdk_v1.SparkContext, node *node, stg *stage
 			}
 		}
 		return err
-	case sdk_v1.ErrorType_Canceled:
+	case sdk_v1.ErrorType_ERROR_TYPE_CANCELED:
 		if node.cancel != nil {
 			e := c.runner(ctx.WithoutLastActiveStage(), node.cancel)
 			if e != nil {
@@ -102,13 +102,13 @@ func (c *Chain) handleStageError(ctx sdk_v1.SparkContext, node *node, stg *stage
 			}
 		}
 		return err
-	case sdk_v1.ErrorType_Retry:
+	case sdk_v1.ErrorType_ERROR_TYPE_RETRY:
 		return err
-	case sdk_v1.ErrorType_Skip:
+	case sdk_v1.ErrorType_ERROR_TYPE_SKIP:
 		return err
 	default:
 		ctx.Log().Error(err, "unsupported error type returned from stage '%s'", stg.name)
-		return sdk_errors.NewStageError(err, sdk_errors.WithErrorType(sdk_v1.ErrorType_Fatal))
+		return sdk_errors.NewStageError(err, sdk_errors.WithErrorType(sdk_v1.ErrorType_ERROR_TYPE_FATAL))
 	}
 }
 
@@ -169,7 +169,7 @@ func withError(err error) updateStageOption {
 		if err == nil {
 			return stage
 		}
-		stage.Status = sdk_v1.StageStatus_StageFailed
+		stage.Status = sdk_v1.StageStatus_STAGE_STATUS_FAILED
 		stage.Err = sdk_errors.NewStageError(err).ToErrorMessage()
 		return stage
 	}

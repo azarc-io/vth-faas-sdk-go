@@ -115,10 +115,10 @@ func WithStageStatus(stageName string, status sdk_v1.StageStatus) sdk_v1.StageOp
 	return func(sop sdk_v1.StageOptionParams) sdk_v1.StageError {
 		stageStatus, err := sop.StageProgressHandler().Get(sop.Context().JobKey(), stageName)
 		if err != nil {
-			return sdk_errors.NewStageError(err, sdk_errors.WithErrorType(sdk_v1.ErrorType_Failed))
+			return sdk_errors.NewStageError(err, sdk_errors.WithErrorType(sdk_v1.ErrorType_ERROR_TYPE_FAILED_UNSPECIFIED))
 		}
 		if *stageStatus != status {
-			return sdk_errors.NewStageError(fmt.Errorf("conditional stage execution: stage '%s' skipped", stageName), sdk_errors.WithErrorType(sdk_v1.ErrorType_Skip))
+			return sdk_errors.NewStageError(fmt.Errorf("conditional stage execution: stage '%s' skipped", stageName), sdk_errors.WithErrorType(sdk_v1.ErrorType_ERROR_TYPE_SKIP))
 		}
 		return nil
 	}

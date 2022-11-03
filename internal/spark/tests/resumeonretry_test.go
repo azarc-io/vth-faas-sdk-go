@@ -94,12 +94,12 @@ func TestResumeOnRetry(t *testing.T) {
 					}
 				}
 			},
-			errorType: lo.ToPtr(sdk_v1.ErrorType_Failed),
+			errorType: lo.ToPtr(sdk_v1.ErrorType_ERROR_TYPE_FAILED_UNSPECIFIED),
 		},
 		{
 			name: "should execute only stage2 and cancel",
 			stageBehaviour: newSB().
-				Change("stage2", nil, sdk_errors.NewStageError(errors.New("stage2 cancel"), sdk_errors.WithErrorType(sdk_v1.ErrorType_Canceled))),
+				Change("stage2", nil, sdk_errors.NewStageError(errors.New("stage2 cancel"), sdk_errors.WithErrorType(sdk_v1.ErrorType_ERROR_TYPE_CANCELED))),
 			lastActiveStage: &sdk_v1.LastActiveStage{
 				Name: "stage2",
 			},
@@ -115,7 +115,7 @@ func TestResumeOnRetry(t *testing.T) {
 					}
 				}
 			},
-			errorType: lo.ToPtr(sdk_v1.ErrorType_Canceled),
+			errorType: lo.ToPtr(sdk_v1.ErrorType_ERROR_TYPE_CANCELED),
 		},
 	}
 

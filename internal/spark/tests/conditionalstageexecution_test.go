@@ -23,7 +23,7 @@ func TestConditionalStageExecution(t *testing.T) {
 				chain, err := spark.NewChain(
 					spark.NewNode().
 						Stage("stage1", stageFn("stage1", sb)).
-						Stage("stage2", stageFn("stage2", sb), spark.WithStageStatus("stage1", sdk_v1.StageStatus_StageFailed)).
+						Stage("stage2", stageFn("stage2", sb), spark.WithStageStatus("stage1", sdk_v1.StageStatus_STAGE_STATUS_FAILED)).
 						Stage("stage3", stageFn("stage3", sb)).
 						Build()).
 					Build()
@@ -45,7 +45,7 @@ func TestConditionalStageExecution(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				if *stage2Status != sdk_v1.StageStatus_StageSkipped {
+				if *stage2Status != sdk_v1.StageStatus_STAGE_STATUS_SKIPPED {
 					t.Errorf("'stage2' should be in 'skipped' status, got: %s", stage2Status)
 				}
 			},
@@ -57,8 +57,8 @@ func TestConditionalStageExecution(t *testing.T) {
 				chain, err := spark.NewChain(
 					spark.NewNode().
 						Stage("stage1", stageFn("stage1", sb)).
-						Stage("stage2", stageFn("stage2", sb), spark.WithStageStatus("stage1", sdk_v1.StageStatus_StageFailed)).
-						Stage("stage3", stageFn("stage3", sb), spark.WithStageStatus("stage2", sdk_v1.StageStatus_StageCanceled)).
+						Stage("stage2", stageFn("stage2", sb), spark.WithStageStatus("stage1", sdk_v1.StageStatus_STAGE_STATUS_FAILED)).
+						Stage("stage3", stageFn("stage3", sb), spark.WithStageStatus("stage2", sdk_v1.StageStatus_STAGE_STATUS_CANCELED)).
 						Build()).
 					Build()
 				if err != nil {
@@ -78,7 +78,7 @@ func TestConditionalStageExecution(t *testing.T) {
 					if err != nil {
 						t.Fatal(err)
 					}
-					if *status != sdk_v1.StageStatus_StageSkipped {
+					if *status != sdk_v1.StageStatus_STAGE_STATUS_SKIPPED {
 						t.Errorf("'%s' should be in 'skipped' status, got: %s", stage, status)
 					}
 				}

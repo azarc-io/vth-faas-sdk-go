@@ -40,7 +40,7 @@ func TestSparkExecutor(t *testing.T) {
 				assert.True(t, sb.Executed("stage1"), "'stage1' must have been executed")
 				stage1Status, err := sph.Get("jobKey", "stage1")
 				assert.Nil(t, err, "error retrieving spark status for stage1: %v", err)
-				assert.Equal(t, lo.ToPtr(sdk_v1.StageStatus_StageCompleted), stage1Status, "'stage1' should be in 'completed' status, got: %s", stage1Status)
+				assert.Equal(t, lo.ToPtr(sdk_v1.StageStatus_STAGE_STATUS_COMPLETED), stage1Status, "'stage1' should be in 'completed' status, got: %s", stage1Status)
 			},
 		},
 		{
@@ -59,9 +59,9 @@ func TestSparkExecutor(t *testing.T) {
 				assert.True(t, sb.Executed("stage1"), "'stage1' must have been executed")
 				stage1Status, err := sph.Get("jobKey", "stage1")
 				assert.Nil(t, err, "error retrieving spark status for stage1: %v", err)
-				assert.Equal(t, lo.ToPtr(sdk_v1.StageStatus_StageFailed), stage1Status, "'stage1' should be in 'failed' status, got: %s", stage1Status)
+				assert.Equal(t, lo.ToPtr(sdk_v1.StageStatus_STAGE_STATUS_FAILED), stage1Status, "'stage1' should be in 'failed' status, got: %s", stage1Status)
 			},
-			errorType: lo.ToPtr(sdk_v1.ErrorType_Failed),
+			errorType: lo.ToPtr(sdk_v1.ErrorType_ERROR_TYPE_FAILED_UNSPECIFIED),
 		},
 		{
 			name: "should execute complete stage",
@@ -83,11 +83,11 @@ func TestSparkExecutor(t *testing.T) {
 				assert.True(t, sb.Executed("stage1"), "'stage1' must have been executed")
 				stage1Status, err := sph.Get("jobKey", "stage1")
 				assert.Nil(t, err, "error retrieving stage status for stage1: %v", err)
-				assert.Equal(t, lo.ToPtr(sdk_v1.StageStatus_StageCompleted), stage1Status, "'stage1' should be in 'completed' status, got: %s", stage1Status)
+				assert.Equal(t, lo.ToPtr(sdk_v1.StageStatus_STAGE_STATUS_COMPLETED), stage1Status, "'stage1' should be in 'completed' status, got: %s", stage1Status)
 				assert.True(t, sb.Executed("stage1"), "'stage1' must have been executed")
 				completeStatus, err := sph.Get("jobKey", "complete")
 				assert.Nil(t, err, "error retrieving stage status for complete: %v", err)
-				assert.Equal(t, lo.ToPtr(sdk_v1.StageStatus_StageCompleted), completeStatus, "'complete' should be in 'completed' status, got: %s", completeStatus)
+				assert.Equal(t, lo.ToPtr(sdk_v1.StageStatus_STAGE_STATUS_COMPLETED), completeStatus, "'complete' should be in 'completed' status, got: %s", completeStatus)
 			},
 		},
 		{
@@ -103,7 +103,7 @@ func TestSparkExecutor(t *testing.T) {
 				return chain, sb
 			},
 			lastActiveStage: &sdk_v1.LastActiveStage{Name: "non-existent"},
-			errorType:       lo.ToPtr(sdk_v1.ErrorType_Failed),
+			errorType:       lo.ToPtr(sdk_v1.ErrorType_ERROR_TYPE_FAILED_UNSPECIFIED),
 			assertFn: func(t *testing.T, sb *stageBehaviour, sph sdk_v1.StageProgressHandler) {
 				assert.False(t, sb.Executed("stage1"), "'stage1' must not have been executed")
 			},
@@ -113,11 +113,11 @@ func TestSparkExecutor(t *testing.T) {
 			chainFn: func() (*spark.Chain, *stageBehaviour) {
 				sb := NewStageBehaviour(t, "stage1", "stage2").
 					Change("stage1", nil,
-						sdk_errors.NewStageError(errors.New("err-stage1"), sdk_errors.WithErrorType(sdk_v1.ErrorType_Skip)))
+						sdk_errors.NewStageError(errors.New("err-stage1"), sdk_errors.WithErrorType(sdk_v1.ErrorType_ERROR_TYPE_SKIP)))
 				chain, err := spark.NewChain(
 					spark.NewNode().
 						Stage("stage1", stageFn("stage1", sb)).
-						Stage("stage2", stageFn("stage2", sb), spark.WithStageStatus("stage1", sdk_v1.StageStatus_StageCompleted)).
+						Stage("stage2", stageFn("stage2", sb), spark.WithStageStatus("stage1", sdk_v1.StageStatus_STAGE_STATUS_COMPLETED)).
 						Build()).
 					Build()
 				assert.Nil(t, err, "error creating spark node chain: %v", err)
@@ -127,11 +127,11 @@ func TestSparkExecutor(t *testing.T) {
 				assert.True(t, sb.Executed("stage1"), "'stage1' must have been executed")
 				stage1Status, err := sph.Get("jobKey", "stage1")
 				assert.Nil(t, err)
-				assert.Equal(t, lo.ToPtr(sdk_v1.StageStatus_StageSkipped), stage1Status, "'stage1' should be in 'skipped' status, got: %s", stage1Status)
+				assert.Equal(t, lo.ToPtr(sdk_v1.StageStatus_STAGE_STATUS_SKIPPED), stage1Status, "'stage1' should be in 'skipped' status, got: %s", stage1Status)
 				assert.False(t, sb.Executed("stage2"), "'stage2' must NOT have been executed")
 				stage2Status, err := sph.Get("jobKey", "stage2")
 				assert.Nil(t, err)
-				assert.Equal(t, lo.ToPtr(sdk_v1.StageStatus_StageSkipped), stage2Status, "'stage1' should be in 'skipped' status, got: %s", stage2Status)
+				assert.Equal(t, lo.ToPtr(sdk_v1.StageStatus_STAGE_STATUS_SKIPPED), stage2Status, "'stage1' should be in 'skipped' status, got: %s", stage2Status)
 			},
 		},
 		{
@@ -141,7 +141,7 @@ func TestSparkExecutor(t *testing.T) {
 				chain, err := spark.NewChain(
 					spark.NewNode().
 						Stage("stage1", stageFn("stage1", sb)).
-						Stage("stage2", stageFn("stage2", sb), spark.WithStageStatus("stage1", sdk_v1.StageStatus_StageSkipped)).
+						Stage("stage2", stageFn("stage2", sb), spark.WithStageStatus("stage1", sdk_v1.StageStatus_STAGE_STATUS_SKIPPED)).
 						Build()).
 					Build()
 				assert.Nil(t, err, "error creating spark node chain: %v", err)
@@ -151,12 +151,12 @@ func TestSparkExecutor(t *testing.T) {
 				assert.True(t, sb.Executed("stage1"), "'stage1' must have been executed")
 				stage1Status, err := sph.Get("jobKey", "stage1")
 				assert.Nil(t, err)
-				assert.Equal(t, lo.ToPtr(sdk_v1.StageStatus_StageCompleted), stage1Status, "'stage1' should be in 'completed' status, got: %s", stage1Status)
+				assert.Equal(t, lo.ToPtr(sdk_v1.StageStatus_STAGE_STATUS_COMPLETED), stage1Status, "'stage1' should be in 'completed' status, got: %s", stage1Status)
 				assert.False(t, sb.Executed("stage2"), "'stage2' must NOT have been executed")
 			},
-			errorType: lo.ToPtr(sdk_v1.ErrorType_Failed),
+			errorType: lo.ToPtr(sdk_v1.ErrorType_ERROR_TYPE_FAILED_UNSPECIFIED),
 			prepare: func(sph *inmemory.StageProgressHandler) {
-				sph.AddBehaviour().Set("stage2", sdk_v1.StageStatus_StageSkipped, errors.New("error updating status for stage 2"))
+				sph.AddBehaviour().Set("stage2", sdk_v1.StageStatus_STAGE_STATUS_SKIPPED, errors.New("error updating status for stage 2"))
 			},
 		}, {
 			name: "should fail when trying to update a stage status to starting",
@@ -173,9 +173,9 @@ func TestSparkExecutor(t *testing.T) {
 			assertFn: func(t *testing.T, sb *stageBehaviour, sph sdk_v1.StageProgressHandler) {
 				assert.False(t, sb.Executed("stage1"), "'stage1' must have not been executed")
 			},
-			errorType: lo.ToPtr(sdk_v1.ErrorType_Failed),
+			errorType: lo.ToPtr(sdk_v1.ErrorType_ERROR_TYPE_FAILED_UNSPECIFIED),
 			prepare: func(sph *inmemory.StageProgressHandler) {
-				sph.AddBehaviour().Set("stage1", sdk_v1.StageStatus_StageStarted, errors.New("error updating status for stage 1"))
+				sph.AddBehaviour().Set("stage1", sdk_v1.StageStatus_STAGE_STATUS_STARTED, errors.New("error updating status for stage 1"))
 			},
 		},
 		{
@@ -183,7 +183,7 @@ func TestSparkExecutor(t *testing.T) {
 			chainFn: func() (*spark.Chain, *stageBehaviour) {
 				sb := NewStageBehaviour(t, "stage1").
 					Change("stage1", nil,
-						sdk_errors.NewStageError(errors.New("err-stage1"), sdk_errors.WithErrorType(sdk_v1.ErrorType_Failed)))
+						sdk_errors.NewStageError(errors.New("err-stage1"), sdk_errors.WithErrorType(sdk_v1.ErrorType_ERROR_TYPE_FAILED_UNSPECIFIED)))
 				chain, err := spark.NewChain(
 					spark.NewNode().
 						Stage("stage1", stageFn("stage1", sb)).
@@ -196,16 +196,16 @@ func TestSparkExecutor(t *testing.T) {
 				assert.True(t, sb.Executed("stage1"), "'stage1' must have been executed")
 				stage1Status, err := sph.Get("jobKey", "stage1")
 				assert.Nil(t, err)
-				assert.Equal(t, lo.ToPtr(sdk_v1.StageStatus_StageFailed), stage1Status, "'stage1' should be in 'failed' status, got: %s", stage1Status)
+				assert.Equal(t, lo.ToPtr(sdk_v1.StageStatus_STAGE_STATUS_FAILED), stage1Status, "'stage1' should be in 'failed' status, got: %s", stage1Status)
 			},
-			errorType: lo.ToPtr(sdk_v1.ErrorType_Failed),
+			errorType: lo.ToPtr(sdk_v1.ErrorType_ERROR_TYPE_FAILED_UNSPECIFIED),
 		},
 		{
 			name: "if a stage fails and an error occur trying to update the stage, that error should be returned",
 			chainFn: func() (*spark.Chain, *stageBehaviour) {
 				sb := NewStageBehaviour(t, "stage1").
 					Change("stage1", nil,
-						sdk_errors.NewStageError(errors.New("err-stage1"), sdk_errors.WithErrorType(sdk_v1.ErrorType_Canceled)))
+						sdk_errors.NewStageError(errors.New("err-stage1"), sdk_errors.WithErrorType(sdk_v1.ErrorType_ERROR_TYPE_CANCELED)))
 				chain, err := spark.NewChain(
 					spark.NewNode().
 						Stage("stage1", stageFn("stage1", sb)).
@@ -218,11 +218,11 @@ func TestSparkExecutor(t *testing.T) {
 				assert.True(t, sb.Executed("stage1"), "'stage1' must have been executed")
 				stage1Status, err := sph.Get("jobKey", "stage1")
 				assert.Nil(t, err)
-				assert.Equal(t, lo.ToPtr(sdk_v1.StageStatus_StageStarted), stage1Status, "'stage1' should be in 'started' status, got: %s", stage1Status)
+				assert.Equal(t, lo.ToPtr(sdk_v1.StageStatus_STAGE_STATUS_STARTED), stage1Status, "'stage1' should be in 'started' status, got: %s", stage1Status)
 			},
-			errorType: lo.ToPtr(sdk_v1.ErrorType_Failed),
+			errorType: lo.ToPtr(sdk_v1.ErrorType_ERROR_TYPE_FAILED_UNSPECIFIED),
 			prepare: func(sph *inmemory.StageProgressHandler) {
-				sph.AddBehaviour().Set("stage1", sdk_v1.StageStatus_StageCanceled, errors.New("error updating status for stage 1"))
+				sph.AddBehaviour().Set("stage1", sdk_v1.StageStatus_STAGE_STATUS_CANCELED, errors.New("error updating status for stage 1"))
 			},
 		},
 		{
@@ -230,7 +230,7 @@ func TestSparkExecutor(t *testing.T) {
 			chainFn: func() (*spark.Chain, *stageBehaviour) {
 				sb := NewStageBehaviour(t, "stage1", "compensate").
 					Change("stage1", nil,
-						sdk_errors.NewStageError(errors.New("err-stage1"), sdk_errors.WithErrorType(sdk_v1.ErrorType_Failed)))
+						sdk_errors.NewStageError(errors.New("err-stage1"), sdk_errors.WithErrorType(sdk_v1.ErrorType_ERROR_TYPE_FAILED_UNSPECIFIED)))
 				chain, err := spark.NewChain(
 					spark.NewNode().
 						Stage("stage1", stageFn("stage1", sb)).
@@ -244,18 +244,18 @@ func TestSparkExecutor(t *testing.T) {
 				assert.True(t, sb.Executed("compensate"), "'compensate' must have been executed")
 				stage1Status, err := sph.Get("jobKey", "compensate")
 				assert.Nil(t, err)
-				assert.Equal(t, lo.ToPtr(sdk_v1.StageStatus_StageCompleted), stage1Status, "'compensate' should be in 'completed' status, got: %s", stage1Status)
+				assert.Equal(t, lo.ToPtr(sdk_v1.StageStatus_STAGE_STATUS_COMPLETED), stage1Status, "'compensate' should be in 'completed' status, got: %s", stage1Status)
 			},
-			errorType: lo.ToPtr(sdk_v1.ErrorType_Failed),
+			errorType: lo.ToPtr(sdk_v1.ErrorType_ERROR_TYPE_FAILED_UNSPECIFIED),
 		},
 		{
 			name: "if a compensate stage fails, the status must be updated and the error should be returned accordingly",
 			chainFn: func() (*spark.Chain, *stageBehaviour) {
 				sb := NewStageBehaviour(t, "stage1", "compensate").
 					Change("stage1", nil,
-						sdk_errors.NewStageError(errors.New("err-stage1"), sdk_errors.WithErrorType(sdk_v1.ErrorType_Failed))).
+						sdk_errors.NewStageError(errors.New("err-stage1"), sdk_errors.WithErrorType(sdk_v1.ErrorType_ERROR_TYPE_FAILED_UNSPECIFIED))).
 					Change("compensate", nil,
-						sdk_errors.NewStageError(errors.New("err-compensate"), sdk_errors.WithErrorType(sdk_v1.ErrorType_Canceled)))
+						sdk_errors.NewStageError(errors.New("err-compensate"), sdk_errors.WithErrorType(sdk_v1.ErrorType_ERROR_TYPE_CANCELED)))
 				chain, err := spark.NewChain(
 					spark.NewNode().
 						Stage("stage1", stageFn("stage1", sb)).
@@ -269,16 +269,16 @@ func TestSparkExecutor(t *testing.T) {
 				assert.True(t, sb.Executed("compensate"), "'compensate' must have been executed")
 				stageCompensate, err := sph.Get("jobKey", "compensate")
 				assert.Nil(t, err)
-				assert.Equal(t, lo.ToPtr(sdk_v1.StageStatus_StageCanceled), stageCompensate, "'compensate' should be in 'completed' status, got: %s", stageCompensate)
+				assert.Equal(t, lo.ToPtr(sdk_v1.StageStatus_STAGE_STATUS_CANCELED), stageCompensate, "'compensate' should be in 'completed' status, got: %s", stageCompensate)
 			},
-			errorType: lo.ToPtr(sdk_v1.ErrorType_Canceled),
+			errorType: lo.ToPtr(sdk_v1.ErrorType_ERROR_TYPE_CANCELED),
 		},
 		{
 			name: "if a stage returns a error type canceled and the chain has a cancel node configured, it must run and returns the original error",
 			chainFn: func() (*spark.Chain, *stageBehaviour) {
 				sb := NewStageBehaviour(t, "stage1", "cancel").
 					Change("stage1", nil,
-						sdk_errors.NewStageError(errors.New("err-stage1"), sdk_errors.WithErrorType(sdk_v1.ErrorType_Canceled)))
+						sdk_errors.NewStageError(errors.New("err-stage1"), sdk_errors.WithErrorType(sdk_v1.ErrorType_ERROR_TYPE_CANCELED)))
 				chain, err := spark.NewChain(
 					spark.NewNode().
 						Stage("stage1", stageFn("stage1", sb)).
@@ -292,18 +292,18 @@ func TestSparkExecutor(t *testing.T) {
 				assert.True(t, sb.Executed("cancel"), "'cancel' must have been executed")
 				stage1Status, err := sph.Get("jobKey", "cancel")
 				assert.Nil(t, err)
-				assert.Equal(t, lo.ToPtr(sdk_v1.StageStatus_StageCompleted), stage1Status, "'cancel' should be in 'completed' status, got: %s", stage1Status)
+				assert.Equal(t, lo.ToPtr(sdk_v1.StageStatus_STAGE_STATUS_COMPLETED), stage1Status, "'cancel' should be in 'completed' status, got: %s", stage1Status)
 			},
-			errorType: lo.ToPtr(sdk_v1.ErrorType_Canceled),
+			errorType: lo.ToPtr(sdk_v1.ErrorType_ERROR_TYPE_CANCELED),
 		},
 		{
 			name: "if a cancel stage fails, the status must be updated and the error should be returned accordingly",
 			chainFn: func() (*spark.Chain, *stageBehaviour) {
 				sb := NewStageBehaviour(t, "stage1", "cancel").
 					Change("stage1", nil,
-						sdk_errors.NewStageError(errors.New("err-stage1"), sdk_errors.WithErrorType(sdk_v1.ErrorType_Canceled))).
+						sdk_errors.NewStageError(errors.New("err-stage1"), sdk_errors.WithErrorType(sdk_v1.ErrorType_ERROR_TYPE_CANCELED))).
 					Change("cancel", nil,
-						sdk_errors.NewStageError(errors.New("err-cancel"), sdk_errors.WithErrorType(sdk_v1.ErrorType_Retry)))
+						sdk_errors.NewStageError(errors.New("err-cancel"), sdk_errors.WithErrorType(sdk_v1.ErrorType_ERROR_TYPE_RETRY)))
 				chain, err := spark.NewChain(
 					spark.NewNode().
 						Stage("stage1", stageFn("stage1", sb)).
@@ -317,9 +317,9 @@ func TestSparkExecutor(t *testing.T) {
 				assert.True(t, sb.Executed("cancel"), "'cancel' must have been executed")
 				stageCancel, err := sph.Get("jobKey", "cancel")
 				assert.Nil(t, err)
-				assert.Equal(t, lo.ToPtr(sdk_v1.StageStatus_StageFailed), stageCancel, "'cancel' should be in 'completed' status, got: %s", stageCancel)
+				assert.Equal(t, lo.ToPtr(sdk_v1.StageStatus_STAGE_STATUS_FAILED), stageCancel, "'cancel' should be in 'completed' status, got: %s", stageCancel)
 			},
-			errorType: lo.ToPtr(sdk_v1.ErrorType_Retry),
+			errorType: lo.ToPtr(sdk_v1.ErrorType_ERROR_TYPE_RETRY),
 		},
 		{
 			name: "when stage return an unsupported error it must be return error type fatal",
@@ -337,9 +337,9 @@ func TestSparkExecutor(t *testing.T) {
 				assert.True(t, sb.Executed("stage1"), "'stage1' must have been executed")
 				stage1Status, err := sph.Get("jobKey", "stage1")
 				assert.Nil(t, err, "error retrieving spark status for stage1: %v", err)
-				assert.Equal(t, lo.ToPtr(sdk_v1.StageStatus_StageFailed), stage1Status, "'stage1' should be in 'failed' status, got: %s", stage1Status)
+				assert.Equal(t, lo.ToPtr(sdk_v1.StageStatus_STAGE_STATUS_FAILED), stage1Status, "'stage1' should be in 'failed' status, got: %s", stage1Status)
 			},
-			errorType: lo.ToPtr(sdk_v1.ErrorType_Fatal),
+			errorType: lo.ToPtr(sdk_v1.ErrorType_ERROR_TYPE_FATAL),
 		},
 		{
 			name: "if a stage returns a result it must be stored properly",
@@ -357,7 +357,7 @@ func TestSparkExecutor(t *testing.T) {
 				assert.True(t, sb.Executed("stage1"), "'stage1' must have been executed")
 				stage1Status, err := sph.Get("jobKey", "stage1")
 				assert.Nil(t, err, "error retrieving spark status for stage1: %v", err)
-				assert.Equal(t, lo.ToPtr(sdk_v1.StageStatus_StageCompleted), stage1Status, "'stage1' should be in 'completed' status, got: %s", stage1Status)
+				assert.Equal(t, lo.ToPtr(sdk_v1.StageStatus_STAGE_STATUS_COMPLETED), stage1Status, "'stage1' should be in 'completed' status, got: %s", stage1Status)
 				raw, err := sph.GetResult("jobKey", "stage1").Raw()
 				assert.Nil(t, err)
 				assert.Equal(t, `"a result"`, string(raw), "result error: expected > 'a result', got: '%s'", string(raw))
@@ -379,9 +379,9 @@ func TestSparkExecutor(t *testing.T) {
 				assert.True(t, sb.Executed("stage1"), "'stage1' must have been executed")
 				stage1Status, err := sph.Get("jobKey", "stage1")
 				assert.Nil(t, err, "error retrieving spark status for stage1: %v", err)
-				assert.Equal(t, lo.ToPtr(sdk_v1.StageStatus_StageFailed), stage1Status, "'stage1' should be in 'failed' status, got: %s", stage1Status)
+				assert.Equal(t, lo.ToPtr(sdk_v1.StageStatus_STAGE_STATUS_FAILED), stage1Status, "'stage1' should be in 'failed' status, got: %s", stage1Status)
 			},
-			errorType: lo.ToPtr(sdk_v1.ErrorType_Failed),
+			errorType: lo.ToPtr(sdk_v1.ErrorType_ERROR_TYPE_FAILED_UNSPECIFIED),
 		},
 		{
 			name: "must return an error if a invalid result is returned from a stage and we could not update the stage status",
@@ -399,11 +399,11 @@ func TestSparkExecutor(t *testing.T) {
 				assert.True(t, sb.Executed("stage1"), "'stage1' must have been executed")
 				stage1Status, err := sph.Get("jobKey", "stage1")
 				assert.Nil(t, err, "error retrieving spark status for stage1: %v", err)
-				assert.Equal(t, lo.ToPtr(sdk_v1.StageStatus_StageStarted), stage1Status, "'stage1' should be in 'started' status, got: %s", stage1Status)
+				assert.Equal(t, lo.ToPtr(sdk_v1.StageStatus_STAGE_STATUS_STARTED), stage1Status, "'stage1' should be in 'started' status, got: %s", stage1Status)
 			},
-			errorType: lo.ToPtr(sdk_v1.ErrorType_Failed),
+			errorType: lo.ToPtr(sdk_v1.ErrorType_ERROR_TYPE_FAILED_UNSPECIFIED),
 			prepare: func(sph *inmemory.StageProgressHandler) {
-				sph.AddBehaviour().Set("stage1", sdk_v1.StageStatus_StageFailed, errors.New("error updating status for stage 1"))
+				sph.AddBehaviour().Set("stage1", sdk_v1.StageStatus_STAGE_STATUS_FAILED, errors.New("error updating status for stage 1"))
 			},
 		},
 		{
@@ -422,9 +422,9 @@ func TestSparkExecutor(t *testing.T) {
 				assert.True(t, sb.Executed("stage1"), "'stage1' must have been executed")
 				stage1Status, err := sph.Get("jobKey", "stage1")
 				assert.Nil(t, err, "error retrieving spark status for stage1: %v", err)
-				assert.Equal(t, lo.ToPtr(sdk_v1.StageStatus_StageFailed), stage1Status, "'stage1' should be in 'failed' status, got: %s", stage1Status)
+				assert.Equal(t, lo.ToPtr(sdk_v1.StageStatus_STAGE_STATUS_FAILED), stage1Status, "'stage1' should be in 'failed' status, got: %s", stage1Status)
 			},
-			errorType: lo.ToPtr(sdk_v1.ErrorType_Failed),
+			errorType: lo.ToPtr(sdk_v1.ErrorType_ERROR_TYPE_FAILED_UNSPECIFIED),
 			prepare: func(sph *inmemory.StageProgressHandler) {
 				sph.AddBehaviour().SetResult("jobKey", "stage1", errors.New("error calling set result api"))
 			},
@@ -445,12 +445,12 @@ func TestSparkExecutor(t *testing.T) {
 				assert.True(t, sb.Executed("stage1"), "'stage1' must have been executed")
 				stage1Status, err := sph.Get("jobKey", "stage1")
 				assert.Nil(t, err, "error retrieving spark status for stage1: %v", err)
-				assert.Equal(t, lo.ToPtr(sdk_v1.StageStatus_StageStarted), stage1Status, "'stage1' should be in 'started' status, got: %s", stage1Status)
+				assert.Equal(t, lo.ToPtr(sdk_v1.StageStatus_STAGE_STATUS_STARTED), stage1Status, "'stage1' should be in 'started' status, got: %s", stage1Status)
 			},
-			errorType: lo.ToPtr(sdk_v1.ErrorType_Failed),
+			errorType: lo.ToPtr(sdk_v1.ErrorType_ERROR_TYPE_FAILED_UNSPECIFIED),
 			prepare: func(sph *inmemory.StageProgressHandler) {
 				sph.AddBehaviour().SetResult("jobKey", "stage1", errors.New("error calling set result api"))
-				sph.AddBehaviour().Set("stage1", sdk_v1.StageStatus_StageFailed, errors.New("error updating stage1 status"))
+				sph.AddBehaviour().Set("stage1", sdk_v1.StageStatus_STAGE_STATUS_FAILED, errors.New("error updating stage1 status"))
 			},
 		},
 		{
@@ -469,12 +469,12 @@ func TestSparkExecutor(t *testing.T) {
 				assert.True(t, sb.Executed("stage1"), "'stage1' must have been executed")
 				stage1Status, err := sph.Get("jobKey", "stage1")
 				assert.Nil(t, err, "error retrieving spark status for stage1: %v", err)
-				assert.Equal(t, lo.ToPtr(sdk_v1.StageStatus_StageStarted), stage1Status, "'stage1' should be in 'started' status, got: %s", stage1Status)
+				assert.Equal(t, lo.ToPtr(sdk_v1.StageStatus_STAGE_STATUS_STARTED), stage1Status, "'stage1' should be in 'started' status, got: %s", stage1Status)
 			},
 			prepare: func(sph *inmemory.StageProgressHandler) {
-				sph.AddBehaviour().Set("stage1", sdk_v1.StageStatus_StageCompleted, errors.New("error updating stage1 status"))
+				sph.AddBehaviour().Set("stage1", sdk_v1.StageStatus_STAGE_STATUS_COMPLETED, errors.New("error updating stage1 status"))
 			},
-			errorType: lo.ToPtr(sdk_v1.ErrorType_Failed),
+			errorType: lo.ToPtr(sdk_v1.ErrorType_ERROR_TYPE_FAILED_UNSPECIFIED),
 		},
 		{
 			name: "should fail when complete stage returns an error and we can't update complete stage status to failed",
@@ -497,12 +497,12 @@ func TestSparkExecutor(t *testing.T) {
 				assert.True(t, sb.Executed("complete"), "'complete' must have been executed")
 				completeStatus, err := sph.Get("jobKey", "complete")
 				assert.Nil(t, err, "error retrieving spark status for stage1: %v", err)
-				assert.Equal(t, lo.ToPtr(sdk_v1.StageStatus_StageStarted), completeStatus, "'stage1' should be in 'started' status, got: %s", completeStatus)
+				assert.Equal(t, lo.ToPtr(sdk_v1.StageStatus_STAGE_STATUS_STARTED), completeStatus, "'stage1' should be in 'started' status, got: %s", completeStatus)
 			},
 			prepare: func(sph *inmemory.StageProgressHandler) {
-				sph.AddBehaviour().Set("complete", sdk_v1.StageStatus_StageFailed, errors.New("error updating stage1 status"))
+				sph.AddBehaviour().Set("complete", sdk_v1.StageStatus_STAGE_STATUS_FAILED, errors.New("error updating stage1 status"))
 			},
-			errorType: lo.ToPtr(sdk_v1.ErrorType_Failed),
+			errorType: lo.ToPtr(sdk_v1.ErrorType_ERROR_TYPE_FAILED_UNSPECIFIED),
 		},
 		{
 			name: "should fail when can't update complete stage to starting",
@@ -524,12 +524,12 @@ func TestSparkExecutor(t *testing.T) {
 				assert.True(t, sb.Executed("stage1"), "'stage1' must have been executed")
 				stage1Status, err := sph.Get("jobKey", "stage1")
 				assert.Nil(t, err, "error retrieving spark status for stage1: %v", err)
-				assert.Equal(t, lo.ToPtr(sdk_v1.StageStatus_StageCompleted), stage1Status, "'stage1' should be in 'completed' status, got: %s", stage1Status)
+				assert.Equal(t, lo.ToPtr(sdk_v1.StageStatus_STAGE_STATUS_COMPLETED), stage1Status, "'stage1' should be in 'completed' status, got: %s", stage1Status)
 			},
 			prepare: func(sph *inmemory.StageProgressHandler) {
-				sph.AddBehaviour().Set("complete", sdk_v1.StageStatus_StageStarted, errors.New("error updating stage1 status"))
+				sph.AddBehaviour().Set("complete", sdk_v1.StageStatus_STAGE_STATUS_STARTED, errors.New("error updating stage1 status"))
 			},
-			errorType: lo.ToPtr(sdk_v1.ErrorType_Failed),
+			errorType: lo.ToPtr(sdk_v1.ErrorType_ERROR_TYPE_FAILED_UNSPECIFIED),
 		},
 	}
 

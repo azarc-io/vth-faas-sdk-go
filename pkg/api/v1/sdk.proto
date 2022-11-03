@@ -1,15 +1,12 @@
 syntax = "proto3";
-package sdk_v1;
+package pkg.api.v1;
 option go_package = "github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1;sdk_v1";
 
 import "google/protobuf/struct.proto";
-import "google/protobuf/timestamp.proto";
 
 /************************************************************************/
 /* COMMON
 /************************************************************************/
-
-message Void {}
 
 message Error {
   string error = 1;
@@ -29,36 +26,36 @@ message RetryStrategy {
 /************************************************************************/
 
 enum ErrorType {
-  Failed = 0;
-  Canceled = 1;
-  Skip = 2;
-  Retry = 3;
-  Fatal = 4; // TODO os.Exit
+  ERROR_TYPE_FAILED_UNSPECIFIED = 0;
+  ERROR_TYPE_CANCELED = 1;
+  ERROR_TYPE_SKIP = 2;
+  ERROR_TYPE_RETRY = 3;
+  ERROR_TYPE_FATAL = 4;
 }
 
 enum StageStatus {
-  StagePending = 0;
-  StageStarted = 1;
-  StageCompleted = 2;
-  StageFailed = 3;
-  StageSkipped = 4;
-  StageCanceled = 5;
+  STAGE_STATUS_PENDING_UNSPECIFIED = 0;
+  STAGE_STATUS_STARTED = 1;
+  STAGE_STATUS_COMPLETED = 2;
+  STAGE_STATUS_FAILED = 3;
+  STAGE_STATUS_SKIPPED = 4;
+  STAGE_STATUS_CANCELED = 5;
 }
 
 enum JobStatus {
-  JobWaiting = 0;
-  JobRunning = 1;
-  JobDone = 2;
-  JobCanceled = 3;
-  JobCompletionStarted = 4;
-  JobCompletionDone = 5;
-  JobCompletionDoneWithErrors = 6;
-  JobCompensationStarted = 7;
-  JobCompensationDone = 8;
-  JobCompensationDoneWithErrors = 9;
-  JobCancellationStarted = 10;
-  JobCancellationDone = 11;
-  JobCancellationDoneWithErrors = 12;
+  JOB_STATUS_WAITING_UNSPECIFIED = 0;
+  JOB_STATUS_RUNNING = 1;
+  JOB_STATUS_DONE = 2;
+  JOB_STATUS_CANCELED = 3;
+  JOB_STATUS_COMPLETION_STARTED = 4;
+  JOB_STATUS_COMPLETION_DONE = 5;
+  JOB_STATUS_COMPLETION_DONE_WITH_ERRORS = 6;
+  JOB_STATUS_COMPENSATION_STARTED = 7;
+  JOB_STATUS_COMPENSATION_DONE = 8;
+  JOB_STATUS_COMPENSATION_DONE_WITH_ERRORS = 9;
+  JOB_STATUS_CANCELLATION_STARTED = 10;
+  JOB_STATUS_CANCELLATION_DONE = 11;
+  JOB_STATUS_CANCELLATION_DONE_WITH_ERRORS = 12;
 }
 
 /************************************************************************/
@@ -130,6 +127,16 @@ message GetStageStatusResponse {
   StageStatus status = 1;
 }
 
+message SetStageStatusResponse {}
+
+message SetStageResultResponse {}
+
+message SetVariablesResponse {}
+
+message SetJobStatusResponse {}
+
+message RegisterHeartbeatResponse {}
+
 /************************************************************************/
 /* VARIABLE
 /************************************************************************/
@@ -170,14 +177,14 @@ service AgentService {
 
 service ManagerService {
   rpc GetStageStatus(GetStageStatusRequest) returns (GetStageStatusResponse);
-  rpc SetStageStatus(SetStageStatusRequest) returns (Void);
+  rpc SetStageStatus(SetStageStatusRequest) returns (SetStageStatusResponse);
 
   rpc GetStageResult(GetStageResultRequest) returns (GetStageResultResponse);
-  rpc SetStageResult(SetStageResultRequest) returns (Void);
+  rpc SetStageResult(SetStageResultRequest) returns (SetStageResultResponse);
 
   rpc GetVariables(GetVariablesRequest) returns (GetVariablesResponse);
-  rpc SetVariables(SetVariablesRequest) returns (Void);
+  rpc SetVariables(SetVariablesRequest) returns (SetVariablesResponse);
 
-  rpc SetJobStatus(SetJobStatusRequest) returns (Void);
-  rpc RegisterHeartbeat(RegisterHeartbeatRequest) returns (Void);
+  rpc SetJobStatus(SetJobStatusRequest) returns (SetJobStatusResponse);
+  rpc RegisterHeartbeat(RegisterHeartbeatRequest) returns (RegisterHeartbeatResponse);
 }
