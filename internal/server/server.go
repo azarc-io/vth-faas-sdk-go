@@ -48,6 +48,7 @@ func (s Server) Start() error {
 	s.heartBeat = NewHeartbeat(s.config, s.client)
 	s.heartBeat.Start()
 
+	// nosemgrep
 	if err = s.svr.Serve(listener); err != nil {
 		log.Error(err, "error starting the server")
 		return err

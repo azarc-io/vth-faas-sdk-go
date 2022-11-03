@@ -119,7 +119,7 @@ postlonglint::
 .PHONY: shortlint
 shortlint: ## Run all linters but exclude long-running linters.
 	@$(MAKE) checknodiffgenerated
-	@$(MAKE) checknonolint golangcilint postlint
+	@$(MAKE) golangcilint postlint
 
 .PHONY: lint
 lint: ## Run all linters.
