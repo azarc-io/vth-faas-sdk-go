@@ -1,0 +1,603 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>demo: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">github.com/azarc-io/vth-faas-sdk-go/internal/spark/demo/demo.go (56.1%)</option>
+				
+				<option value="file1">github.com/azarc-io/vth-faas-sdk-go/internal/spark/demo/demo_mocks.go (27.8%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">no coverage</span>
+				<span class="cov1">low coverage</span>
+				<span class="cov2">*</span>
+				<span class="cov3">*</span>
+				<span class="cov4">*</span>
+				<span class="cov5">*</span>
+				<span class="cov6">*</span>
+				<span class="cov7">*</span>
+				<span class="cov8">*</span>
+				<span class="cov9">*</span>
+				<span class="cov10">high coverage</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">//go:generate mockgen -source=./demo.go -destination=./demo_mocks.go -package=demo github.com/azarc-io/vth-faas-sdk-go/internal/spark/demo
+package demo
+
+import (
+        "github.com/azarc-io/vth-faas-sdk-go/internal/handlers"
+        "github.com/azarc-io/vth-faas-sdk-go/internal/spark"
+        "github.com/azarc-io/vth-faas-sdk-go/pkg/api"
+        sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1"
+        sdk_errors "github.com/azarc-io/vth-faas-sdk-go/pkg/errors"
+)
+
+type CheckoutSpark struct {
+        mailer                     Mailer
+        paymentProvider            PaymentProvider
+        inventoryManagementService InventoryManagementService
+}
+
+func NewCheckoutSpark(mailer Mailer, paymentProvider PaymentProvider, inventoryManagementService InventoryManagementService) *CheckoutSpark <span class="cov10" title="2">{
+        return &amp;CheckoutSpark{mailer, paymentProvider, inventoryManagementService}
+}</span>
+
+func (c CheckoutSpark) Spark() (*spark.Chain, error) <span class="cov10" title="2">{
+        return spark.NewChain(
+                spark.NewNode().
+                        Stage("create_payment_transaction", c.CreateTransaction).
+                        Stage("reserve_inventory_items", c.ReserveInventoryItems).
+                        Complete("confirm_payment_transaction", c.ConfirmPaymentTransaction).
+                        Compensate(
+                                spark.NewNode().
+                                        Stage("cancel_payment_transaction", c.CancelPaymentTransaction,
+                                                spark.WithStageStatus("create_payment_transaction", sdk_v1.StageStatus_STAGE_STATUS_COMPLETED)).
+                                        Stage("restore_inventory_items", c.RestoreInventoryItems,
+                                                spark.WithStageStatus("create_payment_transaction", sdk_v1.StageStatus_STAGE_STATUS_COMPLETED)).
+                                        Stage("send_apologies_email", c.SendApologiesEmail,
+                                                spark.WithStageStatus("create_payment_transaction", sdk_v1.StageStatus_STAGE_STATUS_COMPLETED)).
+                                        Build()).
+                        Cancelled(
+                                spark.NewNode().
+                                        Stage("send_cancel_email", c.SendCancelEmail).
+                                        Build()).
+                        Build()).
+                Build()
+}</span>
+
+func (c CheckoutSpark) CreateTransaction(ctx sdk_v1.StageContext) (any, sdk_v1.StageError) <span class="cov10" title="2">{
+        inputs := ctx.Inputs("transaction", "another", "another", "another")
+
+        var transaction Transaction
+        err := inputs.Get("transaction").Bind(&amp;transaction)
+        if err != nil </span><span class="cov0" title="0">{
+                ctx.Log().Error(err, "error binding transaction variable")
+                return nil, sdk_errors.NewStageError(err)
+        }</span>
+
+        <span class="cov10" title="2">transactionCreated, err := c.paymentProvider.CreateTransaction(transaction)
+
+        if err != nil </span><span class="cov0" title="0">{
+                ctx.Log().Info("create_payment_transaction completed")
+                return nil, sdk_errors.NewStageError(err, sdk_errors.WithRetry(10, 500))
+        }</span>
+        <span class="cov10" title="2">return transactionCreated, nil</span>
+
+}
+
+func (c CheckoutSpark) ReserveInventoryItems(ctx sdk_v1.StageContext) (any, sdk_v1.StageError) <span class="cov10" title="2">{
+        var inventoryItems []InventoryItem
+        err := ctx.Input("items").Bind(&amp;inventoryItems)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, sdk_errors.NewStageError(err)
+        }</span>
+
+        <span class="cov10" title="2">err = c.inventoryManagementService.Reserve(inventoryItems)
+
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, sdk_errors.NewStageError(err, sdk_errors.WithErrorType(sdk_v1.ErrorType_ERROR_TYPE_CANCELED))
+        }</span>
+        <span class="cov10" title="2">return inventoryItems, nil</span>
+
+}
+
+func (c CheckoutSpark) ConfirmPaymentTransaction(ctx sdk_v1.CompleteContext) sdk_v1.StageError <span class="cov10" title="2">{
+        var transaction Transaction
+        err := ctx.StageResult("create_payment_transaction").Bind(&amp;transaction)
+        if err != nil </span><span class="cov0" title="0">{
+                ctx.Log().Error(err, "error binding transaction variable")
+                return sdk_errors.NewStageError(err)
+        }</span>
+        <span class="cov10" title="2">err = c.paymentProvider.ConfirmTransaction(transaction)
+        if err != nil </span><span class="cov0" title="0">{
+                return sdk_errors.NewStageError(err)
+        }</span>
+
+        <span class="cov10" title="2">err = ctx.Output(&amp;handlers.Variable{Name: "newVar", MimeType: api.MimeTypeJson, Value: "someValue"})
+        if err != nil </span><span class="cov0" title="0">{
+                return sdk_errors.NewStageError(err)
+        }</span>
+
+        <span class="cov10" title="2">return nil</span>
+}
+
+func (c CheckoutSpark) CancelPaymentTransaction(ctx sdk_v1.StageContext) (any, sdk_v1.StageError) <span class="cov0" title="0">{
+        c.paymentProvider.CancelTransaction(Transaction{})
+        return nil, nil
+}</span>
+
+func (c CheckoutSpark) RestoreInventoryItems(ctx sdk_v1.StageContext) (any, sdk_v1.StageError) <span class="cov0" title="0">{
+        c.inventoryManagementService.RestoreAvailability(nil)
+        return nil, nil
+}</span>
+
+func (c CheckoutSpark) SendApologiesEmail(ctx sdk_v1.StageContext) (any, sdk_v1.StageError) <span class="cov0" title="0">{
+        c.mailer.SomethingBadHappened()
+        return nil, nil
+}</span>
+
+func (c CheckoutSpark) SendCancelEmail(ctx sdk_v1.StageContext) (any, sdk_v1.StageError) <span class="cov0" title="0">{
+        c.mailer.Cancellation()
+        return nil, nil
+}</span>
+
+type CheckoutService interface {
+        //STAGES
+        CreateTransaction() sdk_v1.StageDefinitionFn
+        ReserveInventoryItems() sdk_v1.StageDefinitionFn
+        //COMPLETE
+        ConfirmPaymentTransaction() sdk_v1.CompleteDefinitionFn
+        //COMPENSATE
+        CancelPaymentTransaction() sdk_v1.StageDefinitionFn
+        RestoreInventoryItems() sdk_v1.StageDefinitionFn
+        SendApologiesEmail() sdk_v1.StageDefinitionFn
+        //CANCEL
+        SendCancelEmail() sdk_v1.StageDefinitionFn
+
+        Spark() (*spark.Chain, error)
+}
+
+type PaymentProvider interface {
+        CreateTransaction(transaction Transaction) (Transaction, error)
+        ConfirmTransaction(transaction Transaction) error
+        CancelTransaction(transaction Transaction) error
+}
+
+type Transaction struct {
+        Id     string
+        Amount float64
+}
+
+type InventoryManagementService interface {
+        Reserve(inventoryItem []InventoryItem) error
+        RestoreAvailability(inventoryItem []InventoryItem) error
+}
+
+type InventoryItem struct {
+        Id   string
+        Name string
+}
+
+type Mailer interface {
+        Confirmation()
+        Cancellation()
+        SomethingBadHappened()
+}
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">// Code generated by MockGen. DO NOT EDIT.
+// Source: ./demo.go
+
+// Package demo is a generated GoMock package.
+package demo
+
+import (
+        reflect "reflect"
+
+        spark "github.com/azarc-io/vth-faas-sdk-go/internal/spark"
+        v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1"
+        gomock "github.com/golang/mock/gomock"
+)
+
+// MockCheckoutService is a mock of CheckoutService interface.
+type MockCheckoutService struct {
+        ctrl     *gomock.Controller
+        recorder *MockCheckoutServiceMockRecorder
+}
+
+// MockCheckoutServiceMockRecorder is the mock recorder for MockCheckoutService.
+type MockCheckoutServiceMockRecorder struct {
+        mock *MockCheckoutService
+}
+
+// NewMockCheckoutService creates a new mock instance.
+func NewMockCheckoutService(ctrl *gomock.Controller) *MockCheckoutService <span class="cov0" title="0">{
+        mock := &amp;MockCheckoutService{ctrl: ctrl}
+        mock.recorder = &amp;MockCheckoutServiceMockRecorder{mock}
+        return mock
+}</span>
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockCheckoutService) EXPECT() *MockCheckoutServiceMockRecorder <span class="cov0" title="0">{
+        return m.recorder
+}</span>
+
+// CancelPaymentTransaction mocks base method.
+func (m *MockCheckoutService) CancelPaymentTransaction() v1.StageDefinitionFn <span class="cov0" title="0">{
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "CancelPaymentTransaction")
+        ret0, _ := ret[0].(v1.StageDefinitionFn)
+        return ret0
+}</span>
+
+// CancelPaymentTransaction indicates an expected call of CancelPaymentTransaction.
+func (mr *MockCheckoutServiceMockRecorder) CancelPaymentTransaction() *gomock.Call <span class="cov0" title="0">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CancelPaymentTransaction", reflect.TypeOf((*MockCheckoutService)(nil).CancelPaymentTransaction))
+}</span>
+
+// ConfirmPaymentTransaction mocks base method.
+func (m *MockCheckoutService) ConfirmPaymentTransaction() v1.CompleteDefinitionFn <span class="cov0" title="0">{
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "ConfirmPaymentTransaction")
+        ret0, _ := ret[0].(v1.CompleteDefinitionFn)
+        return ret0
+}</span>
+
+// ConfirmPaymentTransaction indicates an expected call of ConfirmPaymentTransaction.
+func (mr *MockCheckoutServiceMockRecorder) ConfirmPaymentTransaction() *gomock.Call <span class="cov0" title="0">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ConfirmPaymentTransaction", reflect.TypeOf((*MockCheckoutService)(nil).ConfirmPaymentTransaction))
+}</span>
+
+// CreateTransaction mocks base method.
+func (m *MockCheckoutService) CreateTransaction() v1.StageDefinitionFn <span class="cov0" title="0">{
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "CreateTransaction")
+        ret0, _ := ret[0].(v1.StageDefinitionFn)
+        return ret0
+}</span>
+
+// CreateTransaction indicates an expected call of CreateTransaction.
+func (mr *MockCheckoutServiceMockRecorder) CreateTransaction() *gomock.Call <span class="cov0" title="0">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateTransaction", reflect.TypeOf((*MockCheckoutService)(nil).CreateTransaction))
+}</span>
+
+// ReserveInventoryItems mocks base method.
+func (m *MockCheckoutService) ReserveInventoryItems() v1.StageDefinitionFn <span class="cov0" title="0">{
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "ReserveInventoryItems")
+        ret0, _ := ret[0].(v1.StageDefinitionFn)
+        return ret0
+}</span>
+
+// ReserveInventoryItems indicates an expected call of ReserveInventoryItems.
+func (mr *MockCheckoutServiceMockRecorder) ReserveInventoryItems() *gomock.Call <span class="cov0" title="0">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReserveInventoryItems", reflect.TypeOf((*MockCheckoutService)(nil).ReserveInventoryItems))
+}</span>
+
+// RestoreInventoryItems mocks base method.
+func (m *MockCheckoutService) RestoreInventoryItems() v1.StageDefinitionFn <span class="cov0" title="0">{
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "RestoreInventoryItems")
+        ret0, _ := ret[0].(v1.StageDefinitionFn)
+        return ret0
+}</span>
+
+// RestoreInventoryItems indicates an expected call of RestoreInventoryItems.
+func (mr *MockCheckoutServiceMockRecorder) RestoreInventoryItems() *gomock.Call <span class="cov0" title="0">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RestoreInventoryItems", reflect.TypeOf((*MockCheckoutService)(nil).RestoreInventoryItems))
+}</span>
+
+// SendApologiesEmail mocks base method.
+func (m *MockCheckoutService) SendApologiesEmail() v1.StageDefinitionFn <span class="cov0" title="0">{
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "SendApologiesEmail")
+        ret0, _ := ret[0].(v1.StageDefinitionFn)
+        return ret0
+}</span>
+
+// SendApologiesEmail indicates an expected call of SendApologiesEmail.
+func (mr *MockCheckoutServiceMockRecorder) SendApologiesEmail() *gomock.Call <span class="cov0" title="0">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendApologiesEmail", reflect.TypeOf((*MockCheckoutService)(nil).SendApologiesEmail))
+}</span>
+
+// SendCancelEmail mocks base method.
+func (m *MockCheckoutService) SendCancelEmail() v1.StageDefinitionFn <span class="cov0" title="0">{
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "SendCancelEmail")
+        ret0, _ := ret[0].(v1.StageDefinitionFn)
+        return ret0
+}</span>
+
+// SendCancelEmail indicates an expected call of SendCancelEmail.
+func (mr *MockCheckoutServiceMockRecorder) SendCancelEmail() *gomock.Call <span class="cov0" title="0">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendCancelEmail", reflect.TypeOf((*MockCheckoutService)(nil).SendCancelEmail))
+}</span>
+
+// Spark mocks base method.
+func (m *MockCheckoutService) Spark() (*spark.Chain, error) <span class="cov0" title="0">{
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "Spark")
+        ret0, _ := ret[0].(*spark.Chain)
+        ret1, _ := ret[1].(error)
+        return ret0, ret1
+}</span>
+
+// Spark indicates an expected call of Spark.
+func (mr *MockCheckoutServiceMockRecorder) Spark() *gomock.Call <span class="cov0" title="0">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Spark", reflect.TypeOf((*MockCheckoutService)(nil).Spark))
+}</span>
+
+// MockPaymentProvider is a mock of PaymentProvider interface.
+type MockPaymentProvider struct {
+        ctrl     *gomock.Controller
+        recorder *MockPaymentProviderMockRecorder
+}
+
+// MockPaymentProviderMockRecorder is the mock recorder for MockPaymentProvider.
+type MockPaymentProviderMockRecorder struct {
+        mock *MockPaymentProvider
+}
+
+// NewMockPaymentProvider creates a new mock instance.
+func NewMockPaymentProvider(ctrl *gomock.Controller) *MockPaymentProvider <span class="cov5" title="2">{
+        mock := &amp;MockPaymentProvider{ctrl: ctrl}
+        mock.recorder = &amp;MockPaymentProviderMockRecorder{mock}
+        return mock
+}</span>
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockPaymentProvider) EXPECT() *MockPaymentProviderMockRecorder <span class="cov10" title="4">{
+        return m.recorder
+}</span>
+
+// CancelTransaction mocks base method.
+func (m *MockPaymentProvider) CancelTransaction(transaction Transaction) error <span class="cov0" title="0">{
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "CancelTransaction", transaction)
+        ret0, _ := ret[0].(error)
+        return ret0
+}</span>
+
+// CancelTransaction indicates an expected call of CancelTransaction.
+func (mr *MockPaymentProviderMockRecorder) CancelTransaction(transaction interface{}) *gomock.Call <span class="cov0" title="0">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CancelTransaction", reflect.TypeOf((*MockPaymentProvider)(nil).CancelTransaction), transaction)
+}</span>
+
+// ConfirmTransaction mocks base method.
+func (m *MockPaymentProvider) ConfirmTransaction(transaction Transaction) error <span class="cov5" title="2">{
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "ConfirmTransaction", transaction)
+        ret0, _ := ret[0].(error)
+        return ret0
+}</span>
+
+// ConfirmTransaction indicates an expected call of ConfirmTransaction.
+func (mr *MockPaymentProviderMockRecorder) ConfirmTransaction(transaction interface{}) *gomock.Call <span class="cov5" title="2">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ConfirmTransaction", reflect.TypeOf((*MockPaymentProvider)(nil).ConfirmTransaction), transaction)
+}</span>
+
+// CreateTransaction mocks base method.
+func (m *MockPaymentProvider) CreateTransaction(transaction Transaction) (Transaction, error) <span class="cov5" title="2">{
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "CreateTransaction", transaction)
+        ret0, _ := ret[0].(Transaction)
+        ret1, _ := ret[1].(error)
+        return ret0, ret1
+}</span>
+
+// CreateTransaction indicates an expected call of CreateTransaction.
+func (mr *MockPaymentProviderMockRecorder) CreateTransaction(transaction interface{}) *gomock.Call <span class="cov5" title="2">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateTransaction", reflect.TypeOf((*MockPaymentProvider)(nil).CreateTransaction), transaction)
+}</span>
+
+// MockInventoryManagementService is a mock of InventoryManagementService interface.
+type MockInventoryManagementService struct {
+        ctrl     *gomock.Controller
+        recorder *MockInventoryManagementServiceMockRecorder
+}
+
+// MockInventoryManagementServiceMockRecorder is the mock recorder for MockInventoryManagementService.
+type MockInventoryManagementServiceMockRecorder struct {
+        mock *MockInventoryManagementService
+}
+
+// NewMockInventoryManagementService creates a new mock instance.
+func NewMockInventoryManagementService(ctrl *gomock.Controller) *MockInventoryManagementService <span class="cov5" title="2">{
+        mock := &amp;MockInventoryManagementService{ctrl: ctrl}
+        mock.recorder = &amp;MockInventoryManagementServiceMockRecorder{mock}
+        return mock
+}</span>
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockInventoryManagementService) EXPECT() *MockInventoryManagementServiceMockRecorder <span class="cov5" title="2">{
+        return m.recorder
+}</span>
+
+// Reserve mocks base method.
+func (m *MockInventoryManagementService) Reserve(inventoryItem []InventoryItem) error <span class="cov5" title="2">{
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "Reserve", inventoryItem)
+        ret0, _ := ret[0].(error)
+        return ret0
+}</span>
+
+// Reserve indicates an expected call of Reserve.
+func (mr *MockInventoryManagementServiceMockRecorder) Reserve(inventoryItem interface{}) *gomock.Call <span class="cov5" title="2">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Reserve", reflect.TypeOf((*MockInventoryManagementService)(nil).Reserve), inventoryItem)
+}</span>
+
+// RestoreAvailability mocks base method.
+func (m *MockInventoryManagementService) RestoreAvailability(inventoryItem []InventoryItem) error <span class="cov0" title="0">{
+        m.ctrl.T.Helper()
+        ret := m.ctrl.Call(m, "RestoreAvailability", inventoryItem)
+        ret0, _ := ret[0].(error)
+        return ret0
+}</span>
+
+// RestoreAvailability indicates an expected call of RestoreAvailability.
+func (mr *MockInventoryManagementServiceMockRecorder) RestoreAvailability(inventoryItem interface{}) *gomock.Call <span class="cov0" title="0">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RestoreAvailability", reflect.TypeOf((*MockInventoryManagementService)(nil).RestoreAvailability), inventoryItem)
+}</span>
+
+// MockMailer is a mock of Mailer interface.
+type MockMailer struct {
+        ctrl     *gomock.Controller
+        recorder *MockMailerMockRecorder
+}
+
+// MockMailerMockRecorder is the mock recorder for MockMailer.
+type MockMailerMockRecorder struct {
+        mock *MockMailer
+}
+
+// NewMockMailer creates a new mock instance.
+func NewMockMailer(ctrl *gomock.Controller) *MockMailer <span class="cov5" title="2">{
+        mock := &amp;MockMailer{ctrl: ctrl}
+        mock.recorder = &amp;MockMailerMockRecorder{mock}
+        return mock
+}</span>
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockMailer) EXPECT() *MockMailerMockRecorder <span class="cov0" title="0">{
+        return m.recorder
+}</span>
+
+// Cancellation mocks base method.
+func (m *MockMailer) Cancellation() <span class="cov0" title="0">{
+        m.ctrl.T.Helper()
+        m.ctrl.Call(m, "Cancellation")
+}</span>
+
+// Cancellation indicates an expected call of Cancellation.
+func (mr *MockMailerMockRecorder) Cancellation() *gomock.Call <span class="cov0" title="0">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Cancellation", reflect.TypeOf((*MockMailer)(nil).Cancellation))
+}</span>
+
+// Confirmation mocks base method.
+func (m *MockMailer) Confirmation() <span class="cov0" title="0">{
+        m.ctrl.T.Helper()
+        m.ctrl.Call(m, "Confirmation")
+}</span>
+
+// Confirmation indicates an expected call of Confirmation.
+func (mr *MockMailerMockRecorder) Confirmation() *gomock.Call <span class="cov0" title="0">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Confirmation", reflect.TypeOf((*MockMailer)(nil).Confirmation))
+}</span>
+
+// SomethingBadHappened mocks base method.
+func (m *MockMailer) SomethingBadHappened() <span class="cov0" title="0">{
+        m.ctrl.T.Helper()
+        m.ctrl.Call(m, "SomethingBadHappened")
+}</span>
+
+// SomethingBadHappened indicates an expected call of SomethingBadHappened.
+func (mr *MockMailerMockRecorder) SomethingBadHappened() *gomock.Call <span class="cov0" title="0">{
+        mr.mock.ctrl.T.Helper()
+        return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SomethingBadHappened", reflect.TypeOf((*MockMailer)(nil).SomethingBadHappened))
+}</span>
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>
