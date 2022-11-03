@@ -1,5 +1,5 @@
 package api
 
 const (
-	MimeTypeJson = "application/json"
+	MimeTypeJSON = "application/json"
 )

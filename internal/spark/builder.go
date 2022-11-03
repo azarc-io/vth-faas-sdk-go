@@ -1,21 +1,19 @@
 package spark
 
-import (
-	"github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1"
-)
+import sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1"
 
-type chainBuilder struct {
-	rootNode *node
+type ChainBuilder struct {
+	rootNode *Node
 }
 
-func NewChain(node *node) *chainBuilder {
-	c := &chainBuilder{}
+func NewChain(node *Node) *ChainBuilder {
+	c := &ChainBuilder{}
 	c.rootNode = node
 	c.rootNode.appendBreadcrumb(nodeTypeRoot)
 	return c
 }
 
-func (c *chainBuilder) Build() (*Chain, error) {
+func (c *ChainBuilder) Build() (*Chain, error) {
 	newChain := &Chain{
 		rootNode:    c.rootNode,
 		stagesMap:   map[string]*stage{},
@@ -29,7 +27,7 @@ func (c *chainBuilder) Build() (*Chain, error) {
 	return newChain, nil
 }
 
-func (c *chainBuilder) createResumeOnRetryStagesMap(newChain *Chain) {
+func (c *ChainBuilder) createResumeOnRetryStagesMap(newChain *Chain) {
 	stages, completeStages := c.getStages([]*stage{}, []*completeStage{}, newChain.rootNode)
 	for _, stg := range stages {
 		newChain.stagesMap[stg.name] = stg
@@ -39,8 +37,8 @@ func (c *chainBuilder) createResumeOnRetryStagesMap(newChain *Chain) {
 	}
 }
 
-func (c *chainBuilder) getStages(stages []*stage, completeStages []*completeStage, nodes ...*node) ([]*stage, []*completeStage) {
-	var nextNodes []*node
+func (c *ChainBuilder) getStages(stages []*stage, completeStages []*completeStage, nodes ...*Node) ([]*stage, []*completeStage) {
+	var nextNodes []*Node
 	for _, n := range nodes {
 		completeStages = appendIfNotNil(completeStages, n.complete)
 		stages = appendIfNotNil(stages, n.stages...)
@@ -52,15 +50,15 @@ func (c *chainBuilder) getStages(stages []*stage, completeStages []*completeStag
 	return stages, completeStages
 }
 
-type nodeBuilder struct {
-	node *node
+type NodeBuilder struct {
+	node *Node
 }
 
-func NewNode() *nodeBuilder {
-	return &nodeBuilder{node: &node{}}
+func NewNode() *NodeBuilder {
+	return &NodeBuilder{node: &Node{}}
 }
 
-func (sb *nodeBuilder) Stage(name string, stageDefinitionFn sdk_v1.StageDefinitionFn, options ...sdk_v1.StageOption) *nodeBuilder {
+func (sb *NodeBuilder) Stage(name string, stageDefinitionFn sdk_v1.StageDefinitionFn, options ...sdk_v1.StageOption) *NodeBuilder {
 	s := &stage{
 		node: sb.node,
 		name: name,
@@ -71,7 +69,7 @@ func (sb *nodeBuilder) Stage(name string, stageDefinitionFn sdk_v1.StageDefiniti
 	return sb
 }
 
-func (sb *nodeBuilder) Complete(name string, completeDefinitionFn sdk_v1.CompleteDefinitionFn, options ...sdk_v1.StageOption) *nodeBuilder {
+func (sb *NodeBuilder) Complete(name string, completeDefinitionFn sdk_v1.CompleteDefinitionFn, options ...sdk_v1.StageOption) *NodeBuilder {
 	sb.node.complete = &completeStage{
 		node: sb.node,
 		name: name,
@@ -81,22 +79,22 @@ func (sb *nodeBuilder) Complete(name string, completeDefinitionFn sdk_v1.Complet
 	return sb
 }
 
-func (sb *nodeBuilder) Cancelled(newNode *node) *nodeBuilder {
+func (sb *NodeBuilder) Cancelled(newNode *Node) *NodeBuilder {
 	sb.node.cancel = newNode
 	return sb
 }
 
-func (sb *nodeBuilder) Compensate(newNode *node) *nodeBuilder {
+func (sb *NodeBuilder) Compensate(newNode *Node) *NodeBuilder {
 	sb.node.compensate = newNode
 	return sb
 }
 
-func (sb *nodeBuilder) Build() *node {
+func (sb *NodeBuilder) Build() *Node {
 	return sb.node
 }
 
-func addBreadcrumb(nodes ...*node) {
-	var nextNodes []*node
+func addBreadcrumb(nodes ...*Node) {
+	var nextNodes []*Node
 	for _, n := range nodes {
 		n.cancel.appendBreadcrumb(cancelNodeType, n.breadcrumb)
 		n.compensate.appendBreadcrumb(compensateNodeType, n.breadcrumb)
@@ -104,7 +102,5 @@ func addBreadcrumb(nodes ...*node) {
 	}
 	if len(nextNodes) > 0 {
 		addBreadcrumb(nextNodes...)
-		return
 	}
-	return
 }

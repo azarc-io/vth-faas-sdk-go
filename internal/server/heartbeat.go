@@ -2,9 +2,10 @@ package server
 
 import (
 	"context"
+	"time"
+
 	sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1"
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/config"
-	"time"
 )
 
 type Heartbeat struct {
@@ -28,11 +29,10 @@ func (h *Heartbeat) Start() {
 			case <-h.done:
 				return
 			case <-h.ticker.C:
-				_, _ = h.client.RegisterHeartbeat(context.Background(), &sdk_v1.RegisterHeartbeatRequest{AgentId: h.config.App.InstanceId}) //TODO handle error
+				_, _ = h.client.RegisterHeartbeat(context.Background(), &sdk_v1.RegisterHeartbeatRequest{AgentId: h.config.App.InstanceID}) // TODO handle error
 			}
 		}
 	}()
-
 }
 
 func (h *Heartbeat) Stop() {

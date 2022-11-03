@@ -1,7 +1,9 @@
 package spark
 
 import (
+	"errors"
 	"fmt"
+
 	sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1"
 	sdk_errors "github.com/azarc-io/vth-faas-sdk-go/pkg/errors"
 )
@@ -15,13 +17,18 @@ var (
 )
 
 type Chain struct {
-	rootNode     *node
-	stagesMap    map[string]*stage
-	completeMap  map[string]*completeStage
-	initFunction func()
+	rootNode    *Node
+	stagesMap   map[string]*stage
+	completeMap map[string]*completeStage
 }
 
-func (c *Chain) getNodeToResume(lastActiveStage *sdk_v1.LastActiveStage) (*node, error) {
+var ErrStageNotFoundInNodeChain = errors.New("stage not found in the node chain")
+
+func newErrStageNotFoundInNodeChain(stage string) error {
+	return fmt.Errorf("%w: %s", ErrStageNotFoundInNodeChain, stage)
+}
+
+func (c *Chain) getNodeToResume(lastActiveStage *sdk_v1.LastActiveStage) (*Node, error) {
 	if lastActiveStage == nil {
 		return c.rootNode, nil
 	}
@@ -31,19 +38,19 @@ func (c *Chain) getNodeToResume(lastActiveStage *sdk_v1.LastActiveStage) (*node,
 	if s, ok := c.completeMap[lastActiveStage.Name]; ok {
 		return s.node, nil
 	}
-	return nil, fmt.Errorf("stage '%s' not found in the node chain", lastActiveStage.Name)
+	return nil, newErrStageNotFoundInNodeChain(lastActiveStage.Name)
 }
 
-type node struct {
+type Node struct {
 	stages     []*stage
 	complete   *completeStage
-	cancel     *node
-	compensate *node
+	cancel     *Node
+	compensate *Node
 	nodeType   nodeType
 	breadcrumb string
 }
 
-func (n *node) appendBreadcrumb(nodeType nodeType, breadcrumb ...string) {
+func (n *Node) appendBreadcrumb(nodeType nodeType, breadcrumb ...string) {
 	if n == nil {
 		return
 	}
@@ -56,14 +63,14 @@ func (n *node) appendBreadcrumb(nodeType nodeType, breadcrumb ...string) {
 }
 
 type stage struct {
-	node *node
+	node *Node
 	name string
 	so   []sdk_v1.StageOption
 	cb   sdk_v1.StageDefinitionFn
 }
 
 type completeStage struct {
-	node *node
+	node *Node
 	name string
 	so   []sdk_v1.StageOption
 	cb   sdk_v1.CompleteDefinitionFn
@@ -111,6 +118,12 @@ func newStageOptionParams(ctx sdk_v1.SparkContext, stageName string) sdk_v1.Stag
 	}
 }
 
+var ErrConditionalStageSkipped = errors.New("conditional stage execution")
+
+func newErrConditionalStageSkipped(stageName string) error {
+	return fmt.Errorf("%w: stage '%s' skipped", ErrConditionalStageSkipped, stageName)
+}
+
 func WithStageStatus(stageName string, status sdk_v1.StageStatus) sdk_v1.StageOption {
 	return func(sop sdk_v1.StageOptionParams) sdk_v1.StageError {
 		stageStatus, err := sop.StageProgressHandler().Get(sop.Context().JobKey(), stageName)
@@ -118,7 +131,7 @@ func WithStageStatus(stageName string, status sdk_v1.StageStatus) sdk_v1.StageOp
 			return sdk_errors.NewStageError(err, sdk_errors.WithErrorType(sdk_v1.ErrorType_ERROR_TYPE_FAILED_UNSPECIFIED))
 		}
 		if *stageStatus != status {
-			return sdk_errors.NewStageError(fmt.Errorf("conditional stage execution: stage '%s' skipped", stageName), sdk_errors.WithErrorType(sdk_v1.ErrorType_ERROR_TYPE_SKIP))
+			return sdk_errors.NewStageError(newErrConditionalStageSkipped(stageName), sdk_errors.WithErrorType(sdk_v1.ErrorType_ERROR_TYPE_SKIP))
 		}
 		return nil
 	}

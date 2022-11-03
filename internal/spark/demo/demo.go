@@ -56,10 +56,9 @@ func (c CheckoutSpark) CreateTransaction(ctx sdk_v1.StageContext) (any, sdk_v1.S
 
 	if err != nil {
 		ctx.Log().Info("create_payment_transaction completed")
-		return nil, sdk_errors.NewStageError(err, sdk_errors.WithRetry(10, 500))
+		return nil, sdk_errors.NewStageError(err, sdk_errors.WithRetry(10, 500)) //nolint:gomnd
 	}
 	return transactionCreated, nil
-
 }
 
 func (c CheckoutSpark) ReserveInventoryItems(ctx sdk_v1.StageContext) (any, sdk_v1.StageError) {
@@ -75,7 +74,6 @@ func (c CheckoutSpark) ReserveInventoryItems(ctx sdk_v1.StageContext) (any, sdk_
 		return nil, sdk_errors.NewStageError(err, sdk_errors.WithErrorType(sdk_v1.ErrorType_ERROR_TYPE_CANCELLED))
 	}
 	return inventoryItems, nil
-
 }
 
 func (c CheckoutSpark) ConfirmPaymentTransaction(ctx sdk_v1.CompleteContext) sdk_v1.StageError {
@@ -90,7 +88,7 @@ func (c CheckoutSpark) ConfirmPaymentTransaction(ctx sdk_v1.CompleteContext) sdk
 		return sdk_errors.NewStageError(err)
 	}
 
-	err = ctx.Output(&handlers.Variable{Name: "newVar", MimeType: api.MimeTypeJson, Value: "someValue"})
+	err = ctx.Output(&handlers.Variable{Name: "newVar", MimeType: api.MimeTypeJSON, Value: "someValue"})
 	if err != nil {
 		return sdk_errors.NewStageError(err)
 	}
@@ -99,12 +97,12 @@ func (c CheckoutSpark) ConfirmPaymentTransaction(ctx sdk_v1.CompleteContext) sdk
 }
 
 func (c CheckoutSpark) CancelPaymentTransaction(ctx sdk_v1.StageContext) (any, sdk_v1.StageError) {
-	c.paymentProvider.CancelTransaction(Transaction{})
+	c.paymentProvider.CancelTransaction(Transaction{}) //nolint:errcheck
 	return nil, nil
 }
 
 func (c CheckoutSpark) RestoreInventoryItems(ctx sdk_v1.StageContext) (any, sdk_v1.StageError) {
-	c.inventoryManagementService.RestoreAvailability(nil)
+	c.inventoryManagementService.RestoreAvailability(nil) //nolint:errcheck
 	return nil, nil
 }
 
@@ -119,18 +117,13 @@ func (c CheckoutSpark) SendCancelEmail(ctx sdk_v1.StageContext) (any, sdk_v1.Sta
 }
 
 type CheckoutService interface {
-	//STAGES
 	CreateTransaction() sdk_v1.StageDefinitionFn
 	ReserveInventoryItems() sdk_v1.StageDefinitionFn
-	//COMPLETE
 	ConfirmPaymentTransaction() sdk_v1.CompleteDefinitionFn
-	//COMPENSATE
 	CancelPaymentTransaction() sdk_v1.StageDefinitionFn
 	RestoreInventoryItems() sdk_v1.StageDefinitionFn
 	SendApologiesEmail() sdk_v1.StageDefinitionFn
-	//CANCEL
 	SendCancelEmail() sdk_v1.StageDefinitionFn
-
 	Spark() (*spark.Chain, error)
 }
 
@@ -141,7 +134,7 @@ type PaymentProvider interface {
 }
 
 type Transaction struct {
-	Id     string
+	ID     string
 	Amount float64
 }
 
@@ -151,7 +144,7 @@ type InventoryManagementService interface {
 }
 
 type InventoryItem struct {
-	Id   string
+	ID   string
 	Name string
 }
 

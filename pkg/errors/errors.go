@@ -3,19 +3,20 @@ package errors
 import (
 	"encoding/json"
 	"errors"
+
 	sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
 var (
-	StageDoesNotExist = errors.New("stage does not exists")
-	BindValueFailed   = errors.New("bind value failed")
-	VariableNotFound  = errors.New("variable not found")
+	ErrStageDoesNotExist = errors.New("stage does not exists")
+	ErrBindValueFailed   = errors.New("bind value failed")
+	ErrVariableNotFound  = errors.New("variable not found")
 
 	errorTypeToStageStatusMapper = map[sdk_v1.ErrorType]sdk_v1.StageStatus{
 		sdk_v1.ErrorType_ERROR_TYPE_RETRY:              sdk_v1.StageStatus_STAGE_STATUS_FAILED,
 		sdk_v1.ErrorType_ERROR_TYPE_SKIP:               sdk_v1.StageStatus_STAGE_STATUS_SKIPPED,
-		sdk_v1.ErrorType_ERROR_TYPE_CANCELLED:          sdk_v1.StageStatus_STAGE_STATUS_CANCELED,
+		sdk_v1.ErrorType_ERROR_TYPE_CANCELLED:          sdk_v1.StageStatus_STAGE_STATUS_CANCELLED,
 		sdk_v1.ErrorType_ERROR_TYPE_FAILED_UNSPECIFIED: sdk_v1.StageStatus_STAGE_STATUS_FAILED,
 	}
 )

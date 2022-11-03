@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+
 	"github.com/azarc-io/vth-faas-sdk-go/internal/handlers"
 	sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1"
 )
@@ -19,7 +20,7 @@ func (g VariableHandler) Inputs(jobKey string, names ...string) *sdk_v1.Inputs {
 	if err != nil {
 		return sdk_v1.NewInputs(err)
 	}
-	var vars []*sdk_v1.Variable
+	var vars []*sdk_v1.Variable //nolint:prealloc
 	for _, v := range variables.Variables {
 		vars = append(vars, v)
 	}

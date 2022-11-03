@@ -6,7 +6,7 @@ import (
 	grpc_handler "github.com/azarc-io/vth-faas-sdk-go/internal/handlers/grpc"
 	"github.com/azarc-io/vth-faas-sdk-go/internal/logger"
 	"github.com/azarc-io/vth-faas-sdk-go/internal/spark"
-	"github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1"
+	sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1"
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/config"
 )
 

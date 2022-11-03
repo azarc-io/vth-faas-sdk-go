@@ -1,10 +1,11 @@
 package v1 // TODO do not add that to the binary
 
 import (
+	"testing"
+
 	"github.com/azarc-io/vth-faas-sdk-go/internal/spark"
 	sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1"
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/config"
-	"testing"
 )
 
 type TestWorker struct {

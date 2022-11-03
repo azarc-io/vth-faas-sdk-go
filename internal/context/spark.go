@@ -2,6 +2,7 @@ package context
 
 import (
 	ctx "context"
+
 	sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1"
 )
 
@@ -14,7 +15,7 @@ type Job struct {
 }
 
 func NewJobContext(metadata sdk_v1.Context, sph sdk_v1.StageProgressHandler, vh sdk_v1.IOHandler, log sdk_v1.Logger) sdk_v1.SparkContext {
-	m := SparkMetadata{ctx: metadata.Ctx(), jobKey: metadata.JobKey(), correlationId: metadata.CorrelationID(), transactionId: metadata.TransactionID(), lastActiveStage: metadata.LastActiveStage()}
+	m := SparkMetadata{ctx: metadata.Ctx(), jobKey: metadata.JobKey(), correlationID: metadata.CorrelationID(), transactionID: metadata.TransactionID(), lastActiveStage: metadata.LastActiveStage()}
 	return &Job{metadata: &m, stageProgressHandler: sph, variableHandler: vh, log: log}
 }
 
@@ -35,11 +36,11 @@ func (j *Job) JobKey() string {
 }
 
 func (j *Job) CorrelationID() string {
-	return j.metadata.correlationId
+	return j.metadata.correlationID
 }
 
 func (j *Job) TransactionID() string {
-	return j.metadata.transactionId
+	return j.metadata.transactionID
 }
 
 func (j *Job) LastActiveStage() *sdk_v1.LastActiveStage {

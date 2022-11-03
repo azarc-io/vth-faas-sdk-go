@@ -222,7 +222,7 @@ func TestSparkExecutor(t *testing.T) {
 			},
 			errorType: lo.ToPtr(sdk_v1.ErrorType_ERROR_TYPE_FAILED_UNSPECIFIED),
 			prepare: func(sph *inmemory.StageProgressHandler) {
-				sph.AddBehaviour().Set("stage1", sdk_v1.StageStatus_STAGE_STATUS_CANCELED, errors.New("error updating status for stage 1"))
+				sph.AddBehaviour().Set("stage1", sdk_v1.StageStatus_STAGE_STATUS_CANCELLED, errors.New("error updating status for stage 1"))
 			},
 		},
 		{
@@ -269,7 +269,7 @@ func TestSparkExecutor(t *testing.T) {
 				assert.True(t, sb.Executed("compensate"), "'compensate' must have been executed")
 				stageCompensate, err := sph.Get("jobKey", "compensate")
 				assert.Nil(t, err)
-				assert.Equal(t, lo.ToPtr(sdk_v1.StageStatus_STAGE_STATUS_CANCELED), stageCompensate, "'compensate' should be in 'completed' status, got: %s", stageCompensate)
+				assert.Equal(t, lo.ToPtr(sdk_v1.StageStatus_STAGE_STATUS_CANCELLED), stageCompensate, "'compensate' should be in 'completed' status, got: %s", stageCompensate)
 			},
 			errorType: lo.ToPtr(sdk_v1.ErrorType_ERROR_TYPE_CANCELLED),
 		},

@@ -2,9 +2,10 @@ package inmemory
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/azarc-io/vth-faas-sdk-go/internal/handlers"
 	sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1"
-	"testing"
 )
 
 type inMemoryIOHandler struct {

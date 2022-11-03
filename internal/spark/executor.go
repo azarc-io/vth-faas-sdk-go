@@ -19,7 +19,8 @@ func (c *Chain) Execute(ctx sdk_v1.SparkContext) sdk_v1.StageError {
 	return c.runner(ctx, n)
 }
 
-func (c *Chain) runner(ctx sdk_v1.SparkContext, node *node) sdk_v1.StageError {
+//nolint:cyclop
+func (c *Chain) runner(ctx sdk_v1.SparkContext, node *Node) sdk_v1.StageError {
 	stages := getStagesToResume(node, ctx.LastActiveStage())
 	for _, stg := range stages {
 		ctx.Log().AddFields(stageLogField, stg.name).AddFields(jobKeyLogField, ctx.JobKey())
@@ -77,7 +78,8 @@ func (c *Chain) runner(ctx sdk_v1.SparkContext, node *node) sdk_v1.StageError {
 	return nil
 }
 
-func (c *Chain) handleStageError(ctx sdk_v1.SparkContext, node *node, stg *stage, err sdk_v1.StageError) sdk_v1.StageError {
+//nolint:cyclop
+func (c *Chain) handleStageError(ctx sdk_v1.SparkContext, node *Node, stg *stage, err sdk_v1.StageError) sdk_v1.StageError {
 	if err == nil {
 		return nil
 	}
@@ -106,6 +108,8 @@ func (c *Chain) handleStageError(ctx sdk_v1.SparkContext, node *node, stg *stage
 		return err
 	case sdk_v1.ErrorType_ERROR_TYPE_SKIP:
 		return err
+	case sdk_v1.ErrorType_ERROR_TYPE_FATAL:
+		fallthrough
 	default:
 		ctx.Log().Error(err, "unsupported error type returned from stage '%s'", stg.name)
 		return sdk_errors.NewStageError(err, sdk_errors.WithErrorType(sdk_v1.ErrorType_ERROR_TYPE_FATAL))
@@ -113,7 +117,7 @@ func (c *Chain) handleStageError(ctx sdk_v1.SparkContext, node *node, stg *stage
 }
 
 func storeStageResult(ctx sdk_v1.SparkContext, stg *stage, result any) sdk_v1.StageError {
-	if result != nil {
+	if result != nil { //nolint:nestif
 		req, err := sdk_v1.NewSetStageResultReq(ctx.JobKey(), stg.name, result)
 		if err != nil {
 			ctx.Log().Error(err, "error creating set stage status request")
@@ -183,7 +187,7 @@ func updateStage(ctx sdk_v1.SparkContext, name string, opts ...updateStageOption
 	return ctx.StageProgressHandler().Set(req)
 }
 
-func getStagesToResume(n *node, lastActiveStage *sdk_v1.LastActiveStage) []*stage {
+func getStagesToResume(n *Node, lastActiveStage *sdk_v1.LastActiveStage) []*stage {
 	if lastActiveStage == nil {
 		return n.stages
 	}

@@ -3,16 +3,17 @@ package config
 import (
 	"context"
 	"fmt"
+	"time"
+
 	"github.com/lithammer/shortuuid/v4"
 	"github.com/sethvargo/go-envconfig"
-	"time"
 )
 
 type Config struct {
 	App struct {
 		Environment string `env:"APP_ENVIRONMENT,required"`
 		Component   string `env:"APP_COMPONENT,default=job_worker"`
-		InstanceId  string
+		InstanceID  string
 	}
 	Log struct {
 		Level string `env:"LOG_LEVEL,default=info"`
@@ -51,6 +52,6 @@ func NewMock(mapper map[string]string) (*Config, error) {
 		fmt.Printf("error loading configuration: %s", err.Error())
 		return nil, err
 	}
-	config.App.InstanceId = shortuuid.New()
+	config.App.InstanceID = shortuuid.New()
 	return config, nil
 }

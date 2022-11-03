@@ -4,12 +4,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"reflect"
+
+	"github.com/samber/lo"
+
 	"github.com/azarc-io/vth-faas-sdk-go/internal/handlers"
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/api"
-	"github.com/samber/lo"
 	"google.golang.org/protobuf/types/known/structpb"
-	"reflect"
 )
+
+var ErrInputVariableNotFound = errors.New("input variable not found")
 
 func (x *Variable) Raw() ([]byte, error) {
 	return x.Value.MarshalJSON()
@@ -24,13 +28,13 @@ func (x *StageResult) Raw() ([]byte, error) {
 }
 
 func (x *StageResult) Bind(a any) error {
-	return serdesMap[api.MimeTypeJson].unmarshal(x.Data, a)
+	return serdesMap[api.MimeTypeJSON].unmarshal(x.Data, a)
 }
 
 func NewSetStageResultReq(jobKey, name string, data any) (*SetStageResultRequest, error) {
 	pbValue, err := structpb.NewValue(data)
 	if err != nil {
-		switch reflect.TypeOf(data).Kind() {
+		switch reflect.TypeOf(data).Kind() { //nolint:exhaustive
 		case reflect.Slice, reflect.Array:
 			arr := reflect.ValueOf(data)
 			var anyArr []any
@@ -119,9 +123,7 @@ func NewGetVariablesRequest(jobKey string, names ...string) *GetVariablesRequest
 	vr := &GetVariablesRequest{
 		JobKey: jobKey,
 	}
-	for _, name := range names {
-		vr.Name = append(vr.Name, name)
-	}
+	vr.Name = append(vr.Name, names...)
 	return vr
 }
 
@@ -147,7 +149,7 @@ type serdes struct {
 }
 
 var serdesMap = map[string]serdes{
-	api.MimeTypeJson: {
+	api.MimeTypeJSON: {
 		unmarshal: func(value *structpb.Value, a any) error {
 			data, err := value.MarshalJSON()
 			if err != nil {
@@ -211,7 +213,7 @@ func (v Inputs) Get(name string) *Input {
 	}
 	err := v.err
 	if err == nil {
-		err = errors.New("input variable not found")
+		err = ErrInputVariableNotFound
 	}
 	return &Input{nil, err}
 }

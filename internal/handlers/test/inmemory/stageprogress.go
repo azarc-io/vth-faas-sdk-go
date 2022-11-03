@@ -2,11 +2,12 @@ package inmemory
 
 import (
 	"fmt"
+	"reflect"
+	"testing"
+
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/api"
 	sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1"
 	"github.com/stretchr/testify/assert"
-	"reflect"
-	"testing"
 )
 
 type StageProgressHandler struct {
@@ -24,13 +25,11 @@ func NewStageProgressHandler(t *testing.T, seeds ...any) *StageProgressHandler {
 		map[string]*sdk_v1.SetJobStatusRequest{}, map[string]StageBehaviourParams{},
 		map[string]ResultBehaviourParams{}}
 	for _, seed := range seeds {
-		switch seed.(type) {
+		switch seed := seed.(type) {
 		case *sdk_v1.SetStageStatusRequest:
-			s := seed.(*sdk_v1.SetStageStatusRequest)
-			handler.stages[handler.key(s.JobKey, s.Name)] = s
+			handler.stages[handler.key(seed.JobKey, seed.Name)] = seed
 		case *sdk_v1.SetStageResultRequest:
-			r := seed.(*sdk_v1.SetStageResultRequest)
-			handler.results[handler.key(r.JobKey, r.Name)] = r
+			handler.results[handler.key(seed.JobKey, seed.Name)] = seed
 		default:
 			handler.t.Fatalf("invalid seed type. accepted values are: *sdk_v1.SetStageStatusRequest, *sdk_v1.SetStageResultRequest, but got: %s", reflect.TypeOf(seed).String())
 		}
@@ -103,7 +102,7 @@ func (i *StageProgressHandler) AssertStageResult(jobKey, stageName string, expec
 		i.t.Error(err)
 		return
 	}
-	req, err := sdk_v1.NewSetStageResultReq(jobKey, api.MimeTypeJson, expectedStageResult)
+	req, err := sdk_v1.NewSetStageResultReq(jobKey, api.MimeTypeJSON, expectedStageResult)
 	if err != nil {
 		i.t.Error(err)
 		return

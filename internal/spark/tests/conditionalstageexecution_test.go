@@ -58,7 +58,7 @@ func TestConditionalStageExecution(t *testing.T) {
 					spark.NewNode().
 						Stage("stage1", stageFn("stage1", sb)).
 						Stage("stage2", stageFn("stage2", sb), spark.WithStageStatus("stage1", sdk_v1.StageStatus_STAGE_STATUS_FAILED)).
-						Stage("stage3", stageFn("stage3", sb), spark.WithStageStatus("stage2", sdk_v1.StageStatus_STAGE_STATUS_CANCELED)).
+						Stage("stage3", stageFn("stage3", sb), spark.WithStageStatus("stage2", sdk_v1.StageStatus_STAGE_STATUS_CANCELLED)).
 						Build()).
 					Build()
 				if err != nil {
