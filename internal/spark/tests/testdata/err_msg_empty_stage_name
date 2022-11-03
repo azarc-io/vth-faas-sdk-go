@@ -1,0 +1,3 @@
+chain validation error : 
+	stage with empty name <""> found at 'root'
+	no stage defined for node: root

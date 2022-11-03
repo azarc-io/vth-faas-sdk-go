@@ -1,0 +1,2 @@
+chain validation error : 
+	unique stage name restriction violated: a stage or complete stage in 'root' and 'root' have the same name: 'stage1'

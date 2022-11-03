@@ -1,0 +1,116 @@
+---
+name: Pull Request
+
+on:
+  pull_request:
+    branches: [ 'main' ]
+    types:
+      - opened
+      - synchronize
+    paths-ignore: ["docs/**"]
+
+env:
+  MAKEFLAGS: '-j 2'
+
+jobs:
+  lint:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Install Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.19.x
+
+      - name: Install Buf
+        uses: bufbuild/buf-setup-action@v1
+        with:
+          version: "1.9.0"
+
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/vth-faas-sdk-go/${{ runner.os }}/x86_64/bin
+            ~/.cache/vth-faas-sdk-go/${{ runner.os }}/x86_64/go/pkg/mod
+            ~/.cache/vth-faas-sdk-go/${{ runner.os }}/x86_64/include
+            ~/.cache/vth-faas-sdk-go/${{ runner.os }}/x86_64/versions
+          key: ${{ runner.os }}-vth-faas-sdk-go-${{ hashFiles('**/go.sum', 'make/**') }}
+          restore-keys: |
+            ${{ runner.os }}-vth-faas-sdk-go-lint-
+
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Lint Code
+        run: make lint
+        env:
+          BUF_BREAKING_AGAINST_INPUT: 'https://github.com/azarc-io/vth-faas-sdk-go.git#branch=main'
+          BUF_INPUT_HTTPS_USERNAME: ${{ github.actor }}
+          BUF_INPUT_HTTPS_PASSWORD: ${{ github.token }}
+
+      - name: Lint Proto
+        run: make buflint
+        env:
+          BUF_BREAKING_AGAINST_INPUT: 'https://github.com/azarc-io/vth-faas-sdk-go.git#branch=main'
+          BUF_INPUT_HTTPS_USERNAME: ${{ github.actor }}
+          BUF_INPUT_HTTPS_PASSWORD: ${{ github.token }}
+
+#      - name: Breaking Changes
+#        run: make bufbreaking
+
+  test:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Install Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.19.x
+
+      - name: Install Buf
+        uses: bufbuild/buf-setup-action@v1
+        with:
+          version: "1.9.0"
+
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/vth-faas-sdk-go/${{ runner.os }}/x86_64/bin
+            ~/.cache/vth-faas-sdk-go/${{ runner.os }}/x86_64/go/pkg/mod
+            ~/.cache/vth-faas-sdk-go/${{ runner.os }}/x86_64/include
+            ~/.cache/vth-faas-sdk-go/${{ runner.os }}/x86_64/versions
+          key: ${{ runner.os }}-vth-faas-sdk-go-${{ hashFiles('**/go.sum', 'make/**') }}
+          restore-keys: |
+            ${{ runner.os }}-vth-faas-sdk-go-test-
+
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Test With Coverage
+        if: always()
+        run: make cover
+
+      - name: Annotate tests
+        if: always()
+        uses: guyarb/golang-test-annotations@v0.6.0
+        with:
+          test-results: .tmp/cover.json
+          package-name: github.com/azarc-io/vth-faas-sdk-go
+
+      - name: Pull request comment
+        if: always()
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
+        run: make reportcoveragegithub
+
+      - name: Test Summary
+        if: always()
+        uses: test-summary/action@v2
+        with:
+          paths: .tmp/report.xml
