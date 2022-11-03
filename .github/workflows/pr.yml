@@ -28,6 +28,8 @@ jobs:
         uses: bufbuild/buf-setup-action@v1
         with:
           version: "1.9.0"
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
 
       - name: Checkout code
         uses: actions/checkout@v3
@@ -60,9 +62,6 @@ jobs:
           BUF_INPUT_HTTPS_USERNAME: ${{ github.actor }}
           BUF_INPUT_HTTPS_PASSWORD: ${{ github.token }}
           BUF_BIN_OVERRIDE: buf
-
-#      - name: Breaking Changes
-#        run: make bufbreaking
 
   test:
     runs-on: ubuntu-20.04
