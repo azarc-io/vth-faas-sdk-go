@@ -16,6 +16,12 @@ BUF_VERSION ?= v1.9.0
 # This can be used to always do "go install ./cmd/buf" or
 # "go install github.com/bufbuild/buf/cmd/buf".
 BUF_GO_INSTALL_PATH ?=
+# if defined then set buf bin to be this value
+BUF_BIN_OVERRIDE ?=
+
+ifneq ($(BUF_BIN_OVERRIDE),)
+BUF_BIN := $(BUF_BIN_OVERRIDE)
+else
 
 ifneq ($(BUF_GO_INSTALL_PATH),)
 .PHONY: __goinstallbuf
@@ -39,4 +45,8 @@ $(BUF):
 BUF_BIN := $(CACHE_BIN)/buf
 
 dockerdeps:: $(BUF)
+
 endif
+
+endif
+

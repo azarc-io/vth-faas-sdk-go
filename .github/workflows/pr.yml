@@ -16,6 +16,9 @@ jobs:
   lint:
     runs-on: ubuntu-20.04
     steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
       - name: Install Go
         uses: actions/setup-go@v3
         with:
@@ -31,18 +34,16 @@ jobs:
 
       - name: Cache
         uses: actions/cache@v3
+        if: success()
         with:
           path: |
             ~/.cache/vth-faas-sdk-go/${{ runner.os }}/x86_64/bin
             ~/.cache/vth-faas-sdk-go/${{ runner.os }}/x86_64/go/pkg/mod
             ~/.cache/vth-faas-sdk-go/${{ runner.os }}/x86_64/include
             ~/.cache/vth-faas-sdk-go/${{ runner.os }}/x86_64/versions
-          key: ${{ runner.os }}-vth-faas-sdk-go-${{ hashFiles('**/go.sum', 'make/**') }}
+          key: ${{ runner.os }}-vth-faas-sdk-go-lint-${{ hashFiles('**/go.sum', 'make/**') }}
           restore-keys: |
             ${{ runner.os }}-vth-faas-sdk-go-lint-
-
-      - name: Checkout
-        uses: actions/checkout@v3
 
       - name: Lint Code
         run: make lint
@@ -50,6 +51,7 @@ jobs:
           BUF_BREAKING_AGAINST_INPUT: 'https://github.com/azarc-io/vth-faas-sdk-go.git#branch=main'
           BUF_INPUT_HTTPS_USERNAME: ${{ github.actor }}
           BUF_INPUT_HTTPS_PASSWORD: ${{ github.token }}
+          BUF_BIN_OVERRIDE: buf
 
       - name: Lint Proto
         run: make buflint
@@ -57,6 +59,7 @@ jobs:
           BUF_BREAKING_AGAINST_INPUT: 'https://github.com/azarc-io/vth-faas-sdk-go.git#branch=main'
           BUF_INPUT_HTTPS_USERNAME: ${{ github.actor }}
           BUF_INPUT_HTTPS_PASSWORD: ${{ github.token }}
+          BUF_BIN_OVERRIDE: buf
 
 #      - name: Breaking Changes
 #        run: make bufbreaking
@@ -79,13 +82,14 @@ jobs:
 
       - name: Cache
         uses: actions/cache@v3
+        if: success()
         with:
           path: |
             ~/.cache/vth-faas-sdk-go/${{ runner.os }}/x86_64/bin
             ~/.cache/vth-faas-sdk-go/${{ runner.os }}/x86_64/go/pkg/mod
             ~/.cache/vth-faas-sdk-go/${{ runner.os }}/x86_64/include
             ~/.cache/vth-faas-sdk-go/${{ runner.os }}/x86_64/versions
-          key: ${{ runner.os }}-vth-faas-sdk-go-${{ hashFiles('**/go.sum', 'make/**') }}
+          key: ${{ runner.os }}-vth-faas-sdk-go-test-${{ hashFiles('**/go.sum', 'make/**') }}
           restore-keys: |
             ${{ runner.os }}-vth-faas-sdk-go-test-
 
