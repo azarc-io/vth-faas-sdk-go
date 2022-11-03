@@ -18,8 +18,9 @@ include make/go/buf.mk
 include make/go/go.mk
 include make/go/dep_protoc.mk
 include make/go/dep_protoc_gen_go.mk
+include make/go/dep_protoc_gen_go_grpc.mk
 
-bufgeneratedeps:: $(BUF) $(PROTOC_GEN_GO)
+bufgeneratedeps:: $(BUF) $(PROTOC_GEN_GO) $(PROTOC_GEN_GO_GRPC)
 
 # if you want to clean a directory before generating proto use rm here
 .PHONY: bufgenerateclean
