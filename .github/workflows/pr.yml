@@ -31,7 +31,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - uses: actions/cache@v3
+      - name: Cache
+        uses: actions/cache@v3
         with:
           path: |
             ~/go/pkg/mod
@@ -53,7 +54,20 @@ jobs:
       - name: Downloads the dependencies
         run: go mod download
 
-      - name: Lint proto
+      - name: Lint Code
+        run: make lint
+        env:
+          BUF_BREAKING_AGAINST_INPUT: 'https://github.com/azarc-io/vth-faas-sdk-go.git#branch=main'
+          BUF_INPUT_HTTPS_USERNAME: ${{ github.actor }}
+          BUF_INPUT_HTTPS_PASSWORD: ${{ github.token }}
+
+      - name: Lint Proto
+        run: make buflint
+
+#      - name: Breaking Changes
+#        run: make bufbreaking
+
+      - name: Test With Coverage
         if: always()
         uses: bufbuild/buf-lint-action@v1
 
