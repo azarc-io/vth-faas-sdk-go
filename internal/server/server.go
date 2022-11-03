@@ -32,6 +32,7 @@ func (s Server) Start() error {
 	// LOGGER SAMPLE >> add .Fields(fields) with the spark name on it
 	log := logger.NewLogger()
 
+	// nosemgrep
 	s.svr = grpc.NewServer(grpc.ConnectionTimeout(connectionTimeout)) // TODO env var
 	sdk_v1.RegisterAgentServiceServer(s.svr, s)
 
