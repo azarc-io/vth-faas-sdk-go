@@ -19,7 +19,7 @@ jobs:
       - name: Install Go
         uses: actions/setup-go@v3
         with:
-          go-version: ${{ matrix.go-version }}
+          go-version: 1.19.x
 
       - name: Install Buf
         uses: bufbuild/buf-setup-action@v1
@@ -40,11 +40,6 @@ jobs:
           key: ${{ runner.os }}-vth-faas-sdk-go-${{ hashFiles('**/go.sum', 'make/**') }}
           restore-keys: |
             ${{ runner.os }}-vth-faas-sdk-go-lint-
-
-      - name: Setup GO
-        uses: actions/setup-go@v3
-        with:
-          go-version: 1.18
 
       - name: Checkout
         uses: actions/checkout@v3
@@ -72,7 +67,7 @@ jobs:
       - name: Install Go
         uses: actions/setup-go@v3
         with:
-          go-version: ${{ matrix.go-version }}
+          go-version: 1.19.x
 
       - name: Install Buf
         uses: bufbuild/buf-setup-action@v1
@@ -93,11 +88,6 @@ jobs:
           key: ${{ runner.os }}-vth-faas-sdk-go-${{ hashFiles('**/go.sum', 'make/**') }}
           restore-keys: |
             ${{ runner.os }}-vth-faas-sdk-go-test-
-
-      - name: Setup GO
-        uses: actions/setup-go@v3
-        with:
-          go-version: 1.18
 
       - name: Checkout
         uses: actions/checkout@v3
