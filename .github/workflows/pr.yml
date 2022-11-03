@@ -9,14 +9,12 @@ on:
       - synchronize
     paths-ignore: ["docs/**"]
 
-jobs:
-  Test:
-    strategy:
-      matrix:
-        go-version: [1.19.x]
-        os: [ubuntu-latest]
-    runs-on: ${{ matrix.os }}
+env:
+  MAKEFLAGS: '-j 2'
 
+jobs:
+  lint:
+    runs-on: ubuntu-20.04
     steps:
       - name: Install Go
         uses: actions/setup-go@v3
@@ -35,13 +33,13 @@ jobs:
         uses: actions/cache@v3
         with:
           path: |
-            ~/go/pkg/mod
-            ~/.cache/go-build
-            ~/Library/Caches/go-build
-            %LocalAppData%\go-build
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+            ~/.cache/vth-faas-sdk-go/${{ runner.os }}/x86_64/bin
+            ~/.cache/vth-faas-sdk-go/${{ runner.os }}/x86_64/go/pkg/mod
+            ~/.cache/vth-faas-sdk-go/${{ runner.os }}/x86_64/include
+            ~/.cache/vth-faas-sdk-go/${{ runner.os }}/x86_64/versions
+          key: ${{ runner.os }}-vth-faas-sdk-go-${{ hashFiles('**/go.sum', 'make/**') }}
           restore-keys: |
-            ${{ runner.os }}-go-
+            ${{ runner.os }}-vth-faas-sdk-go-lint-
 
       - name: Setup GO
         uses: actions/setup-go@v3
@@ -50,9 +48,6 @@ jobs:
 
       - name: Checkout
         uses: actions/checkout@v3
-
-      - name: Downloads the dependencies
-        run: go mod download
 
       - name: Lint Code
         run: make lint
@@ -63,53 +58,69 @@ jobs:
 
       - name: Lint Proto
         run: make buflint
+        env:
+          BUF_BREAKING_AGAINST_INPUT: 'https://github.com/azarc-io/vth-faas-sdk-go.git#branch=main'
+          BUF_INPUT_HTTPS_USERNAME: ${{ github.actor }}
+          BUF_INPUT_HTTPS_PASSWORD: ${{ github.token }}
 
 #      - name: Breaking Changes
 #        run: make bufbreaking
 
+  test:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Install Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: ${{ matrix.go-version }}
+
+      - name: Install Buf
+        uses: bufbuild/buf-setup-action@v1
+        with:
+          version: "1.9.0"
+
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/vth-faas-sdk-go/${{ runner.os }}/x86_64/bin
+            ~/.cache/vth-faas-sdk-go/${{ runner.os }}/x86_64/go/pkg/mod
+            ~/.cache/vth-faas-sdk-go/${{ runner.os }}/x86_64/include
+            ~/.cache/vth-faas-sdk-go/${{ runner.os }}/x86_64/versions
+          key: ${{ runner.os }}-vth-faas-sdk-go-${{ hashFiles('**/go.sum', 'make/**') }}
+          restore-keys: |
+            ${{ runner.os }}-vth-faas-sdk-go-test-
+
+      - name: Setup GO
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.18
+
+      - name: Checkout
+        uses: actions/checkout@v3
+
       - name: Test With Coverage
         if: always()
-        uses: bufbuild/buf-lint-action@v1
-
-      - name: Lint code
-        if: always()
-        uses: golangci/golangci-lint-action@v3
-        with:
-          version: v1.50.1
-          # skip cache because of flaky behaviors
-          skip-build-cache: true
-          skip-pkg-cache: true
-
-      - uses: bufbuild/buf-breaking-action@v1
-        if: always()
-        with:
-          against: "https://github.com/azarc-io/vth-faas-sdk-go.git#branch=main"
-
-      - name: Test
-        if: always()
-        run: go test -cover -coverprofile coverage.txt -race -v -json ./... > test.json
+        run: make cover
 
       - name: Annotate tests
         if: always()
         uses: guyarb/golang-test-annotations@v0.6.0
         with:
-          test-results: test.json
+          test-results: .tmp/cover.json
           package-name: github.com/azarc-io/vth-faas-sdk-go
 
       - name: Pull request comment
         if: always()
         env:
           GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
-        run: |
-          git fetch origin main
-          go get github.com/johejo/go-cover-view
-          go install github.com/johejo/go-cover-view
-          go install github.com/jstemmer/go-junit-report/v2@latest
-          go-cover-view -ci github-actions -git-diff-base origin/main
-          go-junit-report -in test.json -iocopy -out report.xml
+        run: make reportcoveragegithub
 
       - name: Test Summary
         if: always()
         uses: test-summary/action@v2
         with:
-          paths: report.xml
+          paths: .tmp/report.xml
