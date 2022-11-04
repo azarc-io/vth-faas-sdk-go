@@ -7,8 +7,9 @@ package demo
 import (
 	reflect "reflect"
 
+	v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/spark/v1"
+
 	spark "github.com/azarc-io/vth-faas-sdk-go/internal/spark"
-	v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1"
 	gomock "github.com/golang/mock/gomock"
 )
 

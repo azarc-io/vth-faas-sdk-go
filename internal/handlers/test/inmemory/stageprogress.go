@@ -5,30 +5,31 @@ import (
 	"reflect"
 	"testing"
 
+	v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/spark/v1"
+
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/api"
-	sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1"
 	"github.com/stretchr/testify/assert"
 )
 
 type StageProgressHandler struct {
 	t                  *testing.T
-	stages             map[string]*sdk_v1.SetStageStatusRequest
-	results            map[string]*sdk_v1.SetStageResultRequest
-	jobs               map[string]*sdk_v1.SetJobStatusRequest
+	stages             map[string]*v1.SetStageStatusRequest
+	results            map[string]*v1.SetStageResultRequest
+	jobs               map[string]*v1.SetJobStatusRequest
 	behaviourSet       map[string]StageBehaviourParams
 	behaviourSetResult map[string]ResultBehaviourParams
 }
 
 func NewStageProgressHandler(t *testing.T, seeds ...any) *StageProgressHandler {
 	handler := StageProgressHandler{t,
-		map[string]*sdk_v1.SetStageStatusRequest{}, map[string]*sdk_v1.SetStageResultRequest{},
-		map[string]*sdk_v1.SetJobStatusRequest{}, map[string]StageBehaviourParams{},
+		map[string]*v1.SetStageStatusRequest{}, map[string]*v1.SetStageResultRequest{},
+		map[string]*v1.SetJobStatusRequest{}, map[string]StageBehaviourParams{},
 		map[string]ResultBehaviourParams{}}
 	for _, seed := range seeds {
 		switch seed := seed.(type) {
-		case *sdk_v1.SetStageStatusRequest:
+		case *v1.SetStageStatusRequest:
 			handler.stages[handler.key(seed.JobKey, seed.Name)] = seed
-		case *sdk_v1.SetStageResultRequest:
+		case *v1.SetStageResultRequest:
 			handler.results[handler.key(seed.JobKey, seed.Name)] = seed
 		default:
 			handler.t.Fatalf("invalid seed type. accepted values are: *sdk_v1.SetStageStatusRequest, *sdk_v1.SetStageResultRequest, but got: %s", reflect.TypeOf(seed).String())
@@ -37,7 +38,7 @@ func NewStageProgressHandler(t *testing.T, seeds ...any) *StageProgressHandler {
 	return &handler
 }
 
-func (i *StageProgressHandler) Get(jobKey, name string) (*sdk_v1.StageStatus, error) {
+func (i *StageProgressHandler) Get(jobKey, name string) (*v1.StageStatus, error) {
 	if stage, ok := i.stages[i.key(jobKey, name)]; ok {
 		return &stage.Status, nil
 	}
@@ -45,7 +46,7 @@ func (i *StageProgressHandler) Get(jobKey, name string) (*sdk_v1.StageStatus, er
 	return nil, nil
 }
 
-func (i *StageProgressHandler) Set(stageStatus *sdk_v1.SetStageStatusRequest) error {
+func (i *StageProgressHandler) Set(stageStatus *v1.SetStageStatusRequest) error {
 	if bp, ok := i.behaviourSet[stageStatus.Name]; ok {
 		if bp.status == stageStatus.Status && bp.err != nil {
 			return bp.err
@@ -55,15 +56,15 @@ func (i *StageProgressHandler) Set(stageStatus *sdk_v1.SetStageStatusRequest) er
 	return nil
 }
 
-func (i *StageProgressHandler) GetResult(jobKey, name string) *sdk_v1.Result {
+func (i *StageProgressHandler) GetResult(jobKey, name string) *v1.Result {
 	if variable, ok := i.results[i.key(jobKey, name)]; ok {
-		return sdk_v1.NewResult(nil, variable.Result)
+		return v1.NewResult(nil, variable.Result)
 	}
 	i.t.Fatalf("stage result no found for params >> jobKey: %s, stageName: %s", jobKey, name)
 	return nil
 }
 
-func (i *StageProgressHandler) SetResult(result *sdk_v1.SetStageResultRequest) error {
+func (i *StageProgressHandler) SetResult(result *v1.SetStageResultRequest) error {
 	if br, ok := i.behaviourSetResult[result.Name]; ok {
 		if br.jobKey == result.GetJobKey() && br.name == result.Name && br.err != nil {
 			return br.err
@@ -73,7 +74,7 @@ func (i *StageProgressHandler) SetResult(result *sdk_v1.SetStageResultRequest) e
 	return nil
 }
 
-func (i *StageProgressHandler) SetJobStatus(jobStatus *sdk_v1.SetJobStatusRequest) error {
+func (i *StageProgressHandler) SetJobStatus(jobStatus *v1.SetJobStatusRequest) error {
 	i.jobs[jobStatus.Key] = jobStatus
 	return nil
 }
@@ -86,7 +87,7 @@ func (i *StageProgressHandler) ResetBehaviour() {
 	i.behaviourSet = map[string]StageBehaviourParams{}
 }
 
-func (i *StageProgressHandler) AssertStageStatus(jobKey, stageName string, expectedStatus sdk_v1.StageStatus) {
+func (i *StageProgressHandler) AssertStageStatus(jobKey, stageName string, expectedStatus v1.StageStatus) {
 	status, err := i.Get(jobKey, stageName)
 	if err != nil {
 		i.t.Error(err)
@@ -102,7 +103,7 @@ func (i *StageProgressHandler) AssertStageResult(jobKey, stageName string, expec
 		i.t.Error(err)
 		return
 	}
-	req, err := sdk_v1.NewSetStageResultReq(jobKey, api.MimeTypeJSON, expectedStageResult)
+	req, err := v1.NewSetStageResultReq(jobKey, api.MimeTypeJSON, expectedStageResult)
 	if err != nil {
 		i.t.Error(err)
 		return
@@ -123,7 +124,7 @@ type Behaviour struct {
 	i *StageProgressHandler
 }
 
-func (b *Behaviour) Set(stageName string, status sdk_v1.StageStatus, err error) *StageProgressHandler {
+func (b *Behaviour) Set(stageName string, status v1.StageStatus, err error) *StageProgressHandler {
 	b.i.behaviourSet[stageName] = StageBehaviourParams{err: err, status: status}
 	return b.i
 }
@@ -135,7 +136,7 @@ func (b *Behaviour) SetResult(jobKey, stageName string, err error) *StageProgres
 
 type StageBehaviourParams struct {
 	err    error
-	status sdk_v1.StageStatus
+	status v1.StageStatus
 }
 
 type ResultBehaviourParams struct {

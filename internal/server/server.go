@@ -5,10 +5,11 @@ import (
 	"net"
 	"time"
 
+	v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/spark/v1"
+
 	"github.com/azarc-io/vth-faas-sdk-go/internal/logger"
 
 	api_ctx "github.com/azarc-io/vth-faas-sdk-go/internal/context"
-	sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1"
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/config"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -16,13 +17,13 @@ import (
 
 type Server struct {
 	config    *config.Config
-	worker    sdk_v1.Worker
-	client    sdk_v1.ManagerServiceClient
+	worker    v1.Worker
+	client    v1.ManagerServiceClient
 	svr       *grpc.Server
 	heartBeat *Heartbeat
 }
 
-func NewServer(cfg *config.Config, worker sdk_v1.Worker, client sdk_v1.ManagerServiceClient) *Server {
+func NewServer(cfg *config.Config, worker v1.Worker, client v1.ManagerServiceClient) *Server {
 	return &Server{config: cfg, worker: worker, client: client}
 }
 
@@ -34,7 +35,7 @@ func (s Server) Start() error {
 
 	// nosemgrep
 	s.svr = grpc.NewServer(grpc.ConnectionTimeout(connectionTimeout)) // TODO env var
-	sdk_v1.RegisterAgentServiceServer(s.svr, s)
+	v1.RegisterAgentServiceServer(s.svr, s)
 
 	// TODO create an env var around this >> config.Grpc_reflection_enabled?
 	reflection.Register(s.svr)
@@ -62,10 +63,10 @@ func (s Server) Stop() {
 	s.svr.GracefulStop()
 }
 
-func (s Server) ExecuteJob(ctx context.Context, request *sdk_v1.ExecuteJobRequest) (*sdk_v1.ExecuteJobResponse, error) {
+func (s Server) ExecuteJob(ctx context.Context, request *v1.ExecuteJobRequest) (*v1.ExecuteJobResponse, error) {
 	jobContext := api_ctx.NewSparkMetadata(ctx, request.Key, request.CorrelationId, request.TransactionId, nil)
 	go func() { // TODO goroutine pool
 		_ = s.worker.Execute(jobContext)
 	}()
-	return &sdk_v1.ExecuteJobResponse{AgentId: s.config.App.InstanceID}, nil
+	return &v1.ExecuteJobResponse{AgentId: s.config.App.InstanceID}, nil
 }

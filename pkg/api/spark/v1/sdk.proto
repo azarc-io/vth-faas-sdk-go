@@ -1,5 +1,5 @@
 syntax = "proto3";
-package pkg.api.v1;
+package pkg.api.spark.v1;
 
 import "google/protobuf/struct.proto";
 

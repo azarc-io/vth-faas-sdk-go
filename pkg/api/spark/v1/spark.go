@@ -6,7 +6,7 @@ package sdk_v1
 import (
 	"context"
 
-	"github.com/azarc-io/vth-faas-sdk-go/internal/handlers"
+	"github.com/azarc-io/vth-faas-sdk-go/pkg/api/spark/v1/models"
 )
 
 type (
@@ -22,7 +22,7 @@ type (
 	IOHandler interface {
 		Inputs(jobKey string, names ...string) *Inputs
 		Input(jobKey, name string) *Input
-		Output(jobKey string, variables ...*handlers.Variable) error
+		Output(jobKey string, variables ...*models.Variable) error
 	}
 
 	StageProgressHandler interface {
@@ -68,7 +68,7 @@ type (
 
 	CompleteContext interface {
 		StageContext
-		Output(variables ...*handlers.Variable) error
+		Output(variables ...*models.Variable) error
 	}
 
 	StageOptionParams interface {
