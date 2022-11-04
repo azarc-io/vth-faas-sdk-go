@@ -3,7 +3,7 @@ BUF_BREAKING_INPUT := .
 BUF_BREAKING_AGAINST_INPUT ?= .git\#branch=main
 BUF_FORMAT_INPUT := .
 BUF_VERSION ?= v1.9.0
-
+GOLANGCI_SKIP_FILES = pkg/api/v1/*.pb.go
 GO_GET_PKGS := $(GO_GET_PKGS) \
 	github.com/srikrsna/protoc-gen-gotag@v0.6.2 \
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.1.0 \
