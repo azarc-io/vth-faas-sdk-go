@@ -28,8 +28,9 @@ SKIP_GOLANGCI_LINT ?=
 GOPKGS ?= $(GO_ALL_REPO_PKGS)
 # Runtime
 GOLANGCILINTTIMEOUT ?= 3m0s
-# Runtime GONOTESTCACHE
-# Runtime COVEROPEN
+# Runtime
+GOLANGCI_SKIP_DIRS ?=
+GOLANGCI_SKIP_FILES ?=
 
 COVER_HTML := $(TMP)/cover.html
 COVER_TXT := $(TMP)/cover.txt
@@ -101,7 +102,7 @@ ifneq ($(SKIP_GOLANGCI_LINT),)
 	@echo Skipping golangci-lint...
 else
 	@echo "${GOBIN}"
-	golangci-lint run --timeout $(GOLANGCILINTTIMEOUT)
+	golangci-lint run --timeout $(GOLANGCILINTTIMEOUT) --skip-dirs $(GOLANGCI_SKIP_DIRS) --skip-files $(GOLANGCI_SKIP_FILES)
 endif
 
 .PHONY: reportci

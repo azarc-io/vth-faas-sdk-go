@@ -29,6 +29,8 @@ GIT_FILE_IGNORES ?=
 DOCKER_FILE_IGNORES ?=
 # Settable
 CACHE_BASE ?= $(HOME)/.cache/$(PROJECT)
+# Settable
+GOLANGCI_FILE ?= .golangci.yml
 
 CACHE := $(CACHE_BASE)/$(UNAME_OS)/$(UNAME_ARCH)
 CACHE_BIN := $(CACHE)/bin
@@ -219,6 +221,7 @@ copyfrommakego:
 	git clone $(MAKEGO_REMOTE) $(TMP)/makego
 	rm -rf $(MAKEGO)
 	cp -R $(TMP)/makego/make/go $(MAKEGO)
+	cp $(TMP)/makego/$(GOLANGCI_FILE) .
 	@rm -rf $(TMP)/makego
 
 .PHONY: copytomakego
@@ -228,6 +231,7 @@ copytomakego:
 	git clone $(MAKEGO_REMOTE) $(TMP)/makego
 	rm -rf $(TMP)/makego/make/go
 	cp -R $(MAKEGO) $(TMP)/makego/make/go
+	cp $(GOLANGCI_FILE) $(TMP)/makego/
 	bash $(MAKEGO)/scripts/pushall.bash $(TMP)/makego
 
 .PHONY: initmakego
