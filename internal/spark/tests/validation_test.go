@@ -2,10 +2,11 @@ package tests
 
 import (
 	_ "embed"
-	"github.com/azarc-io/vth-faas-sdk-go/internal/spark"
-	sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/azarc-io/vth-faas-sdk-go/internal/spark"
+	sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/spark/v1"
+	"github.com/stretchr/testify/assert"
 )
 
 var (

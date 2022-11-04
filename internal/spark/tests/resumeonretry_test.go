@@ -3,14 +3,15 @@ package tests
 import (
 	ctx "context"
 	"errors"
+	"testing"
+
 	"github.com/azarc-io/vth-faas-sdk-go/internal/context"
 	"github.com/azarc-io/vth-faas-sdk-go/internal/handlers/test/inmemory"
 	"github.com/azarc-io/vth-faas-sdk-go/internal/spark"
 	v1 "github.com/azarc-io/vth-faas-sdk-go/internal/worker/v1"
-	sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1"
+	v12 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/spark/v1"
 	sdk_errors "github.com/azarc-io/vth-faas-sdk-go/pkg/errors"
 	"github.com/samber/lo"
-	"testing"
 )
 
 func TestResumeOnRetry(t *testing.T) {
@@ -21,9 +22,9 @@ func TestResumeOnRetry(t *testing.T) {
 	tests := []struct {
 		name            string
 		stageBehaviour  *stageBehaviour
-		lastActiveStage *sdk_v1.LastActiveStage
+		lastActiveStage *v12.LastActiveStage
 		assertFn        func(t *testing.T, sb *stageBehaviour)
-		errorType       *sdk_v1.ErrorType
+		errorType       *v12.ErrorType
 	}{
 		{
 			name:            "should execute all stages and complete",
@@ -41,7 +42,7 @@ func TestResumeOnRetry(t *testing.T) {
 		{
 			name:           "should execute only complete stage",
 			stageBehaviour: newSB(),
-			lastActiveStage: &sdk_v1.LastActiveStage{
+			lastActiveStage: &v12.LastActiveStage{
 				Name: "complete",
 			},
 			assertFn: func(t *testing.T, sb *stageBehaviour) {
@@ -59,7 +60,7 @@ func TestResumeOnRetry(t *testing.T) {
 		{
 			name:           "should execute stage3 and complete stages",
 			stageBehaviour: newSB(),
-			lastActiveStage: &sdk_v1.LastActiveStage{
+			lastActiveStage: &v12.LastActiveStage{
 				Name: "stage3",
 			},
 			assertFn: func(t *testing.T, sb *stageBehaviour) {
@@ -79,7 +80,7 @@ func TestResumeOnRetry(t *testing.T) {
 		{
 			name:           "should execute only stage2 and compensate",
 			stageBehaviour: newSB().Change("stage2", nil, sdk_errors.NewStageError(errors.New("stage2 error"))),
-			lastActiveStage: &sdk_v1.LastActiveStage{
+			lastActiveStage: &v12.LastActiveStage{
 				Name: "stage2",
 			},
 			assertFn: func(t *testing.T, sb *stageBehaviour) {
@@ -94,13 +95,13 @@ func TestResumeOnRetry(t *testing.T) {
 					}
 				}
 			},
-			errorType: lo.ToPtr(sdk_v1.ErrorType_ERROR_TYPE_FAILED_UNSPECIFIED),
+			errorType: lo.ToPtr(v12.ErrorType_ERROR_TYPE_FAILED_UNSPECIFIED),
 		},
 		{
 			name: "should execute only stage2 and cancel",
 			stageBehaviour: newSB().
-				Change("stage2", nil, sdk_errors.NewStageError(errors.New("stage2 cancel"), sdk_errors.WithErrorType(sdk_v1.ErrorType_ERROR_TYPE_CANCELLED))),
-			lastActiveStage: &sdk_v1.LastActiveStage{
+				Change("stage2", nil, sdk_errors.NewStageError(errors.New("stage2 cancel"), sdk_errors.WithErrorType(v12.ErrorType_ERROR_TYPE_CANCELLED))),
+			lastActiveStage: &v12.LastActiveStage{
 				Name: "stage2",
 			},
 			assertFn: func(t *testing.T, sb *stageBehaviour) {
@@ -115,7 +116,7 @@ func TestResumeOnRetry(t *testing.T) {
 					}
 				}
 			},
-			errorType: lo.ToPtr(sdk_v1.ErrorType_ERROR_TYPE_CANCELLED),
+			errorType: lo.ToPtr(v12.ErrorType_ERROR_TYPE_CANCELLED),
 		},
 	}
 
@@ -152,7 +153,7 @@ func createChainForResumeOnRetryTests(t *testing.T, sb *stageBehaviour) *spark.C
 			Cancelled(
 				spark.NewNode().Stage("canceled", stageFn("canceled", sb)).Build(),
 			).
-			Complete("complete", func(context sdk_v1.CompleteContext) sdk_v1.StageError {
+			Complete("complete", func(context v12.CompleteContext) v12.StageError {
 				sb.exec("complete")
 				return sb.shouldErr("complete")
 			}).Build(),
@@ -164,8 +165,8 @@ func createChainForResumeOnRetryTests(t *testing.T, sb *stageBehaviour) *spark.C
 	return chain
 }
 
-func stageFn(name string, sm *stageBehaviour) sdk_v1.StageDefinitionFn {
-	return func(context sdk_v1.StageContext) (any, sdk_v1.StageError) {
+func stageFn(name string, sm *stageBehaviour) v12.StageDefinitionFn {
+	return func(context v12.StageContext) (any, v12.StageError) {
 		sm.exec(name)
 		return sm.shouldReturn(name), sm.shouldErr(name)
 	}
@@ -174,7 +175,7 @@ func stageFn(name string, sm *stageBehaviour) sdk_v1.StageDefinitionFn {
 type behaviour struct {
 	executed bool
 	result   any
-	err      sdk_v1.StageError
+	err      v12.StageError
 }
 
 type stageBehaviour struct {
@@ -199,7 +200,7 @@ func (s *stageBehaviour) Executed(stage string) bool {
 
 }
 
-func (s *stageBehaviour) Change(stageName string, result any, shouldError sdk_v1.StageError) *stageBehaviour {
+func (s *stageBehaviour) Change(stageName string, result any, shouldError v12.StageError) *stageBehaviour {
 	s.m[stageName] = &behaviour{executed: false, err: shouldError, result: result}
 	return s
 }
@@ -218,7 +219,7 @@ func (s *stageBehaviour) exec(stage string) {
 	s.t.Fatalf("error exec stage: %s not mapped", stage)
 }
 
-func (s *stageBehaviour) shouldErr(stage string) sdk_v1.StageError {
+func (s *stageBehaviour) shouldErr(stage string) v12.StageError {
 	if b, ok := s.m[stage]; ok {
 		return b.err
 	}

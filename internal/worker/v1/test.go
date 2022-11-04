@@ -3,8 +3,9 @@ package v1 // TODO do not add that to the binary
 import (
 	"testing"
 
+	sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/spark/v1"
+
 	"github.com/azarc-io/vth-faas-sdk-go/internal/spark"
-	sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1"
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/config"
 )
 

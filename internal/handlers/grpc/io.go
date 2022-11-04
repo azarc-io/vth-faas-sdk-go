@@ -3,36 +3,37 @@ package grpc
 import (
 	"context"
 
-	"github.com/azarc-io/vth-faas-sdk-go/internal/handlers"
-	sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1"
+	"github.com/azarc-io/vth-faas-sdk-go/pkg/api/spark/v1/models"
+
+	v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/spark/v1"
 )
 
 type VariableHandler struct {
-	client sdk_v1.ManagerServiceClient
+	client v1.ManagerServiceClient
 }
 
-func NewIOHandler(client sdk_v1.ManagerServiceClient) sdk_v1.IOHandler {
+func NewIOHandler(client v1.ManagerServiceClient) v1.IOHandler {
 	return VariableHandler{client}
 }
 
-func (g VariableHandler) Inputs(jobKey string, names ...string) *sdk_v1.Inputs {
-	variables, err := g.client.GetVariables(context.Background(), sdk_v1.NewGetVariablesRequest(jobKey, names...))
+func (g VariableHandler) Inputs(jobKey string, names ...string) *v1.Inputs {
+	variables, err := g.client.GetVariables(context.Background(), v1.NewGetVariablesRequest(jobKey, names...))
 	if err != nil {
-		return sdk_v1.NewInputs(err)
+		return v1.NewInputs(err)
 	}
-	var vars []*sdk_v1.Variable //nolint:prealloc
+	var vars []*v1.Variable //nolint:prealloc
 	for _, v := range variables.Variables {
 		vars = append(vars, v)
 	}
-	return sdk_v1.NewInputs(err, vars...)
+	return v1.NewInputs(err, vars...)
 }
 
-func (g VariableHandler) Input(jobKey, name string) *sdk_v1.Input {
+func (g VariableHandler) Input(jobKey, name string) *v1.Input {
 	return g.Inputs(jobKey, name).Get(name)
 }
 
-func (g VariableHandler) Output(jobKey string, variables ...*handlers.Variable) error {
-	request, err := sdk_v1.NewSetVariablesRequest(jobKey, variables...)
+func (g VariableHandler) Output(jobKey string, variables ...*models.Variable) error {
+	request, err := v1.NewSetVariablesRequest(jobKey, variables...)
 	if err != nil {
 		return err
 	}

@@ -2,19 +2,20 @@ package tests
 
 import (
 	ctx "context"
+	"testing"
+
 	"github.com/azarc-io/vth-faas-sdk-go/internal/context"
 	"github.com/azarc-io/vth-faas-sdk-go/internal/handlers/test/inmemory"
 	"github.com/azarc-io/vth-faas-sdk-go/internal/spark"
 	v1 "github.com/azarc-io/vth-faas-sdk-go/internal/worker/v1"
-	sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1"
-	"testing"
+	v12 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/spark/v1"
 )
 
 func TestConditionalStageExecution(t *testing.T) {
 	tests := []struct {
 		name     string
 		chainFn  func() (*spark.Chain, *stageBehaviour)
-		assertFn func(t *testing.T, sb *stageBehaviour, sph sdk_v1.StageProgressHandler)
+		assertFn func(t *testing.T, sb *stageBehaviour, sph v12.StageProgressHandler)
 	}{
 		{
 			name: "should skip the second stage and only execute the first and third stages",
@@ -23,7 +24,7 @@ func TestConditionalStageExecution(t *testing.T) {
 				chain, err := spark.NewChain(
 					spark.NewNode().
 						Stage("stage1", stageFn("stage1", sb)).
-						Stage("stage2", stageFn("stage2", sb), spark.WithStageStatus("stage1", sdk_v1.StageStatus_STAGE_STATUS_FAILED)).
+						Stage("stage2", stageFn("stage2", sb), spark.WithStageStatus("stage1", v12.StageStatus_STAGE_STATUS_FAILED)).
 						Stage("stage3", stageFn("stage3", sb)).
 						Build()).
 					Build()
@@ -32,7 +33,7 @@ func TestConditionalStageExecution(t *testing.T) {
 				}
 				return chain, sb
 			},
-			assertFn: func(t *testing.T, sb *stageBehaviour, sph sdk_v1.StageProgressHandler) {
+			assertFn: func(t *testing.T, sb *stageBehaviour, sph v12.StageProgressHandler) {
 				if sb.Executed("stage2") {
 					t.Error("'stage2' should be skipped")
 				}
@@ -45,7 +46,7 @@ func TestConditionalStageExecution(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				if *stage2Status != sdk_v1.StageStatus_STAGE_STATUS_SKIPPED {
+				if *stage2Status != v12.StageStatus_STAGE_STATUS_SKIPPED {
 					t.Errorf("'stage2' should be in 'skipped' status, got: %s", stage2Status)
 				}
 			},
@@ -57,8 +58,8 @@ func TestConditionalStageExecution(t *testing.T) {
 				chain, err := spark.NewChain(
 					spark.NewNode().
 						Stage("stage1", stageFn("stage1", sb)).
-						Stage("stage2", stageFn("stage2", sb), spark.WithStageStatus("stage1", sdk_v1.StageStatus_STAGE_STATUS_FAILED)).
-						Stage("stage3", stageFn("stage3", sb), spark.WithStageStatus("stage2", sdk_v1.StageStatus_STAGE_STATUS_CANCELLED)).
+						Stage("stage2", stageFn("stage2", sb), spark.WithStageStatus("stage1", v12.StageStatus_STAGE_STATUS_FAILED)).
+						Stage("stage3", stageFn("stage3", sb), spark.WithStageStatus("stage2", v12.StageStatus_STAGE_STATUS_CANCELLED)).
 						Build()).
 					Build()
 				if err != nil {
@@ -66,7 +67,7 @@ func TestConditionalStageExecution(t *testing.T) {
 				}
 				return chain, sb
 			},
-			assertFn: func(t *testing.T, sb *stageBehaviour, sph sdk_v1.StageProgressHandler) {
+			assertFn: func(t *testing.T, sb *stageBehaviour, sph v12.StageProgressHandler) {
 				if !sb.Executed("stage1") {
 					t.Error("'stage1' should have executed")
 				}
@@ -78,7 +79,7 @@ func TestConditionalStageExecution(t *testing.T) {
 					if err != nil {
 						t.Fatal(err)
 					}
-					if *status != sdk_v1.StageStatus_STAGE_STATUS_SKIPPED {
+					if *status != v12.StageStatus_STAGE_STATUS_SKIPPED {
 						t.Errorf("'%s' should be in 'skipped' status, got: %s", stage, status)
 					}
 				}

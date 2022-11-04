@@ -4,12 +4,14 @@ import (
 	ctx "context"
 	"testing"
 
+	"github.com/azarc-io/vth-faas-sdk-go/pkg/api/spark/v1/models"
+
+	v12 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/spark/v1"
+
 	"github.com/azarc-io/vth-faas-sdk-go/internal/context"
-	"github.com/azarc-io/vth-faas-sdk-go/internal/handlers"
 	"github.com/azarc-io/vth-faas-sdk-go/internal/handlers/test/inmemory"
 	v1 "github.com/azarc-io/vth-faas-sdk-go/internal/worker/v1"
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/api"
-	sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1"
 	"github.com/golang/mock/gomock"
 	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
@@ -26,9 +28,9 @@ func TestPaymentTransaction(t *testing.T) {
 	worker, sp, io := createTestSpark(t, mailer, provider, service)
 
 	err := io.Output("jobKey",
-		&handlers.Variable{Name: "transaction", MimeType: api.MimeTypeJSON, Value: map[string]any{"id": "uuid", "amount": 50}},
-		&handlers.Variable{Name: "another", MimeType: api.MimeTypeJSON, Value: map[string]any{"key": "value"}},
-		&handlers.Variable{Name: "items", MimeType: api.MimeTypeJSON, Value: []any{map[string]any{"id": "1", "name": "itemName"}}})
+		&models.Variable{Name: "transaction", MimeType: api.MimeTypeJSON, Value: map[string]any{"id": "uuid", "amount": 50}},
+		&models.Variable{Name: "another", MimeType: api.MimeTypeJSON, Value: map[string]any{"key": "value"}},
+		&models.Variable{Name: "items", MimeType: api.MimeTypeJSON, Value: []any{map[string]any{"id": "1", "name": "itemName"}}})
 	assert.Nil(t, err)
 
 	err = worker.Execute(context.NewSparkMetadata(ctx.Background(),
@@ -42,7 +44,7 @@ func TestPaymentTransaction(t *testing.T) {
 
 	stage1Status, err := sp.Get("jobKey", "confirm_payment_transaction")
 	assert.Nil(t, err)
-	assert.Equal(t, lo.ToPtr(sdk_v1.StageStatus_STAGE_STATUS_COMPLETED), stage1Status)
+	assert.Equal(t, lo.ToPtr(v12.StageStatus_STAGE_STATUS_COMPLETED), stage1Status)
 }
 
 func createTestMocks(t *testing.T) (*MockMailer, *MockPaymentProvider, *MockInventoryManagementService, *gomock.Controller) {
@@ -53,7 +55,7 @@ func createTestMocks(t *testing.T) (*MockMailer, *MockPaymentProvider, *MockInve
 func createTestSpark(t *testing.T,
 	mailer *MockMailer,
 	provider *MockPaymentProvider,
-	service *MockInventoryManagementService) (sdk_v1.Worker, sdk_v1.StageProgressHandler, sdk_v1.IOHandler) {
+	service *MockInventoryManagementService) (v12.Worker, v12.StageProgressHandler, v12.IOHandler) {
 
 	checkoutSpark := NewCheckoutSpark(mailer, provider, service)
 

@@ -2,10 +2,10 @@
 package demo
 
 import (
-	"github.com/azarc-io/vth-faas-sdk-go/internal/handlers"
 	"github.com/azarc-io/vth-faas-sdk-go/internal/spark"
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/api"
-	sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1"
+	v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/spark/v1"
+	"github.com/azarc-io/vth-faas-sdk-go/pkg/api/spark/v1/models"
 	sdk_errors "github.com/azarc-io/vth-faas-sdk-go/pkg/errors"
 )
 
@@ -28,11 +28,11 @@ func (c CheckoutSpark) Spark() (*spark.Chain, error) {
 			Compensate(
 				spark.NewNode().
 					Stage("cancel_payment_transaction", c.CancelPaymentTransaction,
-						spark.WithStageStatus("create_payment_transaction", sdk_v1.StageStatus_STAGE_STATUS_COMPLETED)).
+						spark.WithStageStatus("create_payment_transaction", v1.StageStatus_STAGE_STATUS_COMPLETED)).
 					Stage("restore_inventory_items", c.RestoreInventoryItems,
-						spark.WithStageStatus("create_payment_transaction", sdk_v1.StageStatus_STAGE_STATUS_COMPLETED)).
+						spark.WithStageStatus("create_payment_transaction", v1.StageStatus_STAGE_STATUS_COMPLETED)).
 					Stage("send_apologies_email", c.SendApologiesEmail,
-						spark.WithStageStatus("create_payment_transaction", sdk_v1.StageStatus_STAGE_STATUS_COMPLETED)).
+						spark.WithStageStatus("create_payment_transaction", v1.StageStatus_STAGE_STATUS_COMPLETED)).
 					Build()).
 			Cancelled(
 				spark.NewNode().
@@ -42,7 +42,7 @@ func (c CheckoutSpark) Spark() (*spark.Chain, error) {
 		Build()
 }
 
-func (c CheckoutSpark) CreateTransaction(ctx sdk_v1.StageContext) (any, sdk_v1.StageError) {
+func (c CheckoutSpark) CreateTransaction(ctx v1.StageContext) (any, v1.StageError) {
 	inputs := ctx.Inputs("transaction", "another", "another", "another")
 
 	var transaction Transaction
@@ -61,7 +61,7 @@ func (c CheckoutSpark) CreateTransaction(ctx sdk_v1.StageContext) (any, sdk_v1.S
 	return transactionCreated, nil
 }
 
-func (c CheckoutSpark) ReserveInventoryItems(ctx sdk_v1.StageContext) (any, sdk_v1.StageError) {
+func (c CheckoutSpark) ReserveInventoryItems(ctx v1.StageContext) (any, v1.StageError) {
 	var inventoryItems []InventoryItem
 	err := ctx.Input("items").Bind(&inventoryItems)
 	if err != nil {
@@ -71,12 +71,12 @@ func (c CheckoutSpark) ReserveInventoryItems(ctx sdk_v1.StageContext) (any, sdk_
 	err = c.inventoryManagementService.Reserve(inventoryItems)
 
 	if err != nil {
-		return nil, sdk_errors.NewStageError(err, sdk_errors.WithErrorType(sdk_v1.ErrorType_ERROR_TYPE_CANCELLED))
+		return nil, sdk_errors.NewStageError(err, sdk_errors.WithErrorType(v1.ErrorType_ERROR_TYPE_CANCELLED))
 	}
 	return inventoryItems, nil
 }
 
-func (c CheckoutSpark) ConfirmPaymentTransaction(ctx sdk_v1.CompleteContext) sdk_v1.StageError {
+func (c CheckoutSpark) ConfirmPaymentTransaction(ctx v1.CompleteContext) v1.StageError {
 	var transaction Transaction
 	err := ctx.StageResult("create_payment_transaction").Bind(&transaction)
 	if err != nil {
@@ -88,7 +88,7 @@ func (c CheckoutSpark) ConfirmPaymentTransaction(ctx sdk_v1.CompleteContext) sdk
 		return sdk_errors.NewStageError(err)
 	}
 
-	err = ctx.Output(&handlers.Variable{Name: "newVar", MimeType: api.MimeTypeJSON, Value: "someValue"})
+	err = ctx.Output(&models.Variable{Name: "newVar", MimeType: api.MimeTypeJSON, Value: "someValue"})
 	if err != nil {
 		return sdk_errors.NewStageError(err)
 	}
@@ -96,34 +96,34 @@ func (c CheckoutSpark) ConfirmPaymentTransaction(ctx sdk_v1.CompleteContext) sdk
 	return nil
 }
 
-func (c CheckoutSpark) CancelPaymentTransaction(ctx sdk_v1.StageContext) (any, sdk_v1.StageError) {
+func (c CheckoutSpark) CancelPaymentTransaction(ctx v1.StageContext) (any, v1.StageError) {
 	c.paymentProvider.CancelTransaction(Transaction{}) //nolint:errcheck
 	return nil, nil
 }
 
-func (c CheckoutSpark) RestoreInventoryItems(ctx sdk_v1.StageContext) (any, sdk_v1.StageError) {
+func (c CheckoutSpark) RestoreInventoryItems(ctx v1.StageContext) (any, v1.StageError) {
 	c.inventoryManagementService.RestoreAvailability(nil) //nolint:errcheck
 	return nil, nil
 }
 
-func (c CheckoutSpark) SendApologiesEmail(ctx sdk_v1.StageContext) (any, sdk_v1.StageError) {
+func (c CheckoutSpark) SendApologiesEmail(ctx v1.StageContext) (any, v1.StageError) {
 	c.mailer.SomethingBadHappened()
 	return nil, nil
 }
 
-func (c CheckoutSpark) SendCancelEmail(ctx sdk_v1.StageContext) (any, sdk_v1.StageError) {
+func (c CheckoutSpark) SendCancelEmail(ctx v1.StageContext) (any, v1.StageError) {
 	c.mailer.Cancellation()
 	return nil, nil
 }
 
 type CheckoutService interface {
-	CreateTransaction() sdk_v1.StageDefinitionFn
-	ReserveInventoryItems() sdk_v1.StageDefinitionFn
-	ConfirmPaymentTransaction() sdk_v1.CompleteDefinitionFn
-	CancelPaymentTransaction() sdk_v1.StageDefinitionFn
-	RestoreInventoryItems() sdk_v1.StageDefinitionFn
-	SendApologiesEmail() sdk_v1.StageDefinitionFn
-	SendCancelEmail() sdk_v1.StageDefinitionFn
+	CreateTransaction() v1.StageDefinitionFn
+	ReserveInventoryItems() v1.StageDefinitionFn
+	ConfirmPaymentTransaction() v1.CompleteDefinitionFn
+	CancelPaymentTransaction() v1.StageDefinitionFn
+	RestoreInventoryItems() v1.StageDefinitionFn
+	SendApologiesEmail() v1.StageDefinitionFn
+	SendCancelEmail() v1.StageDefinitionFn
 	Spark() (*spark.Chain, error)
 }
 

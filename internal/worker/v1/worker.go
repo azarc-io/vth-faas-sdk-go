@@ -6,19 +6,19 @@ import (
 	grpc_handler "github.com/azarc-io/vth-faas-sdk-go/internal/handlers/grpc"
 	"github.com/azarc-io/vth-faas-sdk-go/internal/logger"
 	"github.com/azarc-io/vth-faas-sdk-go/internal/spark"
-	sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1"
+	v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/spark/v1"
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/config"
 )
 
 type SparkWorker struct {
 	config               *config.Config
 	chain                *spark.Chain
-	variableHandler      sdk_v1.IOHandler
-	stageProgressHandler sdk_v1.StageProgressHandler
-	log                  sdk_v1.Logger
+	variableHandler      v1.IOHandler
+	stageProgressHandler v1.StageProgressHandler
+	log                  v1.Logger
 }
 
-func NewSparkWorker(cfg *config.Config, chain *spark.Chain, options ...Option) (sdk_v1.Worker, error) {
+func NewSparkWorker(cfg *config.Config, chain *spark.Chain, options ...Option) (v1.Worker, error) {
 	jw := &SparkWorker{config: cfg, chain: chain}
 	for _, opt := range options {
 		jw = opt(jw)
@@ -29,13 +29,13 @@ func NewSparkWorker(cfg *config.Config, chain *spark.Chain, options ...Option) (
 	return jw, nil
 }
 
-func (w *SparkWorker) Execute(metadata sdk_v1.Context) sdk_v1.StageError {
+func (w *SparkWorker) Execute(metadata v1.Context) v1.StageError {
 	jobContext := context.NewJobContext(metadata, w.stageProgressHandler, w.variableHandler, w.log)
 	return w.chain.Execute(jobContext)
 }
 
 func (w *SparkWorker) validate() error {
-	var grpcClient sdk_v1.ManagerServiceClient
+	var grpcClient v1.ManagerServiceClient
 	if w.variableHandler == nil || w.stageProgressHandler == nil {
 		var err error
 		grpcClient, err = clients.CreateManagerServiceClient(w.config)
@@ -57,21 +57,21 @@ func (w *SparkWorker) validate() error {
 
 type Option = func(je *SparkWorker) *SparkWorker
 
-func WithIOHandler(vh sdk_v1.IOHandler) Option {
+func WithIOHandler(vh v1.IOHandler) Option {
 	return func(jw *SparkWorker) *SparkWorker {
 		jw.variableHandler = vh
 		return jw
 	}
 }
 
-func WithStageProgressHandler(sph sdk_v1.StageProgressHandler) Option {
+func WithStageProgressHandler(sph v1.StageProgressHandler) Option {
 	return func(jw *SparkWorker) *SparkWorker {
 		jw.stageProgressHandler = sph
 		return jw
 	}
 }
 
-func WithLog(log sdk_v1.Logger) Option {
+func WithLog(log v1.Logger) Option {
 	return func(jw *SparkWorker) *SparkWorker {
 		jw.log = log
 		return jw

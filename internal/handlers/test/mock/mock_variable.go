@@ -7,7 +7,8 @@ package mock
 import (
 	reflect "reflect"
 
-	sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1"
+	v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/spark/v1"
+
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -35,14 +36,14 @@ func (m *MockVariableHandler) EXPECT() *MockVariableHandlerMockRecorder {
 }
 
 // Get mocks base method.
-func (m *MockVariableHandler) Get(arg0, arg1 string, arg2 ...string) (*sdk_v1.Inputs, error) {
+func (m *MockVariableHandler) Get(arg0, arg1 string, arg2 ...string) (*v1.Inputs, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "Get", varargs...)
-	ret0, _ := ret[0].(*sdk_v1.Inputs)
+	ret0, _ := ret[0].(*v1.Inputs)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -55,7 +56,7 @@ func (mr *MockVariableHandlerMockRecorder) Get(arg0, arg1 interface{}, arg2 ...i
 }
 
 // Set mocks base method.
-func (m *MockVariableHandler) Set(arg0, arg1 string, arg2 ...*sdk_v1.Variable) error {
+func (m *MockVariableHandler) Set(arg0, arg1 string, arg2 ...*v1.Variable) error {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{arg0, arg1}
 	for _, a := range arg2 {

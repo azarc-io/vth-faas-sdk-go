@@ -3,7 +3,7 @@ package context
 import (
 	"context"
 
-	sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/v1"
+	sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/spark/v1"
 )
 
 type SparkMetadata struct {

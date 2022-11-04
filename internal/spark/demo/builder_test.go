@@ -4,8 +4,9 @@ import (
 	ctx "context"
 	"testing"
 
+	"github.com/azarc-io/vth-faas-sdk-go/pkg/api/spark/v1/models"
+
 	"github.com/azarc-io/vth-faas-sdk-go/internal/context"
-	"github.com/azarc-io/vth-faas-sdk-go/internal/handlers"
 	"github.com/azarc-io/vth-faas-sdk-go/internal/handlers/test/inmemory"
 	v1 "github.com/azarc-io/vth-faas-sdk-go/internal/worker/v1"
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/api"
@@ -32,9 +33,9 @@ func TestDemoSparkBuilder(t *testing.T) {
 
 	variablesHandler := inmemory.NewIOHandler(t)
 	err := variablesHandler.Output("jobKey",
-		&handlers.Variable{Name: "transaction", MimeType: api.MimeTypeJSON, Value: map[string]any{"id": "uuid", "amount": 50}},
-		&handlers.Variable{Name: "another", MimeType: api.MimeTypeJSON, Value: map[string]any{"key": "value"}},
-		&handlers.Variable{Name: "items", MimeType: api.MimeTypeJSON, Value: []any{map[string]any{"id": "1", "name": "itemName"}}})
+		&models.Variable{Name: "transaction", MimeType: api.MimeTypeJSON, Value: map[string]any{"id": "uuid", "amount": 50}},
+		&models.Variable{Name: "another", MimeType: api.MimeTypeJSON, Value: map[string]any{"key": "value"}},
+		&models.Variable{Name: "items", MimeType: api.MimeTypeJSON, Value: []any{map[string]any{"id": "1", "name": "itemName"}}})
 	assert.Nil(t, err)
 
 	// get the spark chain
