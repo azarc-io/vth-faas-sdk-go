@@ -10,7 +10,7 @@ require (
 	github.com/samber/lo v1.32.0
 	github.com/sethvargo/go-envconfig v0.8.2
 	github.com/stretchr/testify v1.8.0
-	google.golang.org/grpc v1.50.0
+	google.golang.org/grpc v1.44.0
 	google.golang.org/protobuf v1.28.1
 )
 
@@ -25,6 +25,6 @@ require (
 	golang.org/x/net v0.0.0-20221004154528-8021a29435af // indirect
 	golang.org/x/sys v0.0.0-20221006211917-84dc82d7e875 // indirect
 	golang.org/x/text v0.3.7 // indirect
-	google.golang.org/genproto v0.0.0-20220930163606-c98284e70a91 // indirect
+	google.golang.org/genproto v0.0.0-20200526211855-cb27e3aa2013 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

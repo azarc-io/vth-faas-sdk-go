@@ -9,8 +9,8 @@ import (
 
 	"github.com/azarc-io/vth-faas-sdk-go/internal/logger"
 
-	api_ctx "github.com/azarc-io/vth-faas-sdk-go/internal/context"
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/config"
+	api_ctx "github.com/azarc-io/vth-faas-sdk-go/pkg/spark/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )

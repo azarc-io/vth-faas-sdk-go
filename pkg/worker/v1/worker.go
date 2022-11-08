@@ -2,12 +2,12 @@ package v1
 
 import (
 	"github.com/azarc-io/vth-faas-sdk-go/internal/clients"
-	"github.com/azarc-io/vth-faas-sdk-go/internal/context"
 	grpc_handler "github.com/azarc-io/vth-faas-sdk-go/internal/handlers/grpc"
 	"github.com/azarc-io/vth-faas-sdk-go/internal/logger"
-	"github.com/azarc-io/vth-faas-sdk-go/internal/spark"
 	v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/spark/v1"
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/config"
+	"github.com/azarc-io/vth-faas-sdk-go/pkg/spark"
+	"github.com/azarc-io/vth-faas-sdk-go/pkg/spark/context"
 )
 
 type SparkWorker struct {

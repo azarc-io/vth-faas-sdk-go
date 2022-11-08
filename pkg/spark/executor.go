@@ -1,9 +1,9 @@
 package spark
 
 import (
-	"github.com/azarc-io/vth-faas-sdk-go/internal/context"
 	v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/spark/v1"
 	sdk_errors "github.com/azarc-io/vth-faas-sdk-go/pkg/errors"
+	"github.com/azarc-io/vth-faas-sdk-go/pkg/spark/context"
 )
 
 const (
