@@ -1,12 +1,12 @@
-//go:generate mockgen -source=./demo.go -destination=./demo_mocks.go -package=demo github.com/azarc-io/vth-faas-sdk-go/internal/spark/demo
+//go:generate mockgen -source=./demo.go -destination=./demo_mocks.go -package=demo github.com/azarc-io/vth-faas-sdk-go/pkg/spark/demo
 package demo
 
 import (
-	"github.com/azarc-io/vth-faas-sdk-go/internal/spark"
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/api"
 	v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/spark/v1"
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/api/spark/v1/models"
 	sdk_errors "github.com/azarc-io/vth-faas-sdk-go/pkg/errors"
+	"github.com/azarc-io/vth-faas-sdk-go/pkg/spark"
 )
 
 type CheckoutSpark struct {

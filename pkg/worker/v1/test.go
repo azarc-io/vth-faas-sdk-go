@@ -5,8 +5,8 @@ import (
 
 	sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/spark/v1"
 
-	"github.com/azarc-io/vth-faas-sdk-go/internal/spark"
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/config"
+	"github.com/azarc-io/vth-faas-sdk-go/pkg/spark"
 )
 
 type TestWorker struct {

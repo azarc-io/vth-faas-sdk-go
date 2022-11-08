@@ -6,10 +6,10 @@ import (
 
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/api/spark/v1/models"
 
-	"github.com/azarc-io/vth-faas-sdk-go/internal/context"
-	"github.com/azarc-io/vth-faas-sdk-go/internal/handlers/test/inmemory"
-	v1 "github.com/azarc-io/vth-faas-sdk-go/internal/worker/v1"
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/api"
+	"github.com/azarc-io/vth-faas-sdk-go/pkg/handler/inmemory"
+	"github.com/azarc-io/vth-faas-sdk-go/pkg/spark/context"
+	v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/worker/v1"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 )

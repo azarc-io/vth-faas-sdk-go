@@ -4,11 +4,11 @@ import (
 	ctx "context"
 	"testing"
 
-	"github.com/azarc-io/vth-faas-sdk-go/internal/context"
-	"github.com/azarc-io/vth-faas-sdk-go/internal/handlers/test/inmemory"
-	"github.com/azarc-io/vth-faas-sdk-go/internal/spark"
-	v1 "github.com/azarc-io/vth-faas-sdk-go/internal/worker/v1"
 	v12 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/spark/v1"
+	"github.com/azarc-io/vth-faas-sdk-go/pkg/handler/inmemory"
+	"github.com/azarc-io/vth-faas-sdk-go/pkg/spark"
+	"github.com/azarc-io/vth-faas-sdk-go/pkg/spark/context"
+	v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/worker/v1"
 )
 
 func TestConditionalStageExecution(t *testing.T) {
