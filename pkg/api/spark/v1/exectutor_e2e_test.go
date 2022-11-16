@@ -1,6 +1,6 @@
 //go:build e2e
 
-package sdk_v1
+package spark_v1
 
 import (
 	"context"

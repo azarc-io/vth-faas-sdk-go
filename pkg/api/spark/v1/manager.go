@@ -1,4 +1,4 @@
-package sdk_v1
+package spark_v1
 
 import (
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/config"

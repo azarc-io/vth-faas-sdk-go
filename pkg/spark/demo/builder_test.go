@@ -27,13 +27,13 @@ func TestDemoSparkBuilder(t *testing.T) {
 	checkout := NewCheckoutSpark(mailer, paymentProvider, inventoryManagementService)
 
 	// mock handlers initialization
-	stageProgressHandler := sdk_v1.NewStageProgressHandler(t)
+	stageProgressHandler := spark_v1.NewStageProgressHandler(t)
 
-	variablesHandler := sdk_v1.NewIOHandler(t)
+	variablesHandler := spark_v1.NewIOHandler(t)
 	err := variablesHandler.Output("jobKey",
-		&sdk_v1.Variable{Name: "transaction", MimeType: api.MimeTypeJSON, Value: map[string]any{"id": "uuid", "amount": 50}},
-		&sdk_v1.Variable{Name: "another", MimeType: api.MimeTypeJSON, Value: map[string]any{"key": "value"}},
-		&sdk_v1.Variable{Name: "items", MimeType: api.MimeTypeJSON, Value: []any{map[string]any{"id": "1", "name": "itemName"}}})
+		&spark_v1.Variable{Name: "transaction", MimeType: api.MimeTypeJSON, Value: map[string]any{"id": "uuid", "amount": 50}},
+		&spark_v1.Variable{Name: "another", MimeType: api.MimeTypeJSON, Value: map[string]any{"key": "value"}},
+		&spark_v1.Variable{Name: "items", MimeType: api.MimeTypeJSON, Value: []any{map[string]any{"id": "1", "name": "itemName"}}})
 	assert.Nil(t, err)
 
 	// get the spark chain
@@ -44,8 +44,8 @@ func TestDemoSparkBuilder(t *testing.T) {
 	}
 
 	sparkWorker := v1.NewSparkTestWorker(t, spark,
-		sdk_v1.WithStageProgressHandler(stageProgressHandler),
-		sdk_v1.WithIOHandler(variablesHandler))
+		spark_v1.WithStageProgressHandler(stageProgressHandler),
+		spark_v1.WithIOHandler(variablesHandler))
 
 	err = sparkWorker.Execute(context.NewSparkMetadata(ctx.Background(), "jobKey", "correlationId", "transactionId", nil))
 
