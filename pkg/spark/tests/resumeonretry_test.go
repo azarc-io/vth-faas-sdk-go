@@ -3,13 +3,10 @@ package tests
 import (
 	ctx "context"
 	"errors"
+	"github.com/azarc-io/vth-faas-sdk-go/pkg/api/spark/v1/context"
 	"testing"
 
 	v12 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/spark/v1"
-	sdk_errors "github.com/azarc-io/vth-faas-sdk-go/pkg/errors"
-	"github.com/azarc-io/vth-faas-sdk-go/pkg/handler/inmemory"
-	"github.com/azarc-io/vth-faas-sdk-go/pkg/spark"
-	"github.com/azarc-io/vth-faas-sdk-go/pkg/spark/context"
 	v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/worker/v1"
 	"github.com/samber/lo"
 )
@@ -79,7 +76,7 @@ func TestResumeOnRetry(t *testing.T) {
 		},
 		{
 			name:           "should execute only stage2 and compensate",
-			stageBehaviour: newSB().Change("stage2", nil, sdk_errors.NewStageError(errors.New("stage2 error"))),
+			stageBehaviour: newSB().Change("stage2", nil, v12.NewStageError(errors.New("stage2 error"))),
 			lastActiveStage: &v12.LastActiveStage{
 				Name: "stage2",
 			},
@@ -100,7 +97,7 @@ func TestResumeOnRetry(t *testing.T) {
 		{
 			name: "should execute only stage2 and cancel",
 			stageBehaviour: newSB().
-				Change("stage2", nil, sdk_errors.NewStageError(errors.New("stage2 cancel"), sdk_errors.WithErrorType(v12.ErrorType_ERROR_TYPE_CANCELLED))),
+				Change("stage2", nil, v12.NewStageError(errors.New("stage2 cancel"), v12.WithErrorType(v12.ErrorType_ERROR_TYPE_CANCELLED))),
 			lastActiveStage: &v12.LastActiveStage{
 				Name: "stage2",
 			},
@@ -124,7 +121,7 @@ func TestResumeOnRetry(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			test.stageBehaviour.ResetExecutions()
 			chain := createChainForResumeOnRetryTests(t, test.stageBehaviour)
-			worker := v1.NewSparkTestWorker(t, chain, v1.WithIOHandler(inmemory.NewIOHandler(t)), v1.WithStageProgressHandler(inmemory.NewStageProgressHandler(t)))
+			worker := v1.NewSparkTestWorker(t, chain, v12.WithIOHandler(v12.NewIOHandler(t)), v12.WithStageProgressHandler(v12.NewStageProgressHandler(t)))
 			err := worker.Execute(context.NewSparkMetadata(ctx.Background(), "jobKey", "correlationId", "transactionId", test.lastActiveStage))
 			if err != nil && test.errorType == nil {
 				t.Errorf("a unexpected error occured: %v", err)
@@ -141,17 +138,17 @@ func TestResumeOnRetry(t *testing.T) {
 	}
 }
 
-func createChainForResumeOnRetryTests(t *testing.T, sb *stageBehaviour) *spark.Chain {
-	chain, err := spark.NewChain(
-		spark.NewNode().
+func createChainForResumeOnRetryTests(t *testing.T, sb *stageBehaviour) *v12.BuilderChain {
+	chain, err := v12.NewChain(
+		v12.NewNode().
 			Stage("stage1", stageFn("stage1", sb)).
 			Stage("stage2", stageFn("stage2", sb)).
 			Stage("stage3", stageFn("stage3", sb)).
 			Compensate(
-				spark.NewNode().Stage("compensate", stageFn("compensate", sb)).Build(),
+				v12.NewNode().Stage("compensate", stageFn("compensate", sb)).Build(),
 			).
 			Cancelled(
-				spark.NewNode().Stage("canceled", stageFn("canceled", sb)).Build(),
+				v12.NewNode().Stage("canceled", stageFn("canceled", sb)).Build(),
 			).
 			Complete("complete", func(context v12.CompleteContext) v12.StageError {
 				sb.exec("complete")

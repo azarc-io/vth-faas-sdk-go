@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/spark/v1"
-	"github.com/azarc-io/vth-faas-sdk-go/pkg/spark"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -23,35 +22,35 @@ var (
 func Test(t *testing.T) {
 	tests := []struct {
 		name             string
-		chainFn          func() (*spark.Chain, error)
+		chainFn          func() (*sdk_v1.BuilderChain, error)
 		expectedErrorMsg string
 	}{
 		{
 			name: "should return no validation errors",
-			chainFn: func() (*spark.Chain, error) {
-				return spark.NewChain(
-					spark.NewNode().
+			chainFn: func() (*sdk_v1.BuilderChain, error) {
+				return sdk_v1.NewChain(
+					sdk_v1.NewNode().
 						Stage("stage1", noOpStage).
 						Stage("stage2", noOpStage).
 						Stage("stage3", noOpStage).
 						Complete("complete", noOpComplete).
-						Compensate(spark.NewNode().Stage("compensate", noOpStage).Build()).
-						Cancelled(spark.NewNode().Stage("canceled", noOpStage).Build()).
+						Compensate(sdk_v1.NewNode().Stage("compensate", noOpStage).Build()).
+						Cancelled(sdk_v1.NewNode().Stage("canceled", noOpStage).Build()).
 						Build()).
 					Build()
 			},
 		},
 		{
 			name: "should return validation error: same name used in two stages",
-			chainFn: func() (*spark.Chain, error) {
-				return spark.NewChain(
-					spark.NewNode().
+			chainFn: func() (*sdk_v1.BuilderChain, error) {
+				return sdk_v1.NewChain(
+					sdk_v1.NewNode().
 						Stage("stage1", noOpStage).
 						Stage("stage1", noOpStage).
 						Stage("stage3", noOpStage).
 						Complete("complete", noOpComplete).
-						Compensate(spark.NewNode().Stage("compensate", noOpStage).Build()).
-						Cancelled(spark.NewNode().Stage("canceled", noOpStage).Build()).
+						Compensate(sdk_v1.NewNode().Stage("compensate", noOpStage).Build()).
+						Cancelled(sdk_v1.NewNode().Stage("canceled", noOpStage).Build()).
 						Build()).
 					Build()
 			},
@@ -59,12 +58,12 @@ func Test(t *testing.T) {
 		},
 		{
 			name: "should return validation error: node without stages",
-			chainFn: func() (*spark.Chain, error) {
-				return spark.NewChain(
-					spark.NewNode().
+			chainFn: func() (*sdk_v1.BuilderChain, error) {
+				return sdk_v1.NewChain(
+					sdk_v1.NewNode().
 						Complete("complete", noOpComplete).
-						Compensate(spark.NewNode().Stage("compensate", noOpStage).Build()).
-						Cancelled(spark.NewNode().Stage("canceled", noOpStage).Build()).
+						Compensate(sdk_v1.NewNode().Stage("compensate", noOpStage).Build()).
+						Cancelled(sdk_v1.NewNode().Stage("canceled", noOpStage).Build()).
 						Build()).
 					Build()
 			},
@@ -72,13 +71,13 @@ func Test(t *testing.T) {
 		},
 		{
 			name: "should return validation error: multiple inner stages with the same name",
-			chainFn: func() (*spark.Chain, error) {
-				return spark.NewChain(
-					spark.NewNode().Stage("stage1", noOpStage).
-						Cancelled(spark.NewNode().Stage("canceled", noOpStage).
-							Cancelled(spark.NewNode().Stage("canceled", noOpStage).
-								Cancelled(spark.NewNode().Stage("canceled", noOpStage).
-									Cancelled(spark.NewNode().Stage("canceled", noOpStage).Build()).
+			chainFn: func() (*sdk_v1.BuilderChain, error) {
+				return sdk_v1.NewChain(
+					sdk_v1.NewNode().Stage("stage1", noOpStage).
+						Cancelled(sdk_v1.NewNode().Stage("canceled", noOpStage).
+							Cancelled(sdk_v1.NewNode().Stage("canceled", noOpStage).
+								Cancelled(sdk_v1.NewNode().Stage("canceled", noOpStage).
+									Cancelled(sdk_v1.NewNode().Stage("canceled", noOpStage).Build()).
 									Build(),
 								).Build()).
 							Build(),
@@ -89,15 +88,15 @@ func Test(t *testing.T) {
 		},
 		{
 			name: "should return validation error: stage with empty name",
-			chainFn: func() (*spark.Chain, error) {
-				return spark.NewChain(
-					spark.NewNode().
+			chainFn: func() (*sdk_v1.BuilderChain, error) {
+				return sdk_v1.NewChain(
+					sdk_v1.NewNode().
 						Stage("stage1", noOpStage).
 						Stage("stage2", noOpStage).
 						Stage("stage3", noOpStage).
 						Complete("", noOpComplete).
-						Compensate(spark.NewNode().Stage("compensate", noOpStage).Build()).
-						Cancelled(spark.NewNode().Stage("canceled", noOpStage).Build()).
+						Compensate(sdk_v1.NewNode().Stage("compensate", noOpStage).Build()).
+						Cancelled(sdk_v1.NewNode().Stage("canceled", noOpStage).Build()).
 						Build()).
 					Build()
 			},

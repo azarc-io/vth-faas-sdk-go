@@ -2,15 +2,12 @@ package demo
 
 import (
 	ctx "context"
+	"github.com/azarc-io/vth-faas-sdk-go/pkg/api/spark/v1/context"
 	"testing"
-
-	"github.com/azarc-io/vth-faas-sdk-go/pkg/api/spark/v1/models"
 
 	v12 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/spark/v1"
 
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/api"
-	"github.com/azarc-io/vth-faas-sdk-go/pkg/handler/inmemory"
-	"github.com/azarc-io/vth-faas-sdk-go/pkg/spark/context"
 	v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/worker/v1"
 	"github.com/golang/mock/gomock"
 	"github.com/samber/lo"
@@ -28,9 +25,9 @@ func TestPaymentTransaction(t *testing.T) {
 	worker, sp, io := createTestSpark(t, mailer, provider, service)
 
 	err := io.Output("jobKey",
-		&models.Variable{Name: "transaction", MimeType: api.MimeTypeJSON, Value: map[string]any{"id": "uuid", "amount": 50}},
-		&models.Variable{Name: "another", MimeType: api.MimeTypeJSON, Value: map[string]any{"key": "value"}},
-		&models.Variable{Name: "items", MimeType: api.MimeTypeJSON, Value: []any{map[string]any{"id": "1", "name": "itemName"}}})
+		&v12.Variable{Name: "transaction", MimeType: api.MimeTypeJSON, Value: map[string]any{"id": "uuid", "amount": 50}},
+		&v12.Variable{Name: "another", MimeType: api.MimeTypeJSON, Value: map[string]any{"key": "value"}},
+		&v12.Variable{Name: "items", MimeType: api.MimeTypeJSON, Value: []any{map[string]any{"id": "1", "name": "itemName"}}})
 	assert.Nil(t, err)
 
 	err = worker.Execute(context.NewSparkMetadata(ctx.Background(),
@@ -62,13 +59,13 @@ func createTestSpark(t *testing.T,
 	spark, err := checkoutSpark.Spark()
 	assert.Nil(t, err)
 
-	stageProgressHandler := inmemory.NewStageProgressHandler(t)
+	stageProgressHandler := v12.NewStageProgressHandler(t)
 
-	variablesHandler := inmemory.NewIOHandler(t)
+	variablesHandler := v12.NewIOHandler(t)
 
 	sparkWorker := v1.NewSparkTestWorker(t, spark,
-		v1.WithStageProgressHandler(stageProgressHandler),
-		v1.WithIOHandler(variablesHandler))
+		v12.WithStageProgressHandler(stageProgressHandler),
+		v12.WithIOHandler(variablesHandler))
 
 	return sparkWorker, stageProgressHandler, variablesHandler
 }

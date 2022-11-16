@@ -1,92 +1,109 @@
-//go:generate mockgen -destination=../../internal/handlers/test/mock/mock_stageprogress.go -package=mock github.com/azarc-io/vth-faas-sdk-go/pkg/api StageProgressHandler
-//go:generate mockgen -destination=../../internal/handlers/test/mock/mock_variable.go -package=mock github.com/azarc-io/vth-faas-sdk-go/pkg/api VariableHandler
-
 package sdk_v1
 
 import (
-	"context"
-
-	"github.com/azarc-io/vth-faas-sdk-go/pkg/api/spark/v1/models"
+	ctx "context"
+	"golang.org/x/net/context"
 )
 
-type (
-	Spark interface {
-		Initialize() error
-		Execute(SparkContext)
-	}
+/************************************************************************/
+// CONTEXT
+/************************************************************************/
 
-	Worker interface {
-		Execute(ctx Context) StageError
-	}
+type Job struct {
+	ctx                  ctx.Context
+	metadata             *SparkMetadata
+	stageProgressHandler StageProgressHandler
+	variableHandler      IOHandler
+	log                  Logger
+}
 
-	IOHandler interface {
-		Inputs(jobKey string, names ...string) *Inputs
-		Input(jobKey, name string) *Input
-		Output(jobKey string, variables ...*models.Variable) error
-	}
+func NewJobContext(metadata Context, sph StageProgressHandler, vh IOHandler, log Logger) SparkContext {
+	m := SparkMetadata{ctx: metadata.Ctx(), jobKey: metadata.JobKey(), correlationID: metadata.CorrelationID(), transactionID: metadata.TransactionID(), lastActiveStage: metadata.LastActiveStage()}
+	return &Job{metadata: &m, stageProgressHandler: sph, variableHandler: vh, log: log}
+}
 
-	StageProgressHandler interface {
-		Get(jobKey, name string) (*StageStatus, error)
-		Set(stageStatus *SetStageStatusRequest) error
-		GetResult(jobKey, name string) *Result
-		SetResult(resultResult *SetStageResultRequest) error
-		SetJobStatus(jobStatus *SetJobStatusRequest) error
-	}
+func (j *Job) IOHandler() IOHandler {
+	return j.variableHandler
+}
 
-	StageError interface {
-		Error() string
-		Code() uint32
-		Metadata() map[string]any
-		ErrorType() ErrorType
-		ToErrorMessage() *Error
-	}
+func (j *Job) StageProgressHandler() StageProgressHandler {
+	return j.stageProgressHandler
+}
 
-	Context interface {
-		Ctx() context.Context
-		JobKey() string
-		CorrelationID() string
-		TransactionID() string
-		LastActiveStage() *LastActiveStage
-	}
+func (j *Job) Ctx() ctx.Context {
+	return j.ctx
+}
 
-	SparkContext interface {
-		Context
-		IOHandler() IOHandler
-		StageProgressHandler() StageProgressHandler
-		LastActiveStage() *LastActiveStage
-		Log() Logger
-		WithoutLastActiveStage() SparkContext
-	}
+func (j *Job) JobKey() string {
+	return j.metadata.jobKey
+}
 
-	StageContext interface {
-		Context
-		Inputs(names ...string) *Inputs
-		Input(names string) *Input
-		StageResult(name string) *Result
-		Log() Logger
-	}
+func (j *Job) CorrelationID() string {
+	return j.metadata.correlationID
+}
 
-	CompleteContext interface {
-		StageContext
-		Output(variables ...*models.Variable) error
-	}
+func (j *Job) TransactionID() string {
+	return j.metadata.transactionID
+}
 
-	StageOptionParams interface {
-		StageName() string
-		StageProgressHandler() StageProgressHandler
-		IOHandler() IOHandler
-		Context() Context
-	}
+func (j *Job) LastActiveStage() *LastActiveStage {
+	return j.metadata.lastActiveStage
+}
 
-	StageDefinitionFn    = func(StageContext) (any, StageError)
-	CompleteDefinitionFn = func(CompleteContext) StageError
-	StageOption          = func(StageOptionParams) StageError
+func (j *Job) Log() Logger {
+	return j.log
+}
 
-	Logger interface {
-		Info(format string, v ...any)
-		Warn(format string, v ...any)
-		Debug(format string, v ...any)
-		Error(err error, format string, v ...any)
-		AddFields(k string, v any) Logger
+func (j *Job) WithoutLastActiveStage() SparkContext {
+	newCtx := *j
+	md := *newCtx.metadata
+	newCtx.metadata = &md
+	newCtx.metadata.lastActiveStage = nil
+	return &newCtx
+}
+
+/************************************************************************/
+// METADATA
+/************************************************************************/
+
+type SparkMetadata struct {
+	ctx             context.Context
+	jobKey          string
+	correlationID   string
+	transactionID   string
+	lastActiveStage *LastActiveStage
+}
+
+func NewSparkMetadata(ctx context.Context, jobKey, correlationID, transactionID string, lastActiveStage *LastActiveStage) SparkMetadata {
+	return SparkMetadata{ctx: ctx, jobKey: jobKey, correlationID: correlationID, transactionID: transactionID, lastActiveStage: lastActiveStage}
+}
+
+func NewSparkMetadataFromGrpcRequest(ctx context.Context, req *ExecuteJobRequest) SparkMetadata {
+	return SparkMetadata{
+		ctx:             ctx,
+		jobKey:          req.Key,
+		correlationID:   req.CorrelationId,
+		transactionID:   req.TransactionId,
+		lastActiveStage: req.LastActiveStage,
 	}
-)
+}
+
+func (j SparkMetadata) JobKey() string {
+	return j.jobKey
+}
+
+func (j SparkMetadata) CorrelationID() string {
+	return j.correlationID
+}
+
+func (j SparkMetadata) TransactionID() string {
+	return j.transactionID
+}
+
+func (j SparkMetadata) Ctx() context.Context {
+	return j.ctx
+}
+
+func (j SparkMetadata) LastActiveStage() *LastActiveStage {
+	return j.lastActiveStage
+}

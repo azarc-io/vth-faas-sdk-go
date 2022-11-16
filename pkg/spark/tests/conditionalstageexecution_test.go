@@ -2,29 +2,27 @@ package tests
 
 import (
 	ctx "context"
+	"github.com/azarc-io/vth-faas-sdk-go/pkg/api/spark/v1/context"
 	"testing"
 
 	v12 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/spark/v1"
-	"github.com/azarc-io/vth-faas-sdk-go/pkg/handler/inmemory"
-	"github.com/azarc-io/vth-faas-sdk-go/pkg/spark"
-	"github.com/azarc-io/vth-faas-sdk-go/pkg/spark/context"
 	v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/worker/v1"
 )
 
 func TestConditionalStageExecution(t *testing.T) {
 	tests := []struct {
 		name     string
-		chainFn  func() (*spark.Chain, *stageBehaviour)
+		chainFn  func() (*v12.BuilderChain, *stageBehaviour)
 		assertFn func(t *testing.T, sb *stageBehaviour, sph v12.StageProgressHandler)
 	}{
 		{
 			name: "should skip the second stage and only execute the first and third stages",
-			chainFn: func() (*spark.Chain, *stageBehaviour) {
+			chainFn: func() (*v12.BuilderChain, *stageBehaviour) {
 				sb := NewStageBehaviour(t, "stage1", "stage2", "stage3")
-				chain, err := spark.NewChain(
-					spark.NewNode().
+				chain, err := v12.NewChain(
+					v12.NewNode().
 						Stage("stage1", stageFn("stage1", sb)).
-						Stage("stage2", stageFn("stage2", sb), spark.WithStageStatus("stage1", v12.StageStatus_STAGE_STATUS_FAILED)).
+						Stage("stage2", stageFn("stage2", sb), v12.WithStageStatus("stage1", v12.StageStatus_STAGE_STATUS_FAILED)).
 						Stage("stage3", stageFn("stage3", sb)).
 						Build()).
 					Build()
@@ -53,13 +51,13 @@ func TestConditionalStageExecution(t *testing.T) {
 		},
 		{
 			name: "should execute first stage and skip remaining 2 stages",
-			chainFn: func() (*spark.Chain, *stageBehaviour) {
+			chainFn: func() (*v12.BuilderChain, *stageBehaviour) {
 				sb := NewStageBehaviour(t, "stage1", "stage2", "stage3")
-				chain, err := spark.NewChain(
-					spark.NewNode().
+				chain, err := v12.NewChain(
+					v12.NewNode().
 						Stage("stage1", stageFn("stage1", sb)).
-						Stage("stage2", stageFn("stage2", sb), spark.WithStageStatus("stage1", v12.StageStatus_STAGE_STATUS_FAILED)).
-						Stage("stage3", stageFn("stage3", sb), spark.WithStageStatus("stage2", v12.StageStatus_STAGE_STATUS_CANCELLED)).
+						Stage("stage2", stageFn("stage2", sb), v12.WithStageStatus("stage1", v12.StageStatus_STAGE_STATUS_FAILED)).
+						Stage("stage3", stageFn("stage3", sb), v12.WithStageStatus("stage2", v12.StageStatus_STAGE_STATUS_CANCELLED)).
 						Build()).
 					Build()
 				if err != nil {
@@ -89,8 +87,8 @@ func TestConditionalStageExecution(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			chain, sb := test.chainFn()
-			stageProgressHandler := inmemory.NewStageProgressHandler(t)
-			worker := v1.NewSparkTestWorker(t, chain, v1.WithIOHandler(inmemory.NewIOHandler(t)), v1.WithStageProgressHandler(stageProgressHandler))
+			stageProgressHandler := v12.NewStageProgressHandler(t)
+			worker := v1.NewSparkTestWorker(t, chain, v12.WithIOHandler(v12.NewIOHandler(t)), v12.WithStageProgressHandler(stageProgressHandler))
 			err := worker.Execute(context.NewSparkMetadata(ctx.Background(), "jobKey", "correlationId", "transactionId", nil))
 			if err != nil {
 				t.Error(err)

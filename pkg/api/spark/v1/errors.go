@@ -1,11 +1,8 @@
-package errors
+package sdk_v1
 
 import (
 	"encoding/json"
 	"errors"
-
-	sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/spark/v1"
-
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -14,26 +11,26 @@ var (
 	ErrBindValueFailed   = errors.New("bind value failed")
 	ErrVariableNotFound  = errors.New("variable not found")
 
-	errorTypeToStageStatusMapper = map[sdk_v1.ErrorType]sdk_v1.StageStatus{
-		sdk_v1.ErrorType_ERROR_TYPE_RETRY:              sdk_v1.StageStatus_STAGE_STATUS_FAILED,
-		sdk_v1.ErrorType_ERROR_TYPE_SKIP:               sdk_v1.StageStatus_STAGE_STATUS_SKIPPED,
-		sdk_v1.ErrorType_ERROR_TYPE_CANCELLED:          sdk_v1.StageStatus_STAGE_STATUS_CANCELLED,
-		sdk_v1.ErrorType_ERROR_TYPE_FAILED_UNSPECIFIED: sdk_v1.StageStatus_STAGE_STATUS_FAILED,
+	errorTypeToStageStatusMapper = map[ErrorType]StageStatus{
+		ErrorType_ERROR_TYPE_RETRY:              StageStatus_STAGE_STATUS_FAILED,
+		ErrorType_ERROR_TYPE_SKIP:               StageStatus_STAGE_STATUS_SKIPPED,
+		ErrorType_ERROR_TYPE_CANCELLED:          StageStatus_STAGE_STATUS_CANCELLED,
+		ErrorType_ERROR_TYPE_FAILED_UNSPECIFIED: StageStatus_STAGE_STATUS_FAILED,
 	}
 )
 
-func ErrorTypeToStageStatusMapper(errType sdk_v1.ErrorType) sdk_v1.StageStatus {
+func ErrorTypeToStageStatusMapper(errType ErrorType) StageStatus {
 	if err, ok := errorTypeToStageStatusMapper[errType]; ok {
 		return err
 	}
-	return sdk_v1.StageStatus_STAGE_STATUS_FAILED
+	return StageStatus_STAGE_STATUS_FAILED
 }
 
-type Option = func(err *Stage) *Stage
+type ErrorOption = func(err *Stage) *Stage
 
 type Stage struct {
 	err       error
-	errorType sdk_v1.ErrorType
+	errorType ErrorType
 	errorCode uint32
 	metadata  map[string]any
 	retry     *RetryConfig
@@ -44,7 +41,7 @@ type RetryConfig struct {
 	backoffMillis uint
 }
 
-func NewStageError(err error, opts ...Option) *Stage {
+func NewStageError(err error, opts ...ErrorOption) *Stage {
 	stg := &Stage{err: err}
 	for _, opt := range opts {
 		stg = opt(stg)
@@ -52,7 +49,7 @@ func NewStageError(err error, opts ...Option) *Stage {
 	return stg
 }
 
-func (s *Stage) ErrorType() sdk_v1.ErrorType {
+func (s *Stage) ErrorType() ErrorType {
 	return s.errorType
 }
 
@@ -68,8 +65,8 @@ func (s *Stage) Metadata() map[string]any {
 	return s.metadata
 }
 
-func (s *Stage) ToErrorMessage() *sdk_v1.Error {
-	err := &sdk_v1.Error{
+func (s *Stage) ToErrorMessage() *Error {
+	err := &Error{
 		Error:     s.err.Error(),
 		ErrorCode: s.errorCode,
 		ErrorType: s.errorType,
@@ -78,36 +75,36 @@ func (s *Stage) ToErrorMessage() *sdk_v1.Error {
 		err.Metadata, _ = structpb.NewValue(s.metadata)
 	}
 	if s.retry != nil {
-		err.Retry = &sdk_v1.RetryStrategy{Backoff: uint32(s.retry.backoffMillis), Count: uint32(s.retry.times)}
+		err.Retry = &RetryStrategy{Backoff: uint32(s.retry.backoffMillis), Count: uint32(s.retry.times)}
 	}
 	return err
 }
 
-func WithErrorType(errorType sdk_v1.ErrorType) Option {
+func WithErrorType(errorType ErrorType) ErrorOption {
 	return func(err *Stage) *Stage {
 		err.errorType = errorType
 		return err
 	}
 }
 
-func WithErrorCode(code uint32) Option {
+func WithErrorCode(code uint32) ErrorOption {
 	return func(err *Stage) *Stage {
 		err.errorCode = code
 		return err
 	}
 }
 
-func WithMetadata(metadata any) Option {
+func WithMetadata(metadata any) ErrorOption {
 	return func(err *Stage) *Stage {
 		err.parseMetadata(metadata)
 		return err
 	}
 }
 
-func WithRetry(times, backoffMillis uint) Option {
+func WithRetry(times, backoffMillis uint) ErrorOption {
 	return func(err *Stage) *Stage {
 		err.retry = &RetryConfig{times, backoffMillis}
-		err.errorType = sdk_v1.ErrorType_ERROR_TYPE_RETRY
+		err.errorType = ErrorType_ERROR_TYPE_RETRY
 		return err
 	}
 }

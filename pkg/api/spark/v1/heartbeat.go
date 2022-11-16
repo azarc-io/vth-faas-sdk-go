@@ -1,22 +1,20 @@
-package server
+package sdk_v1
 
 import (
 	"context"
 	"time"
-
-	v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/spark/v1"
 
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/config"
 )
 
 type Heartbeat struct {
 	config *config.Config
-	client v1.ManagerServiceClient
+	client ManagerServiceClient
 	ticker *time.Ticker
 	done   chan struct{}
 }
 
-func NewHeartbeat(config *config.Config, client v1.ManagerServiceClient) *Heartbeat {
+func NewHeartbeat(config *config.Config, client ManagerServiceClient) *Heartbeat {
 	return &Heartbeat{config: config, client: client}
 }
 
@@ -30,7 +28,7 @@ func (h *Heartbeat) Start() {
 			case <-h.done:
 				return
 			case <-h.ticker.C:
-				_, _ = h.client.RegisterHeartbeat(context.Background(), &v1.RegisterHeartbeatRequest{AgentId: h.config.App.InstanceID}) // TODO handle error
+				_, _ = h.client.RegisterHeartbeat(context.Background(), &RegisterHeartbeatRequest{AgentId: h.config.App.InstanceID}) // TODO handle error
 			}
 		}
 	}()

@@ -8,7 +8,6 @@ import (
 	reflect "reflect"
 
 	v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/spark/v1"
-	spark "github.com/azarc-io/vth-faas-sdk-go/pkg/spark"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -134,10 +133,10 @@ func (mr *MockCheckoutServiceMockRecorder) SendCancelEmail() *gomock.Call {
 }
 
 // Spark mocks base method.
-func (m *MockCheckoutService) Spark() (*spark.Chain, error) {
+func (m *MockCheckoutService) Spark() (*v1.BuilderChain, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Spark")
-	ret0, _ := ret[0].(*spark.Chain)
+	ret0, _ := ret[0].(*v1.BuilderChain)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

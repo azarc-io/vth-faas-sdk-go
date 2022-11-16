@@ -1,4 +1,4 @@
-package spark
+package sdk_v1
 
 import (
 	"errors"
@@ -12,18 +12,18 @@ func appendValidationErrorMessage(err error, message string) error {
 }
 
 type validateFn struct {
-	fn   func(n *Node) string
+	fn   func(n *node) string
 	errs []string
 }
 
-func (v *validateFn) exec(n *Node) {
+func (v *validateFn) exec(n *node) {
 	if err := v.fn(n); err != "" {
 		v.errs = append(v.errs, err)
 	}
 }
 
-func (c *ChainBuilder) validate(fns []*validateFn, nodes ...*Node) error {
-	var nextNodes []*Node
+func (c *ChainBuilder) validate(fns []*validateFn, nodes ...*node) error {
+	var nextNodes []*node
 	for _, n := range nodes {
 		for _, fn := range fns {
 			fn.exec(n)
@@ -54,7 +54,7 @@ func aggregateValidationError(errs []string) error {
 }
 
 var atLeastOneStagePerNodeValidator = &validateFn{
-	fn: func(n *Node) string {
+	fn: func(n *node) string {
 		if len(n.stages) < 1 {
 			return fmt.Sprintf("no stage defined for node: %s", n.breadcrumb)
 		}
@@ -63,7 +63,7 @@ var atLeastOneStagePerNodeValidator = &validateFn{
 }
 
 var stageNamesMustNoBeEmpty = &validateFn{
-	fn: func(n *Node) string {
+	fn: func(n *node) string {
 		var stagesFromNodes []string
 		for _, stg := range n.stages {
 			stagesFromNodes = append(stagesFromNodes, stg.name)
@@ -83,7 +83,7 @@ var stageNamesMustNoBeEmpty = &validateFn{
 var uniqueStageNamesValidator = func() *validateFn {
 	stageNames := map[string]string{}
 	return &validateFn{
-		fn: func(n *Node) string {
+		fn: func(n *node) string {
 			var stagesFromNodes []string
 			for _, stg := range n.stages {
 				stagesFromNodes = append(stagesFromNodes, stg.name)

@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/azarc-io/vth-faas-sdk-go/pkg/api/spark/v1/models"
-
 	"github.com/samber/lo"
 
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/api"
@@ -128,7 +126,7 @@ func NewGetVariablesRequest(jobKey string, names ...string) *GetVariablesRequest
 	return vr
 }
 
-func NewSetVariablesRequest(jobKey string, variables ...*models.Variable) (*SetVariablesRequest, error) {
+func NewSetVariablesRequest(jobKey string, variables ...*Variable) (*SetVariablesRequest, error) {
 	m := map[string]*Variable{}
 	for _, v := range variables {
 		variable, err := NewVariable(v.Name, v.MimeType, v.Value)

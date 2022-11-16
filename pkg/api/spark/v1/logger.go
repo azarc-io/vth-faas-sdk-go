@@ -1,7 +1,6 @@
-package logger
+package sdk_v1
 
 import (
-	sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/spark/v1"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
@@ -27,14 +26,14 @@ func (s *sparkContextLogger) Error(err error, format string, v ...any) {
 	log.Error().Err(err).Fields(s.metadata).Msgf(format, v...)
 }
 
-func (s *sparkContextLogger) AddFields(k string, v any) sdk_v1.Logger {
+func (s *sparkContextLogger) AddFields(k string, v any) Logger {
 	s.metadata[k] = v
 	return s
 }
 
 var skipFrameCount = 3
 
-func NewLogger() sdk_v1.Logger {
+func NewLogger() Logger {
 	return &sparkContextLogger{
 		metadata: map[string]any{},
 		log:      log.With().Str("module", "spark_worker").CallerWithSkipFrameCount(skipFrameCount).Stack().Logger(),
