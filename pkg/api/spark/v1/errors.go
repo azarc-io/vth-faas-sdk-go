@@ -142,6 +142,21 @@ func WithSkip() ErrorOption {
 	}
 }
 
+func WithCancel() ErrorOption {
+	return func(err *stageError) *stageError {
+		err.errorType = ErrorType_ERROR_TYPE_CANCELLED
+		err.metadata = map[string]any{"reason": "canceled in stage"}
+		return err
+	}
+}
+
+func WithFatal() ErrorOption {
+	return func(err *stageError) *stageError {
+		err.errorType = ErrorType_ERROR_TYPE_FATAL
+		return err
+	}
+}
+
 func (s *stageError) parseMetadata(metadata any) {
 	m := map[string]any{}
 	if metadata != nil {

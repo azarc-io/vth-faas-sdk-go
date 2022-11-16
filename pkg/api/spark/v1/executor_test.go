@@ -259,7 +259,7 @@ func (s *ExecutorSuite) Test_Should_Skip_Stage_If_Stage_Returns_Skip_Option() {
 					s.Require().FailNow("cancelled should not be called")
 					return nil, nil
 				}).
-				Complete(CompleteSuccess),
+				Complete(CompleteError),
 		).
 		Complete(CompleteSuccess)
 
@@ -275,6 +275,126 @@ func (s *ExecutorSuite) Test_Should_Skip_Stage_If_Stage_Returns_Skip_Option() {
 	sph.AssertStageStatus(jobKey, "stage-0", StageStatus_STAGE_STATUS_SKIPPED)
 	sph.AssertStageStatus(jobKey, "stage-1", StageStatus_STAGE_STATUS_COMPLETED)
 	sph.AssertStageStatus(jobKey, "test-0_complete", StageStatus_STAGE_STATUS_COMPLETED)
+
+	if WaitTimeout(&wg, time.Second) {
+		s.FailNow("time out waiting for all steps to complete")
+	}
+}
+
+func (s *ExecutorSuite) Test_Should_Cancel_Chain_If_Stage_Returns_Cancel_Option() {
+	wg := sync.WaitGroup{}
+	wg.Add(2)
+
+	b := NewBuilder()
+	b.NewChain("test-0").
+		Stage("stage-0", func(ctx StageContext) (any, StageError) {
+			ctx.Log().Info("stage-0 called")
+			wg.Done()
+			return nil, NewStageError(errors.New("unstable"), WithCancel())
+		}).
+		Stage("stage-1", func(ctx StageContext) (any, StageError) {
+			s.Require().FailNow("stage-1 should not be called")
+			return "pass", nil
+		}).
+		Compensate(
+			b.NewChain("compensate").
+				Stage("stage-2", func(ctx StageContext) (any, StageError) {
+					s.Require().FailNow("compensate should not be called")
+					return nil, nil
+				}).
+				Complete(CompleteSuccess),
+		).
+		Cancelled(
+			b.NewChain("cancel").
+				Stage("stage-3", func(ctx StageContext) (any, StageError) {
+					ctx.Log().Info("cancel stage-3 called")
+					wg.Done()
+					return nil, nil
+				}).
+				Complete(CompleteSuccess),
+		).
+		Complete(CompleteError)
+
+	c := b.buildChain()
+	jobKey := "test"
+	sph := NewInMemoryStageProgressHandler(s.T())
+	vh := NewInMemoryIOHandler(s.T())
+	metadata := NewSparkMetadata(context.Background(), jobKey, "cid", "tid", nil)
+	jobContext := NewJobContext(metadata, sph, vh, NewLogger())
+
+	err := c.Execute(jobContext)
+	s.Require().NotNil(err)
+	s.Require().Equal("unstable", err.Error())
+
+	if e, ok := err.(StageError); ok {
+		s.Require().Equal("canceled in stage", e.Metadata()["reason"])
+		s.Require().Equal(ErrorType_ERROR_TYPE_CANCELLED, e.ErrorType())
+		s.Require().Equal(uint32(0), err.Code())
+	} else {
+		s.Require().FailNow("incorrect error type")
+	}
+
+	sph.AssertStageStatus(jobKey, "stage-0", StageStatus_STAGE_STATUS_CANCELLED)
+	sph.AssertStageStatus(jobKey, "stage-3", StageStatus_STAGE_STATUS_COMPLETED)
+	sph.AssertStageStatus(jobKey, "cancel_complete", StageStatus_STAGE_STATUS_COMPLETED)
+
+	if WaitTimeout(&wg, time.Second) {
+		s.FailNow("time out waiting for all steps to complete")
+	}
+}
+
+func (s *ExecutorSuite) Test_Should_Cancel_Chain_If_Stage_Returns_Fatal_Option() {
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+
+	b := NewBuilder()
+	b.NewChain("test-0").
+		Stage("stage-0", func(ctx StageContext) (any, StageError) {
+			ctx.Log().Info("stage-0 called")
+			wg.Done()
+			return nil, NewStageError(errors.New("unstable"), WithFatal())
+		}).
+		Stage("stage-1", func(ctx StageContext) (any, StageError) {
+			s.Require().FailNow("stage-1 should not be called")
+			return "pass", nil
+		}).
+		Compensate(
+			b.NewChain("compensate").
+				Stage("stage-2", func(ctx StageContext) (any, StageError) {
+					s.Require().FailNow("compensate should not be called")
+					return nil, nil
+				}).
+				Complete(CompleteError),
+		).
+		Cancelled(
+			b.NewChain("cancel").
+				Stage("stage-3", func(ctx StageContext) (any, StageError) {
+					s.Require().FailNow("cancelled should not be called")
+					return nil, nil
+				}).
+				Complete(CompleteError),
+		).
+		Complete(CompleteError)
+
+	c := b.buildChain()
+	jobKey := "test"
+	sph := NewInMemoryStageProgressHandler(s.T())
+	vh := NewInMemoryIOHandler(s.T())
+	metadata := NewSparkMetadata(context.Background(), jobKey, "cid", "tid", nil)
+	jobContext := NewJobContext(metadata, sph, vh, NewLogger())
+
+	err := c.Execute(jobContext)
+	s.Require().NotNil(err)
+	s.Require().Equal("unstable", err.Error())
+
+	if e, ok := err.(StageError); ok {
+		s.Require().Equal(ErrorType_ERROR_TYPE_FATAL, e.ErrorType())
+		s.Require().Equal(uint32(0), err.Code())
+	} else {
+		s.Require().FailNow("incorrect error type")
+	}
+
+	sph.AssertStageStatus(jobKey, "stage-0", StageStatus_STAGE_STATUS_FAILED)
 
 	if WaitTimeout(&wg, time.Second) {
 		s.FailNow("time out waiting for all steps to complete")

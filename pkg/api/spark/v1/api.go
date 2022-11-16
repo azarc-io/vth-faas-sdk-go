@@ -60,6 +60,7 @@ type (
 	Worker interface {
 		Execute(ctx Context) StageError
 		Run()
+		LocalContext(jobKey, correlationID, transactionId string) Context
 	}
 
 	IOHandler interface {

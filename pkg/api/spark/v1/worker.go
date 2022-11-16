@@ -1,6 +1,7 @@
 package sdk_v1
 
 import (
+	"context"
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/config"
 )
 
@@ -20,6 +21,11 @@ func (w *SparkWorker) Run() {
 func (w *SparkWorker) Execute(metadata Context) StageError {
 	jobContext := NewJobContext(metadata, w.stageProgressHandler, w.variableHandler, w.log)
 	return w.chain.Execute(jobContext)
+}
+
+func (w *SparkWorker) LocalContext(jobKey, correlationID, transactionId string) Context {
+	metadata := NewSparkMetadata(context.Background(), jobKey, correlationID, transactionId, nil)
+	return NewJobContext(metadata, w.stageProgressHandler, w.variableHandler, w.log)
 }
 
 func (w *SparkWorker) validate(report ChainReport) error {
