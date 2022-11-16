@@ -7,7 +7,12 @@ import (
 //go:generate mockgen -destination=./test/mock_context.go -package spark_v1_mock github.com/azarc-io/vth-faas-sdk-go/pkg/api/spark/v1 Context
 //go:generate mockgen -destination=./test/mock_stageprogress.go -package=spark_v1_mock github.com/azarc-io/vth-faas-sdk-go/pkg/api/spark/v1 StageProgressHandler
 
+/************************************************************************/
+// BUILDER
+/************************************************************************/
+
 type (
+	// Builder contract for the chain builder
 	Builder interface {
 		NewChain(name string) BuilderChain
 		ChainFinalizer
@@ -52,23 +57,25 @@ type (
 	ChainFinalizer interface {
 		buildChain() *chain
 	}
+)
 
-	Spark interface {
-		BuildChain(b Builder) ChainNodeFinalizer
-	}
+/************************************************************************/
+// IO
+/************************************************************************/
 
-	Worker interface {
-		Execute(ctx Context) StageError
-		Run()
-		LocalContext(jobKey, correlationID, transactionId string) Context
-	}
-
+type (
 	IOHandler interface {
 		Inputs(jobKey string, names ...string) *Inputs
 		Input(jobKey, name string) *Input
 		Output(jobKey string, variables ...*Var) error
 	}
+)
 
+/************************************************************************/
+// PROGRESS
+/************************************************************************/
+
+type (
 	StageProgressHandler interface {
 		Get(jobKey, name string) (*StageStatus, error)
 		Set(stageStatus *SetStageStatusRequest) error
@@ -76,15 +83,13 @@ type (
 		SetResult(resultResult *SetStageResultRequest) error
 		SetJobStatus(jobStatus *SetJobStatusRequest) error
 	}
+)
 
-	StageError interface {
-		Error() string
-		Code() uint32
-		Metadata() map[string]any
-		ErrorType() ErrorType
-		ToErrorMessage() *Error
-	}
+/************************************************************************/
+// CONTEXT
+/************************************************************************/
 
+type (
 	Context interface {
 		Ctx() context.Context
 		JobKey() string
@@ -114,7 +119,64 @@ type (
 		StageContext
 		Output(variables ...*Var) error
 	}
+)
 
+/************************************************************************/
+// LOGGING
+/************************************************************************/
+
+type (
+	Logger interface {
+		Info(format string, v ...any)
+		Warn(format string, v ...any)
+		Debug(format string, v ...any)
+		Error(err error, format string, v ...any)
+		AddFields(k string, v any) Logger
+	}
+)
+
+/************************************************************************/
+// SPARK
+/************************************************************************/
+
+type (
+	// Spark the contract a developer must implement in order to be accepted by a worker
+	Spark interface {
+		BuildChain(b Builder) ChainNodeFinalizer
+	}
+)
+
+/************************************************************************/
+// WORKER
+/************************************************************************/
+
+type (
+	Worker interface {
+		Execute(ctx Context) StageError
+		Run()
+		LocalContext(jobKey, correlationID, transactionId string) Context
+	}
+)
+
+/************************************************************************/
+// ERRORS
+/************************************************************************/
+
+type (
+	StageError interface {
+		Error() string
+		Code() uint32
+		Metadata() map[string]any
+		ErrorType() ErrorType
+		ToErrorMessage() *Error
+	}
+)
+
+/************************************************************************/
+// OPTIONS & PARAMS
+/************************************************************************/
+
+type (
 	StageOptionParams interface {
 		StageName() string
 		StageProgressHandler() StageProgressHandler
@@ -125,12 +187,4 @@ type (
 	StageDefinitionFn    = func(ctx StageContext) (any, StageError)
 	CompleteDefinitionFn = func(ctx CompleteContext) StageError
 	StageOption          = func(StageOptionParams) StageError
-
-	Logger interface {
-		Info(format string, v ...any)
-		Warn(format string, v ...any)
-		Debug(format string, v ...any)
-		Error(err error, format string, v ...any)
-		AddFields(k string, v any) Logger
-	}
 )
