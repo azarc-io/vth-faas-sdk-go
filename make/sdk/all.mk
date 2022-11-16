@@ -10,6 +10,8 @@ GO_GET_PKGS := $(GO_GET_PKGS) \
 	github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc@v1.5.0 \
 	github.com/envoyproxy/protoc-gen-validate@v0.6.2
 
+GO_ALL_REPO_PKGS ?= ./cmd/... ./pkg/...
+
 include make/go/bootstrap.mk
 include make/go/buf.mk
 include make/go/go.mk
