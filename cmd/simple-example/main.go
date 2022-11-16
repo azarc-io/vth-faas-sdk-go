@@ -1,7 +1,7 @@
-package example
+package main
 
 import (
-	impl "github.com/azarc-io/vth-faas-sdk-go/cmd/example/internal"
+	impl "github.com/azarc-io/vth-faas-sdk-go/cmd/simple-example/internal"
 	sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/spark/v1"
 )
 

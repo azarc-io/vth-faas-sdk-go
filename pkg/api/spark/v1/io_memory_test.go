@@ -6,12 +6,12 @@ import (
 )
 
 type inMemoryIOHandler struct {
-	variables map[string]*Variable
+	variables map[string]*Var
 	t         *testing.T
 }
 
 func NewInMemoryIOHandler(t *testing.T) IOHandler {
-	i := &inMemoryIOHandler{t: t, variables: map[string]*Variable{}}
+	i := &inMemoryIOHandler{t: t, variables: map[string]*Var{}}
 	return i
 }
 
@@ -39,7 +39,7 @@ func (i *inMemoryIOHandler) Input(jobKey, name string) *Input {
 	return inputs.Get(name)
 }
 
-func (i *inMemoryIOHandler) Output(jobKey string, variables ...*Variable) error {
+func (i *inMemoryIOHandler) Output(jobKey string, variables ...*Var) error {
 	for _, v := range variables {
 		i.variables[i.key(jobKey, v.Name)] = v
 	}

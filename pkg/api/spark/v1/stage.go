@@ -54,7 +54,7 @@ func (sc stageContext) StageResult(name string) *Result {
 	return sc.jobContext.StageProgressHandler().GetResult(sc.JobKey(), name)
 }
 
-func (sc stageContext) Output(variables ...*Variable) error {
+func (sc stageContext) Output(variables ...*Var) error {
 	return sc.jobContext.IOHandler().Output(sc.JobKey(), variables...)
 }
 

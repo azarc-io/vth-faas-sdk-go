@@ -22,7 +22,15 @@ func (w *SparkWorker) Execute(metadata Context) StageError {
 	return w.chain.Execute(jobContext)
 }
 
-func (w *SparkWorker) validate() error {
+func (w *SparkWorker) validate(report ChainReport) error {
+	if len(report.Errors) > 0 {
+		for _, err := range report.Errors {
+			w.log.Error(err, "validation failed")
+		}
+
+		return ErrChainIsNotValid
+	}
+
 	var grpcClient ManagerServiceClient
 	if w.variableHandler == nil || w.stageProgressHandler == nil {
 		var err error
@@ -43,14 +51,26 @@ func (w *SparkWorker) validate() error {
 	return nil
 }
 
-func NewSparkWorker(cfg *config.Config, chain *chain, options ...Option) (Worker, error) {
-	jw := &SparkWorker{config: cfg, chain: chain}
+func NewSparkWorker(cfg *config.Config, spark Spark, options ...Option) (Worker, error) {
+	jw := &SparkWorker{config: cfg}
 	for _, opt := range options {
 		jw = opt(jw)
 	}
-	if err := jw.validate(); err != nil {
+
+	// build the chain
+	builder := NewBuilder()
+	spark.BuildChain(builder)
+	chain := builder.buildChain()
+
+	// validate the chain
+	report := GenerateReportForChain(chain)
+
+	jw.chain = chain
+
+	if err := jw.validate(report); err != nil {
 		return nil, err
 	}
+
 	return jw, nil
 }
 

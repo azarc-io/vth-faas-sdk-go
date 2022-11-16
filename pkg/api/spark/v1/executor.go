@@ -156,7 +156,7 @@ func withStageError(err StageError) updateStageOption {
 		if err == nil {
 			return stage
 		}
-		stage.Status = ErrorTypeToStageStatusMapper(err.ErrorType())
+		stage.Status = ErrorTypeToStageStatus(err.ErrorType())
 		stage.Err = err.ToErrorMessage()
 		return stage
 	}

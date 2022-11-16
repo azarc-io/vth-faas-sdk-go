@@ -126,7 +126,7 @@ func NewGetVariablesRequest(jobKey string, names ...string) *GetVariablesRequest
 	return vr
 }
 
-func NewSetVariablesRequest(jobKey string, variables ...*Variable) (*SetVariablesRequest, error) {
+func NewSetVariablesRequest(jobKey string, variables ...*Var) (*SetVariablesRequest, error) {
 	m := map[string]*Variable{}
 	for _, v := range variables {
 		variable, err := NewVariable(v.Name, v.MimeType, v.Value)
@@ -237,6 +237,17 @@ func (r *Result) Raw() ([]byte, error) {
 	if r.err != nil {
 		return nil, r.err
 	}
+
+	if r.result.GetData() != nil {
+		kind := r.result.GetData().GetKind()
+		switch kind.(type) {
+		case *structpb.Value_NullValue:
+			return nil, nil
+		case *structpb.Value_StringValue:
+			return []byte(r.result.GetData().GetStringValue()), nil
+		}
+	}
+
 	return r.result.Raw()
 }
 

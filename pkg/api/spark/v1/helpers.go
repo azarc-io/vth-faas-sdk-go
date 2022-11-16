@@ -1,5 +1,15 @@
 package sdk_v1
 
+import "errors"
+
+var CompleteSuccess = func(ctx CompleteContext) StageError {
+	return nil
+}
+
+var CompleteError = func(ctx CompleteContext) StageError {
+	return NewStageError(errors.New("complete failed"))
+}
+
 func appendIfNotNil[T any](array []*T, items ...*T) []*T {
 	for _, item := range items {
 		if item != nil {

@@ -28,7 +28,7 @@ func (g VariableHandler) Input(jobKey, name string) *Input {
 	return g.Inputs(jobKey, name).Get(name)
 }
 
-func (g VariableHandler) Output(jobKey string, variables ...*Variable) error {
+func (g VariableHandler) Output(jobKey string, variables ...*Var) error {
 	request, err := NewSetVariablesRequest(jobKey, variables...)
 	if err != nil {
 		return err

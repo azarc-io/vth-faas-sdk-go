@@ -2,6 +2,10 @@ package sdk_v1
 
 import "fmt"
 
+/************************************************************************/
+// TYPES
+/************************************************************************/
+
 type ChainBuilder struct {
 	rootNode *chainNode
 	current  *chainNode
@@ -17,33 +21,9 @@ type chainNode struct {
 	node *node
 }
 
-func (c *ChainBuilder) BuildChain() *chain {
-	newChain := &chain{
-		rootNode:    c.rootNode.node,
-		stagesMap:   map[string]*stage{},
-		completeMap: map[string]*completeStage{},
-	}
-	c.createResumeOnRetryStagesMap(newChain)
-	addBreadcrumb(newChain.rootNode)
-	return newChain
-}
-
-// Build iterates over the entire chain and performs the following operations
-// - Map all stages of the chain for easy lookup
-// - Validate the chain
-func (c *ChainBuilder) Build() *node {
-	ret := c.current
-
-	addBreadcrumb(c.rootNode.node)
-
-	// this is a finalizer so switch current back to previous node in order to push the pointer back up the tree
-	if c.prev != nil {
-		c.current = c.prev // move the pointer up one
-		c.prev = nil       // clear previous because it should only be set when the depth of the chain changes
-	}
-
-	return ret.node
-}
+/************************************************************************/
+// BUILDER API
+/************************************************************************/
 
 // Stage adds a stage to the current chain node, this could be at any depth of the chain
 func (c *ChainBuilder) Stage(name string, stageDefinitionFn StageDefinitionFn, options ...StageOption) ChainStage {
@@ -60,7 +40,7 @@ func (c *ChainBuilder) Stage(name string, stageDefinitionFn StageDefinitionFn, o
 // Compensate registers a chain node at depth-1 in the chain, compensation is always on the parent
 // so this function looks at the previous node in the chain which is always the parent
 func (c *ChainBuilder) Compensate(newNode ChainNodeFinalizer) ChainCancelledOrComplete {
-	n := newNode.Build() // this causes the chain to move from depth to depth-1
+	n := newNode.build() // this causes the chain to move from depth to depth-1
 	n.nodeType = compensateNodeType
 
 	n.appendBreadcrumb(compensateNodeType)
@@ -73,7 +53,7 @@ func (c *ChainBuilder) Compensate(newNode ChainNodeFinalizer) ChainCancelledOrCo
 // Cancelled registers a chain node at depth-1 in the chain, compensation is always on the parent
 // so this function looks at the previous node in the chain which is always the parent
 func (c *ChainBuilder) Cancelled(newNode ChainNodeFinalizer) ChainComplete {
-	n := newNode.Build() // this causes the chain to move from depth to depth-1
+	n := newNode.build() // this causes the chain to move from depth to depth-1
 	n.nodeType = cancelNodeType
 
 	n.appendBreadcrumb(cancelNodeType)
@@ -96,6 +76,7 @@ func (c *ChainBuilder) Complete(completeDefinitionFn CompleteDefinitionFn, optio
 	return c
 }
 
+// createResumeOnRetryStagesMap maps stages that can be retried
 func (c *ChainBuilder) createResumeOnRetryStagesMap(newChain *chain) {
 	stages, completeStages := c.getStages([]*stage{}, []*completeStage{}, newChain.rootNode)
 	for _, stg := range stages {
@@ -106,6 +87,7 @@ func (c *ChainBuilder) createResumeOnRetryStagesMap(newChain *chain) {
 	}
 }
 
+// getStages returns all stages + completion stages
 func (c *ChainBuilder) getStages(stages []*stage, completeStages []*completeStage, nodes ...*node) ([]*stage, []*completeStage) {
 	var nextNodes []*node
 	for _, n := range nodes {
@@ -113,11 +95,44 @@ func (c *ChainBuilder) getStages(stages []*stage, completeStages []*completeStag
 		stages = appendIfNotNil(stages, n.stages...)
 		nextNodes = appendIfNotNil(nextNodes, n.compensate, n.cancel)
 	}
-	if len(nextNodes) > 0 {
-		return c.getStages(stages, completeStages, nextNodes...)
-	}
 	return stages, completeStages
 }
+
+/************************************************************************/
+// FINALIZERS
+/************************************************************************/
+
+func (c *ChainBuilder) buildChain() *chain {
+	newChain := &chain{
+		rootNode:    c.rootNode.node,
+		stagesMap:   map[string]*stage{},
+		completeMap: map[string]*completeStage{},
+	}
+	c.createResumeOnRetryStagesMap(newChain)
+	addBreadcrumb(newChain.rootNode)
+	return newChain
+}
+
+// Build iterates over the entire chain and performs the following operations
+// - Map all stages of the chain for easy lookup
+// - Validate the chain
+func (c *ChainBuilder) build() *node {
+	ret := c.current
+
+	addBreadcrumb(c.rootNode.node)
+
+	// this is a finalizer so switch current back to previous node in order to push the pointer back up the tree
+	if c.prev != nil {
+		c.current = c.prev // move the pointer up one
+		c.prev = nil       // clear previous because it should only be set when the depth of the chain changes
+	}
+
+	return ret.node
+}
+
+/************************************************************************/
+// FACTORIES
+/************************************************************************/
 
 // NewChain creates a new chain with the following rules
 // - if this is the first chain the builder sees then it's marked as the root chain

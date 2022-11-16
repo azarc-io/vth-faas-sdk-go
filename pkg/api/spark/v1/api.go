@@ -1,11 +1,11 @@
-//go:generate mockgen -destination=../../internal/handlers/test/mock/mock_stageprogress.go -package=mock github.com/azarc-io/vth-faas-sdk-go/pkg/api StageProgressHandler
-//go:generate mockgen -destination=../../internal/handlers/test/mock/mock_variable.go -package=mock github.com/azarc-io/vth-faas-sdk-go/pkg/api VariableHandler
-
 package sdk_v1
 
 import (
 	"context"
 )
+
+//go:generate mockgen -destination=./test/mock_context.go -package spark_v1_mock github.com/azarc-io/vth-faas-sdk-go/pkg/api/spark/v1 Context
+//go:generate mockgen -destination=./test/mock_stageprogress.go -package=spark_v1_mock github.com/azarc-io/vth-faas-sdk-go/pkg/api/spark/v1 StageProgressHandler
 
 type (
 	Builder interface {
@@ -46,16 +46,15 @@ type (
 	}
 
 	ChainNodeFinalizer interface {
-		Build() *node
+		build() *node
 	}
 
 	ChainFinalizer interface {
-		BuildChain() *chain
+		buildChain() *chain
 	}
 
 	Spark interface {
-		Initialize() error
-		Execute(SparkContext)
+		BuildChain(b Builder) ChainNodeFinalizer
 	}
 
 	Worker interface {
@@ -66,7 +65,7 @@ type (
 	IOHandler interface {
 		Inputs(jobKey string, names ...string) *Inputs
 		Input(jobKey, name string) *Input
-		Output(jobKey string, variables ...*Variable) error
+		Output(jobKey string, variables ...*Var) error
 	}
 
 	StageProgressHandler interface {
@@ -112,7 +111,7 @@ type (
 
 	CompleteContext interface {
 		StageContext
-		Output(variables ...*Variable) error
+		Output(variables ...*Var) error
 	}
 
 	StageOptionParams interface {

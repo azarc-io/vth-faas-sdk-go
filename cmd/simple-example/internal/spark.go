@@ -17,22 +17,23 @@ func (s Spark) BuildChain(b sdk_v1.Builder) sdk_v1.ChainNodeFinalizer {
 			return "world", nil
 		}).
 		Complete(func(ctx sdk_v1.CompleteContext) sdk_v1.StageError {
+			var (
+				stg1Res, stg2Res string
+				err              error
+			)
+
 			// get the result of the 2 stages
-			stage1Result, err := ctx.StageResult("stage-1").Raw()
-			if err != nil {
+			if err = ctx.StageResult("stage-1").Bind(&stg1Res); err != nil {
 				return sdk_v1.NewStageError(err)
 			}
-			stage2Result, err := ctx.StageResult("stage-2").Raw()
-			if err != nil {
+			if err = ctx.StageResult("stage-2").Bind(&stg2Res); err != nil {
 				return sdk_v1.NewStageError(err)
 			}
 
 			// write the output of the spark
-			err = ctx.Output(
-				sdk_v1.NewVar("message", "", fmt.Sprintf("%s %s",
-					string(stage1Result), string(stage2Result))),
-			)
-			if err != nil {
+			if err = ctx.Output(
+				sdk_v1.NewVar("message", "", fmt.Sprintf("%s %s", stg1Res, stg2Res)),
+			); err != nil {
 				return sdk_v1.NewStageError(err)
 			}
 

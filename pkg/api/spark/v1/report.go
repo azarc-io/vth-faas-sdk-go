@@ -23,13 +23,13 @@ type (
 )
 
 // GenerateReportForChain generates a map of what the chain looks like
-func GenerateReportForChain(n *node) ChainReport {
+func GenerateReportForChain(n *chain) ChainReport {
 	r := ChainReport{
 		StageMap: map[string]ChainReportStage{},
 		NodeMap:  map[string]ChainReportNode{},
 	}
 
-	generateReportForChainRecursively(&r, n)
+	generateReportForChainRecursively(&r, n.rootNode)
 
 	return r
 }

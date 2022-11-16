@@ -58,7 +58,7 @@ func (i *InMemoryStageProgressHandler) GetResult(jobKey, name string) *Result {
 	if variable, ok := i.results[i.key(jobKey, name)]; ok {
 		return NewResult(nil, variable.Result)
 	}
-	i.t.Fatalf("stage result no found for params >> jobKey: %s, stageName: %s", jobKey, name)
+	i.t.Fatalf("stage result not found for params >> jobKey: %s, stageName: %s", jobKey, name)
 	return nil
 }
 

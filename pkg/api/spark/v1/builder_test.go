@@ -1,7 +1,6 @@
-package sdk_v1_test
+package sdk_v1
 
 import (
-	sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/spark/v1"
 	"github.com/stretchr/testify/suite"
 	"testing"
 )
@@ -19,15 +18,15 @@ type BuilderSuite struct {
 /************************************************************************/
 
 func (s *BuilderSuite) Test_Should_Create_Root_Node_With_No_Children() {
-	b := sdk_v1.NewBuilder()
+	b := NewBuilder()
 	n := b.NewChain("test-0").
-		Stage("stage-0", func(_ sdk_v1.StageContext) (any, sdk_v1.StageError) {
+		Stage("stage-0", func(_ StageContext) (any, StageError) {
 			return nil, nil
 		}).
-		Complete(func(context sdk_v1.CompleteContext) sdk_v1.StageError {
+		Complete(func(context CompleteContext) StageError {
 			return nil
 		}).
-		Build()
+		build()
 
 	s.Require().True(n.HasCompletionStage(), "must have a completion stage")
 	s.Require().False(n.HasCompensationStage(), "must not have a compensation stage")
@@ -41,36 +40,36 @@ func (s *BuilderSuite) Test_Should_Create_Root_Node_With_No_Children() {
 }
 
 func (s *BuilderSuite) Test_Should_Create_Root_Node_With_Child_Node() {
-	b := sdk_v1.NewBuilder()
+	b := NewBuilder()
 	n := b.NewChain("test-0").
-		Stage("stage-0", func(_ sdk_v1.StageContext) (any, sdk_v1.StageError) {
+		Stage("stage-0", func(_ StageContext) (any, StageError) {
 			return nil, nil
 		}).
 		Compensate(
 			b.NewChain("test-1").
-				Stage("stage-1", func(context sdk_v1.StageContext) (any, sdk_v1.StageError) {
+				Stage("stage-1", func(context StageContext) (any, StageError) {
 					return nil, nil
 				}).
-				Complete(func(context sdk_v1.CompleteContext) sdk_v1.StageError {
+				Complete(func(context CompleteContext) StageError {
 					return nil
 				}),
 		).
 		Cancelled(
 			b.NewChain("test-3").
-				Stage("stage-3", func(context sdk_v1.StageContext) (any, sdk_v1.StageError) {
+				Stage("stage-3", func(context StageContext) (any, StageError) {
 					return nil, nil
 				}).
-				Complete(func(context sdk_v1.CompleteContext) sdk_v1.StageError {
+				Complete(func(context CompleteContext) StageError {
 					return nil
 				}),
 		).
-		Complete(func(context sdk_v1.CompleteContext) sdk_v1.StageError {
+		Complete(func(context CompleteContext) StageError {
 			return nil
 		}).
-		Build()
+		build()
 
 	// generate report for validation
-	r := sdk_v1.GenerateReportForChain(n)
+	r := GenerateReportForChain(b.buildChain())
 	s.Require().NotNil(r)
 	s.Require().Len(r.Errors, 0)
 
@@ -83,36 +82,36 @@ func (s *BuilderSuite) Test_Should_Create_Root_Node_With_Child_Node() {
 }
 
 func (s *BuilderSuite) Test_Report_Should_Generate_Single_Error_On_Single_Duplicate_Stage_Names() {
-	b := sdk_v1.NewBuilder()
+	b := NewBuilder()
 	n := b.NewChain("test-0").
-		Stage("stage-0", func(_ sdk_v1.StageContext) (any, sdk_v1.StageError) {
+		Stage("stage-0", func(_ StageContext) (any, StageError) {
 			return nil, nil
 		}).
 		Compensate(
 			b.NewChain("test-1").
-				Stage("stage-0", func(context sdk_v1.StageContext) (any, sdk_v1.StageError) {
+				Stage("stage-0", func(context StageContext) (any, StageError) {
 					return nil, nil
 				}).
-				Complete(func(context sdk_v1.CompleteContext) sdk_v1.StageError {
+				Complete(func(context CompleteContext) StageError {
 					return nil
 				}),
 		).
 		Cancelled(
 			b.NewChain("test-3").
-				Stage("stage-3", func(context sdk_v1.StageContext) (any, sdk_v1.StageError) {
+				Stage("stage-3", func(context StageContext) (any, StageError) {
 					return nil, nil
 				}).
-				Complete(func(context sdk_v1.CompleteContext) sdk_v1.StageError {
+				Complete(func(context CompleteContext) StageError {
 					return nil
 				}),
 		).
-		Complete(func(context sdk_v1.CompleteContext) sdk_v1.StageError {
+		Complete(func(context CompleteContext) StageError {
 			return nil
 		}).
-		Build()
+		build()
 
 	// generate report for validation
-	r := sdk_v1.GenerateReportForChain(n)
+	r := GenerateReportForChain(b.buildChain())
 	s.Require().NotNil(r)
 	s.Require().Len(r.Errors, 1)
 	s.Equal("can not have duplicate stage names in the [chain]: stage-0 [at]: root > compensate", r.Errors[0].Error())
@@ -126,36 +125,36 @@ func (s *BuilderSuite) Test_Report_Should_Generate_Single_Error_On_Single_Duplic
 }
 
 func (s *BuilderSuite) Test_Report_Should_Generate_Multiple_Error_On_Multiple_Duplicate_Stage_Names() {
-	b := sdk_v1.NewBuilder()
+	b := NewBuilder()
 	n := b.NewChain("test-0").
-		Stage("stage-0", func(_ sdk_v1.StageContext) (any, sdk_v1.StageError) {
+		Stage("stage-0", func(_ StageContext) (any, StageError) {
 			return nil, nil
 		}).
 		Compensate(
 			b.NewChain("test-1").
-				Stage("stage-0", func(context sdk_v1.StageContext) (any, sdk_v1.StageError) {
+				Stage("stage-0", func(context StageContext) (any, StageError) {
 					return nil, nil
 				}).
-				Complete(func(context sdk_v1.CompleteContext) sdk_v1.StageError {
+				Complete(func(context CompleteContext) StageError {
 					return nil
 				}),
 		).
 		Cancelled(
 			b.NewChain("test-3").
-				Stage("stage-0", func(context sdk_v1.StageContext) (any, sdk_v1.StageError) {
+				Stage("stage-0", func(context StageContext) (any, StageError) {
 					return nil, nil
 				}).
-				Complete(func(context sdk_v1.CompleteContext) sdk_v1.StageError {
+				Complete(func(context CompleteContext) StageError {
 					return nil
 				}),
 		).
-		Complete(func(context sdk_v1.CompleteContext) sdk_v1.StageError {
+		Complete(func(context CompleteContext) StageError {
 			return nil
 		}).
-		Build()
+		build()
 
 	// generate report for validation
-	r := sdk_v1.GenerateReportForChain(n)
+	r := GenerateReportForChain(b.buildChain())
 	s.Require().NotNil(r)
 	s.Require().Len(r.Errors, 2)
 	s.Equal("can not have duplicate stage names in the [chain]: stage-0 [at]: root > compensate", r.Errors[0].Error())
@@ -170,36 +169,36 @@ func (s *BuilderSuite) Test_Report_Should_Generate_Multiple_Error_On_Multiple_Du
 }
 
 func (s *BuilderSuite) Test_Report_Should_Generate_Errors_On_Duplicate_Chain_Names() {
-	b := sdk_v1.NewBuilder()
+	b := NewBuilder()
 	n := b.NewChain("test-0").
-		Stage("stage-0", func(_ sdk_v1.StageContext) (any, sdk_v1.StageError) {
+		Stage("stage-0", func(_ StageContext) (any, StageError) {
 			return nil, nil
 		}).
 		Compensate(
 			b.NewChain("test-0").
-				Stage("stage-1", func(context sdk_v1.StageContext) (any, sdk_v1.StageError) {
+				Stage("stage-1", func(context StageContext) (any, StageError) {
 					return nil, nil
 				}).
-				Complete(func(context sdk_v1.CompleteContext) sdk_v1.StageError {
+				Complete(func(context CompleteContext) StageError {
 					return nil
 				}),
 		).
 		Cancelled(
 			b.NewChain("test-0").
-				Stage("stage-2", func(context sdk_v1.StageContext) (any, sdk_v1.StageError) {
+				Stage("stage-2", func(context StageContext) (any, StageError) {
 					return nil, nil
 				}).
-				Complete(func(context sdk_v1.CompleteContext) sdk_v1.StageError {
+				Complete(func(context CompleteContext) StageError {
 					return nil
 				}),
 		).
-		Complete(func(context sdk_v1.CompleteContext) sdk_v1.StageError {
+		Complete(func(context CompleteContext) StageError {
 			return nil
 		}).
-		Build()
+		build()
 
 	// generate report for validation
-	r := sdk_v1.GenerateReportForChain(n)
+	r := GenerateReportForChain(b.buildChain())
 	s.Require().NotNil(r)
 	s.Require().Len(r.Errors, 2)
 	s.Equal("can not have duplicate chain names in the [name]: test-0 [at]: root > compensate", r.Errors[0].Error())
@@ -214,36 +213,36 @@ func (s *BuilderSuite) Test_Report_Should_Generate_Errors_On_Duplicate_Chain_Nam
 }
 
 func (s *BuilderSuite) Test_Report_Should_Generate_Errors_On_Empty_Names() {
-	b := sdk_v1.NewBuilder()
+	b := NewBuilder()
 	n := b.NewChain("").
-		Stage("stage-0", func(_ sdk_v1.StageContext) (any, sdk_v1.StageError) {
+		Stage("stage-0", func(_ StageContext) (any, StageError) {
 			return nil, nil
 		}).
 		Compensate(
 			b.NewChain("test-0").
-				Stage("", func(context sdk_v1.StageContext) (any, sdk_v1.StageError) {
+				Stage("", func(context StageContext) (any, StageError) {
 					return nil, nil
 				}).
-				Complete(func(context sdk_v1.CompleteContext) sdk_v1.StageError {
+				Complete(func(context CompleteContext) StageError {
 					return nil
 				}),
 		).
 		Cancelled(
 			b.NewChain("test-1").
-				Stage("stage-2", func(context sdk_v1.StageContext) (any, sdk_v1.StageError) {
+				Stage("stage-2", func(context StageContext) (any, StageError) {
 					return nil, nil
 				}).
-				Complete(func(context sdk_v1.CompleteContext) sdk_v1.StageError {
+				Complete(func(context CompleteContext) StageError {
 					return nil
 				}),
 		).
-		Complete(func(context sdk_v1.CompleteContext) sdk_v1.StageError {
+		Complete(func(context CompleteContext) StageError {
 			return nil
 		}).
-		Build()
+		build()
 
 	// generate report for validation
-	r := sdk_v1.GenerateReportForChain(n)
+	r := GenerateReportForChain(b.buildChain())
 	s.Require().NotNil(r)
 	s.Require().Len(r.Errors, 2)
 	s.Equal("chain name can not be empty [at]: root", r.Errors[0].Error())
