@@ -4,7 +4,7 @@
 // 	protoc        (unknown)
 // source: pkg/api/spark/v1/sdk.proto
 
-package spark_v1
+package sdk_v1
 
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
