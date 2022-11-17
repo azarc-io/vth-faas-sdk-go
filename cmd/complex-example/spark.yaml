@@ -2,7 +2,7 @@
 label: Complex Example
 # Displayed in the UI and Marketplace
 description: This example shows how you can consume data from inputs and use outputs to produce new data
-# Input mappings (for a more complete example see the advanced example)
+# Input mappings
 # these will be displayed to the user in the Verathread UI and will allow the user to map data from the blackboard
 # to these inputs
 inputs:
