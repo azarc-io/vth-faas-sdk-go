@@ -19,6 +19,8 @@ type basicSpark struct {
 	completeCalledCount    int
 	stageDelegatedCount    int
 	completeDelegatedCount int
+	delegatedStageNames    []string
+	delegatedCompleteNames []string
 }
 
 func (s *basicSpark) BuildChain(b Builder) Chain {
@@ -36,11 +38,13 @@ func (s *basicSpark) BuildChain(b Builder) Chain {
 
 func (s *basicSpark) delegateStage(ctx StageContext, cb StageDefinitionFn) (any, StageError) {
 	s.stageDelegatedCount += 1
+	s.delegatedStageNames = append(s.delegatedStageNames, ctx.Name())
 	return cb(ctx)
 }
 
 func (s *basicSpark) delegateCompletion(ctx CompleteContext, cb CompleteDefinitionFn) StageError {
 	s.completeDelegatedCount += 1
+	s.delegatedCompleteNames = append(s.delegatedCompleteNames, ctx.Name())
 	return cb(ctx)
 }
 
@@ -83,6 +87,7 @@ func (s *WorkerSuite) Test_Should_Delegate_Stage_Execution_If_Option_Provided() 
 	s.Require().Equal(1, spark.completeCalledCount)
 	s.Require().Equal(1, spark.stageDelegatedCount)
 	s.Require().Equal(0, spark.completeDelegatedCount)
+	s.Require().Equal([]string{"stage-0"}, spark.delegatedStageNames)
 }
 
 func (s *WorkerSuite) Test_Should_Delegate_Completion_If_Option_Provided() {
@@ -103,6 +108,7 @@ func (s *WorkerSuite) Test_Should_Delegate_Completion_If_Option_Provided() {
 	s.Require().Equal(1, spark.completeCalledCount)
 	s.Require().Equal(0, spark.stageDelegatedCount)
 	s.Require().Equal(1, spark.completeDelegatedCount)
+	s.Require().Equal([]string{"test-0_complete"}, spark.delegatedCompleteNames)
 }
 
 /************************************************************************/

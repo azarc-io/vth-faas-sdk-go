@@ -129,11 +129,13 @@ type (
 		Input(names string) *Input
 		StageResult(name string) *Result
 		Log() Logger
+		Name() string
 	}
 
 	CompleteContext interface {
 		StageContext
 		Output(variables ...*Var) error
+		Name() string
 	}
 )
 

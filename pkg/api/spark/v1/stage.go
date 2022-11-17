@@ -32,14 +32,15 @@ func (s *stage) ApplyConditionalExecutionOptions(ctx SparkContext, stageName str
 type stageContext struct {
 	Context
 	jobContext SparkContext
+	name       string
 }
 
-func NewCompleteContext(ctx SparkContext) CompleteContext {
-	return stageContext{jobContext: ctx, Context: ctx}
+func NewCompleteContext(ctx SparkContext, name string) CompleteContext {
+	return stageContext{jobContext: ctx, Context: ctx, name: name}
 }
 
-func NewStageContext(ctx SparkContext) StageContext {
-	return stageContext{jobContext: ctx, Context: ctx}
+func NewStageContext(ctx SparkContext, name string) StageContext {
+	return stageContext{jobContext: ctx, Context: ctx, name: name}
 }
 
 func (sc stageContext) Inputs(names ...string) *Inputs {
@@ -56,6 +57,10 @@ func (sc stageContext) StageResult(name string) *Result {
 
 func (sc stageContext) Output(variables ...*Var) error {
 	return sc.jobContext.IOHandler().Output(sc.JobKey(), variables...)
+}
+
+func (sc stageContext) Name() string {
+	return sc.name
 }
 
 func (sc stageContext) Log() Logger {

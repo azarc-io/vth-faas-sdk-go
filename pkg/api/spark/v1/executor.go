@@ -41,9 +41,9 @@ func (c *chain) runner(ctx SparkContext, node *node) StageError {
 		// stage execution is delegated in which case call the delegate
 		// instead and expect that it will invoke the stage and return a result, error
 		if ctx.delegateStage() != nil {
-			result, stageErr = ctx.delegateStage()(NewStageContext(ctx), stg.cb)
+			result, stageErr = ctx.delegateStage()(NewStageContext(ctx, stg.name), stg.cb)
 		} else {
-			result, stageErr = stg.cb(NewStageContext(ctx))
+			result, stageErr = stg.cb(NewStageContext(ctx, stg.name))
 		}
 
 		if err := c.handleStageError(ctx, node, stg, stageErr); err != nil {
@@ -72,9 +72,9 @@ func (c *chain) runner(ctx SparkContext, node *node) StageError {
 		var stageErr StageError
 
 		if ctx.delegateComplete() != nil {
-			stageErr = ctx.delegateComplete()(NewCompleteContext(ctx), node.complete.cb)
+			stageErr = ctx.delegateComplete()(NewCompleteContext(ctx, node.complete.name), node.complete.cb)
 		} else {
-			stageErr = node.complete.cb(NewCompleteContext(ctx))
+			stageErr = node.complete.cb(NewCompleteContext(ctx, node.complete.name))
 		}
 
 		if e := updateStage(ctx, node.complete.name, withStageStatusOrError(StageStatus_STAGE_STATUS_COMPLETED, stageErr)); e != nil {
