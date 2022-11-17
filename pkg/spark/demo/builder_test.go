@@ -48,7 +48,7 @@ package demo
 //		spark_v1.WithStageProgressHandler(stageProgressHandler),
 //		spark_v1.WithIOHandler(variablesHandler))
 //
-//	err = sparkWorker.Execute(context.NewSparkMetadata(ctx.Background(), "jobKey", "correlationId", "transactionId", nil))
+//	err = sparkWorker.execute(context.NewSparkMetadata(ctx.Background(), "jobKey", "correlationId", "transactionId", nil))
 //
 //	if err != nil {
 //		t.Fatal(err)

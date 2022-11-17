@@ -5,7 +5,7 @@ const (
 	jobKeyLogField = "job_key"
 )
 
-func (c *chain) Execute(ctx SparkContext) StageError {
+func (c *chain) execute(ctx SparkContext) StageError {
 	n, err := c.getNodeToResume(ctx.LastActiveStage())
 	if err != nil {
 		return NewStageError(err)
@@ -35,9 +35,18 @@ func (c *chain) runner(ctx SparkContext, node *node) StageError {
 			return NewStageError(er)
 		}
 
-		result, err := stg.cb(NewStageContext(ctx))
+		var result any
+		var stageErr StageError
 
-		if err := c.handleStageError(ctx, node, stg, err); err != nil {
+		// stage execution is delegated in which case call the delegate
+		// instead and expect that it will invoke the stage and return a result, error
+		if ctx.delegateStage() != nil {
+			result, stageErr = ctx.delegateStage()(NewStageContext(ctx), stg.cb)
+		} else {
+			result, stageErr = stg.cb(NewStageContext(ctx))
+		}
+
+		if err := c.handleStageError(ctx, node, stg, stageErr); err != nil {
 			if err.ErrorType() == ErrorType_ERROR_TYPE_SKIP {
 				continue
 			}
@@ -60,13 +69,19 @@ func (c *chain) runner(ctx SparkContext, node *node) StageError {
 			return NewStageError(er)
 		}
 
-		err := node.complete.cb(NewCompleteContext(ctx))
+		var stageErr StageError
 
-		if e := updateStage(ctx, node.complete.name, withStageStatusOrError(StageStatus_STAGE_STATUS_COMPLETED, err)); e != nil {
+		if ctx.delegateComplete() != nil {
+			stageErr = ctx.delegateComplete()(NewCompleteContext(ctx), node.complete.cb)
+		} else {
+			stageErr = node.complete.cb(NewCompleteContext(ctx))
+		}
+
+		if e := updateStage(ctx, node.complete.name, withStageStatusOrError(StageStatus_STAGE_STATUS_COMPLETED, stageErr)); e != nil {
 			ctx.Log().Error(e, "error setting the completed stage status to 'completed'")
 			return NewStageError(e)
 		}
-		return err
+		return stageErr
 	}
 
 	return nil

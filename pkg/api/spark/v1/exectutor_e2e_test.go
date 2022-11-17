@@ -38,7 +38,7 @@ func (s *ExecutorSuite) Test_Should_Retry_Stage_If_Stage_Returns_Retry_Option() 
 	metadata := NewSparkMetadata(context.Background(), jobKey, "cid", "tid", nil)
 	jobContext := NewJobContext(metadata, sph, vh, NewLogger())
 
-	err := c.Execute(jobContext)
+	err := c.execute(jobContext)
 
 	s.Require().NotNil(err)
 	s.Require().Equal("unstable", err.Error())

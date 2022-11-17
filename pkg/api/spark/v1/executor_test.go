@@ -34,12 +34,9 @@ func (s *ExecutorSuite) Test_Execute_Single_Stage_Then_Complete_With_No_Logic_Sh
 
 	c := b.buildChain()
 	jobKey := "test"
-	sph := NewInMemoryStageProgressHandler(s.T())
-	vh := NewInMemoryIOHandler(s.T())
-	metadata := NewSparkMetadata(context.Background(), jobKey, "cid", "tid", nil)
-	jobContext := NewJobContext(metadata, sph, vh, NewLogger())
+	jobContext, sph, _ := s.newJobContext(jobKey, "cid", "tid")
 
-	err := c.Execute(jobContext)
+	err := c.execute(jobContext)
 
 	s.Require().Nil(err)
 	sph.AssertStageStatus(jobKey, "test-0_complete", StageStatus_STAGE_STATUS_COMPLETED)
@@ -67,7 +64,7 @@ func (s *ExecutorSuite) Test_Execute_Single_Stage_Then_Complete_With_No_Logic_Sh
 //	metadata := NewSparkMetadata(context.Background(), jobKey, "cid", "tid", nil)
 //	jobContext := NewJobContext(metadata, sph, vh, NewLogger())
 //
-//	err := c.Execute(jobContext)
+//	err := c.execute(jobContext)
 //
 //	s.Require().Nil(err)
 //	sph.AssertStageStatus(jobKey, "test-0_complete", StageStatus_STAGE_STATUS_COMPLETED)
@@ -99,9 +96,13 @@ func (s *ExecutorSuite) Test_Complete_Can_Fetch_String_Stage_Result() {
 	sph := NewInMemoryStageProgressHandler(s.T())
 	vh := NewInMemoryIOHandler(s.T())
 	metadata := NewSparkMetadata(context.Background(), jobKey, "cid", "tid", nil)
-	jobContext := NewJobContext(metadata, sph, vh, NewLogger())
+	jobContext := NewJobContext(metadata, &sparkOpts{
+		variableHandler:      vh,
+		stageProgressHandler: sph,
+		log:                  NewLogger(),
+	})
 
-	err := c.Execute(jobContext)
+	err := c.execute(jobContext)
 
 	s.Require().Nil(err)
 	sph.AssertStageStatus(jobKey, "test-0_complete", StageStatus_STAGE_STATUS_COMPLETED)
@@ -141,12 +142,9 @@ func (s *ExecutorSuite) Test_Complete_Can_Fetch_Numeric_Stage_Result() {
 
 	c := b.buildChain()
 	jobKey := "test"
-	sph := NewInMemoryStageProgressHandler(s.T())
-	vh := NewInMemoryIOHandler(s.T())
-	metadata := NewSparkMetadata(context.Background(), jobKey, "cid", "tid", nil)
-	jobContext := NewJobContext(metadata, sph, vh, NewLogger())
+	jobContext, sph, _ := s.newJobContext(jobKey, "cid", "tid")
 
-	err := c.Execute(jobContext)
+	err := c.execute(jobContext)
 
 	s.Require().Nil(err)
 	sph.AssertStageStatus(jobKey, "test-0_complete", StageStatus_STAGE_STATUS_COMPLETED)
@@ -174,12 +172,9 @@ func (s *ExecutorSuite) Test_Should_Compensate_If_Stage_Return_Error() {
 
 	c := b.buildChain()
 	jobKey := "test"
-	sph := NewInMemoryStageProgressHandler(s.T())
-	vh := NewInMemoryIOHandler(s.T())
-	metadata := NewSparkMetadata(context.Background(), jobKey, "cid", "tid", nil)
-	jobContext := NewJobContext(metadata, sph, vh, NewLogger())
+	jobContext, sph, _ := s.newJobContext(jobKey, "cid", "tid")
 
-	err := c.Execute(jobContext)
+	err := c.execute(jobContext)
 
 	s.Require().NotNil(err)
 	s.Require().Equal("unstable", err.Error())
@@ -219,7 +214,7 @@ func (s *ExecutorSuite) Test_Should_Compensate_If_Stage_Return_Error() {
 //	metadata := NewSparkMetadata(context.Background(), jobKey, "cid", "tid", nil)
 //	jobContext := NewJobContext(metadata, sph, vh, NewLogger())
 //
-//	err := c.Execute(jobContext)
+//	err := c.execute(jobContext)
 //
 //	s.Require().NotNil(err)
 //	s.Require().Equal("unstable", err.Error())
@@ -265,12 +260,9 @@ func (s *ExecutorSuite) Test_Should_Skip_Stage_If_Stage_Returns_Skip_Option() {
 
 	c := b.buildChain()
 	jobKey := "test"
-	sph := NewInMemoryStageProgressHandler(s.T())
-	vh := NewInMemoryIOHandler(s.T())
-	metadata := NewSparkMetadata(context.Background(), jobKey, "cid", "tid", nil)
-	jobContext := NewJobContext(metadata, sph, vh, NewLogger())
+	jobContext, sph, _ := s.newJobContext(jobKey, "cid", "tid")
 
-	err := c.Execute(jobContext)
+	err := c.execute(jobContext)
 	s.Require().Nil(err)
 	sph.AssertStageStatus(jobKey, "stage-0", StageStatus_STAGE_STATUS_SKIPPED)
 	sph.AssertStageStatus(jobKey, "stage-1", StageStatus_STAGE_STATUS_COMPLETED)
@@ -317,12 +309,9 @@ func (s *ExecutorSuite) Test_Should_Cancel_Chain_If_Stage_Returns_Cancel_Option(
 
 	c := b.buildChain()
 	jobKey := "test"
-	sph := NewInMemoryStageProgressHandler(s.T())
-	vh := NewInMemoryIOHandler(s.T())
-	metadata := NewSparkMetadata(context.Background(), jobKey, "cid", "tid", nil)
-	jobContext := NewJobContext(metadata, sph, vh, NewLogger())
+	jobContext, sph, _ := s.newJobContext(jobKey, "cid", "tid")
 
-	err := c.Execute(jobContext)
+	err := c.execute(jobContext)
 	s.Require().NotNil(err)
 	s.Require().Equal("unstable", err.Error())
 
@@ -378,12 +367,9 @@ func (s *ExecutorSuite) Test_Should_Cancel_Chain_If_Stage_Returns_Fatal_Option()
 
 	c := b.buildChain()
 	jobKey := "test"
-	sph := NewInMemoryStageProgressHandler(s.T())
-	vh := NewInMemoryIOHandler(s.T())
-	metadata := NewSparkMetadata(context.Background(), jobKey, "cid", "tid", nil)
-	jobContext := NewJobContext(metadata, sph, vh, NewLogger())
+	jobContext, sph, _ := s.newJobContext(jobKey, "cid", "tid")
 
-	err := c.Execute(jobContext)
+	err := c.execute(jobContext)
 	s.Require().NotNil(err)
 	s.Require().Equal("unstable", err.Error())
 
@@ -399,6 +385,25 @@ func (s *ExecutorSuite) Test_Should_Cancel_Chain_If_Stage_Returns_Fatal_Option()
 	if WaitTimeout(&wg, time.Second) {
 		s.FailNow("time out waiting for all steps to complete")
 	}
+}
+
+/************************************************************************/
+// HELPERS
+/************************************************************************/
+
+func (s *ExecutorSuite) newJobContext(
+	jobKey string, cid string, txId string,
+) (SparkContext, *InMemoryStageProgressHandler, IOHandler) {
+	sph := NewInMemoryStageProgressHandler(s.T())
+	vh := NewInMemoryIOHandler(s.T())
+	metadata := NewSparkMetadata(context.Background(), jobKey, cid, txId, nil)
+	jobContext := NewJobContext(metadata, &sparkOpts{
+		variableHandler:      vh,
+		stageProgressHandler: sph,
+		log:                  NewLogger(),
+	})
+
+	return jobContext, sph, vh
 }
 
 /************************************************************************/

@@ -540,7 +540,7 @@ package tests
 //			}
 //			zerolog.SetGlobalLevel(zerolog.Disabled)
 //			worker := v1.NewSparkTestWorker(t, chain, v12.WithIOHandler(v12.NewIOHandler(t)), v12.WithStageProgressHandler(sph))
-//			err := worker.Execute(context.NewSparkMetadata(ctx.Background(), "jobKey", "correlationId", "transactionId", test.lastActiveStage))
+//			err := worker.execute(context.NewSparkMetadata(ctx.Background(), "jobKey", "correlationId", "transactionId", test.lastActiveStage))
 //			if err != nil && test.errorType == nil {
 //				t.Errorf("a unexpected error occured: %v", err)
 //			}

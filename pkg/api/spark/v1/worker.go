@@ -10,12 +10,10 @@ import (
 /************************************************************************/
 
 type sparkWorker struct {
-	config               *config.Config
-	chain                *chain
-	variableHandler      IOHandler
-	stageProgressHandler StageProgressHandler
-	log                  Logger
-	ctx                  context.Context
+	config *config.Config
+	chain  *chain
+	ctx    context.Context
+	opts   *sparkOpts
 }
 
 /************************************************************************/
@@ -24,14 +22,14 @@ type sparkWorker struct {
 
 // Execute execute a single job
 func (w *sparkWorker) Execute(metadata Context) StageError {
-	jobContext := NewJobContext(metadata, w.stageProgressHandler, w.variableHandler, w.log)
-	return w.chain.Execute(jobContext)
+	jobContext := NewJobContext(metadata, w.opts)
+	return w.chain.execute(jobContext)
 }
 
 // LocalContext generates a context that can be used when calling Execute directly instead of through the api.
 func (w *sparkWorker) LocalContext(jobKey, correlationID, transactionId string) Context {
 	metadata := NewSparkMetadata(context.Background(), jobKey, correlationID, transactionId, nil)
-	return NewJobContext(metadata, w.stageProgressHandler, w.variableHandler, w.log)
+	return NewJobContext(metadata, w.opts)
 }
 
 // Run runs the worker and waits for kill signals and then gracefully shuts down the worker
@@ -47,28 +45,28 @@ func (w *sparkWorker) Run() {
 func (w *sparkWorker) validate(report ChainReport) error {
 	if len(report.Errors) > 0 {
 		for _, err := range report.Errors {
-			w.log.Error(err, "validation failed")
+			w.opts.log.Error(err, "validation failed")
 		}
 
 		return ErrChainIsNotValid
 	}
 
 	var grpcClient ManagerServiceClient
-	if w.variableHandler == nil || w.stageProgressHandler == nil {
+	if w.opts.variableHandler == nil || w.opts.stageProgressHandler == nil {
 		var err error
 		grpcClient, err = CreateManagerServiceClient(w.config)
 		if err != nil {
 			return err
 		}
 	}
-	if w.variableHandler == nil {
-		w.variableHandler = NewIOHandler(grpcClient)
+	if w.opts.variableHandler == nil {
+		w.opts.variableHandler = NewIOHandler(grpcClient)
 	}
-	if w.stageProgressHandler == nil {
-		w.stageProgressHandler = NewStageProgressHandler(grpcClient)
+	if w.opts.stageProgressHandler == nil {
+		w.opts.stageProgressHandler = NewStageProgressHandler(grpcClient)
 	}
-	if w.log == nil {
-		w.log = NewLogger()
+	if w.opts.log == nil {
+		w.opts.log = NewLogger()
 	}
 	return nil
 }
@@ -78,9 +76,12 @@ func (w *sparkWorker) validate(report ChainReport) error {
 /************************************************************************/
 
 func NewSparkWorker(ctx context.Context, spark Spark, options ...Option) (Worker, error) {
-	jw := &sparkWorker{ctx: ctx}
+	jw := &sparkWorker{
+		ctx:  ctx,
+		opts: &sparkOpts{},
+	}
 	for _, opt := range options {
-		jw = opt(jw)
+		jw.opts = opt(jw.opts)
 	}
 
 	// build the chain
@@ -98,31 +99,4 @@ func NewSparkWorker(ctx context.Context, spark Spark, options ...Option) (Worker
 	}
 
 	return jw, nil
-}
-
-/************************************************************************/
-// OPTIONS
-/************************************************************************/
-
-type Option = func(je *sparkWorker) *sparkWorker
-
-func WithIOHandler(vh IOHandler) Option {
-	return func(jw *sparkWorker) *sparkWorker {
-		jw.variableHandler = vh
-		return jw
-	}
-}
-
-func WithStageProgressHandler(sph StageProgressHandler) Option {
-	return func(jw *sparkWorker) *sparkWorker {
-		jw.stageProgressHandler = sph
-		return jw
-	}
-}
-
-func WithLog(log Logger) Option {
-	return func(jw *sparkWorker) *sparkWorker {
-		jw.log = log
-		return jw
-	}
 }

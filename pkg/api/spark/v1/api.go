@@ -119,6 +119,8 @@ type (
 		LastActiveStage() *LastActiveStage
 		Log() Logger
 		WithoutLastActiveStage() SparkContext
+		delegateStage() DelegateStageDefinitionFn
+		delegateComplete() DelegateCompleteDefinitionFn
 	}
 
 	StageContext interface {
@@ -201,4 +203,7 @@ type (
 	StageDefinitionFn    = func(ctx StageContext) (any, StageError)
 	CompleteDefinitionFn = func(ctx CompleteContext) StageError
 	StageOption          = func(StageOptionParams) StageError
+
+	DelegateStageDefinitionFn    = func(ctx StageContext, cb StageDefinitionFn) (any, StageError)
+	DelegateCompleteDefinitionFn = func(ctx CompleteContext, cb CompleteDefinitionFn) StageError
 )

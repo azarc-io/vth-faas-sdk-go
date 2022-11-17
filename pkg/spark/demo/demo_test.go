@@ -30,7 +30,7 @@ package demo
 //		&v12.Variable{Name: "items", MimeType: api.MimeTypeJSON, Value: []any{map[string]any{"id": "1", "name": "itemName"}}})
 //	assert.Nil(t, err)
 //
-//	err = worker.Execute(context.NewSparkMetadata(ctx.Background(),
+//	err = worker.execute(context.NewSparkMetadata(ctx.Background(),
 //		"jobKey", "correlationId", "transactionId", nil))
 //
 //	assert.Nil(t, err)

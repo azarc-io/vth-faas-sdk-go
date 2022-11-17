@@ -122,7 +122,7 @@ package tests
 //			test.stageBehaviour.ResetExecutions()
 //			chain := createChainForResumeOnRetryTests(t, test.stageBehaviour)
 //			worker := v1.NewSparkTestWorker(t, chain, v12.WithIOHandler(v12.NewIOHandler(t)), v12.WithStageProgressHandler(v12.NewStageProgressHandler(t)))
-//			err := worker.Execute(context.NewSparkMetadata(ctx.Background(), "jobKey", "correlationId", "transactionId", test.lastActiveStage))
+//			err := worker.execute(context.NewSparkMetadata(ctx.Background(), "jobKey", "correlationId", "transactionId", test.lastActiveStage))
 //			if err != nil && test.errorType == nil {
 //				t.Errorf("a unexpected error occured: %v", err)
 //			}

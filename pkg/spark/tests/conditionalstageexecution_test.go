@@ -89,7 +89,7 @@ package tests
 //			chain, sb := test.chainFn()
 //			stageProgressHandler := v12.NewStageProgressHandler(t)
 //			worker := v1.NewSparkTestWorker(t, chain, v12.WithIOHandler(v12.NewIOHandler(t)), v12.WithStageProgressHandler(stageProgressHandler))
-//			err := worker.Execute(context.NewSparkMetadata(ctx.Background(), "jobKey", "correlationId", "transactionId", nil))
+//			err := worker.execute(context.NewSparkMetadata(ctx.Background(), "jobKey", "correlationId", "transactionId", nil))
 //			if err != nil {
 //				t.Error(err)
 //			}

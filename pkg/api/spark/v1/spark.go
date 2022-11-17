@@ -9,52 +9,67 @@ import (
 // CONTEXT
 /************************************************************************/
 
-type Job struct {
-	ctx                  ctx.Context
-	metadata             *SparkMetadata
-	stageProgressHandler StageProgressHandler
-	variableHandler      IOHandler
-	log                  Logger
+type job struct {
+	ctx                     ctx.Context
+	metadata                *sparkMetadata
+	stageProgressHandler    StageProgressHandler
+	variableHandler         IOHandler
+	log                     Logger
+	delegateStageHandler    DelegateStageDefinitionFn
+	delegateCompleteHandler DelegateCompleteDefinitionFn
 }
 
-func NewJobContext(metadata Context, sph StageProgressHandler, vh IOHandler, log Logger) SparkContext {
-	m := SparkMetadata{ctx: metadata.Ctx(), jobKey: metadata.JobKey(), correlationID: metadata.CorrelationID(), transactionID: metadata.TransactionID(), lastActiveStage: metadata.LastActiveStage()}
-	return &Job{metadata: &m, stageProgressHandler: sph, variableHandler: vh, log: log}
+func NewJobContext(metadata Context, opts *sparkOpts) SparkContext {
+	m := sparkMetadata{
+		ctx:             metadata.Ctx(),
+		jobKey:          metadata.JobKey(),
+		correlationID:   metadata.CorrelationID(),
+		transactionID:   metadata.TransactionID(),
+		lastActiveStage: metadata.LastActiveStage(),
+	}
+	return &job{
+		metadata:                &m,
+		stageProgressHandler:    opts.stageProgressHandler,
+		variableHandler:         opts.variableHandler,
+		log:                     opts.log,
+		delegateStageHandler:    opts.delegateStage,
+		delegateCompleteHandler: opts.delegateComplete,
+	}
 }
 
-func (j *Job) IOHandler() IOHandler {
+func (j *job) IOHandler() IOHandler {
 	return j.variableHandler
 }
 
-func (j *Job) StageProgressHandler() StageProgressHandler {
+func (j *job) StageProgressHandler() StageProgressHandler {
 	return j.stageProgressHandler
 }
 
-func (j *Job) Ctx() ctx.Context {
+func (j *job) Ctx() ctx.Context {
 	return j.ctx
 }
 
-func (j *Job) JobKey() string {
+func (j *job) JobKey() string {
 	return j.metadata.jobKey
 }
 
-func (j *Job) CorrelationID() string {
+func (j *job) CorrelationID() string {
 	return j.metadata.correlationID
 }
 
-func (j *Job) TransactionID() string {
+func (j *job) TransactionID() string {
 	return j.metadata.transactionID
 }
 
-func (j *Job) LastActiveStage() *LastActiveStage {
+func (j *job) LastActiveStage() *LastActiveStage {
 	return j.metadata.lastActiveStage
 }
 
-func (j *Job) Log() Logger {
+func (j *job) Log() Logger {
 	return j.log
 }
 
-func (j *Job) WithoutLastActiveStage() SparkContext {
+func (j *job) WithoutLastActiveStage() SparkContext {
 	newCtx := *j
 	md := *newCtx.metadata
 	newCtx.metadata = &md
@@ -62,11 +77,19 @@ func (j *Job) WithoutLastActiveStage() SparkContext {
 	return &newCtx
 }
 
+func (j *job) delegateStage() DelegateStageDefinitionFn {
+	return j.delegateStageHandler
+}
+
+func (j *job) delegateComplete() DelegateCompleteDefinitionFn {
+	return j.delegateCompleteHandler
+}
+
 /************************************************************************/
 // METADATA
 /************************************************************************/
 
-type SparkMetadata struct {
+type sparkMetadata struct {
 	ctx             context.Context
 	jobKey          string
 	correlationID   string
@@ -74,12 +97,12 @@ type SparkMetadata struct {
 	lastActiveStage *LastActiveStage
 }
 
-func NewSparkMetadata(ctx context.Context, jobKey, correlationID, transactionID string, lastActiveStage *LastActiveStage) SparkMetadata {
-	return SparkMetadata{ctx: ctx, jobKey: jobKey, correlationID: correlationID, transactionID: transactionID, lastActiveStage: lastActiveStage}
+func NewSparkMetadata(ctx context.Context, jobKey, correlationID, transactionID string, lastActiveStage *LastActiveStage) Context {
+	return sparkMetadata{ctx: ctx, jobKey: jobKey, correlationID: correlationID, transactionID: transactionID, lastActiveStage: lastActiveStage}
 }
 
-func NewSparkMetadataFromGrpcRequest(ctx context.Context, req *ExecuteJobRequest) SparkMetadata {
-	return SparkMetadata{
+func NewSparkMetadataFromGrpcRequest(ctx context.Context, req *ExecuteJobRequest) sparkMetadata {
+	return sparkMetadata{
 		ctx:             ctx,
 		jobKey:          req.Key,
 		correlationID:   req.CorrelationId,
@@ -88,22 +111,22 @@ func NewSparkMetadataFromGrpcRequest(ctx context.Context, req *ExecuteJobRequest
 	}
 }
 
-func (j SparkMetadata) JobKey() string {
+func (j sparkMetadata) JobKey() string {
 	return j.jobKey
 }
 
-func (j SparkMetadata) CorrelationID() string {
+func (j sparkMetadata) CorrelationID() string {
 	return j.correlationID
 }
 
-func (j SparkMetadata) TransactionID() string {
+func (j sparkMetadata) TransactionID() string {
 	return j.transactionID
 }
 
-func (j SparkMetadata) Ctx() context.Context {
+func (j sparkMetadata) Ctx() context.Context {
 	return j.ctx
 }
 
-func (j SparkMetadata) LastActiveStage() *LastActiveStage {
+func (j sparkMetadata) LastActiveStage() *LastActiveStage {
 	return j.lastActiveStage
 }
