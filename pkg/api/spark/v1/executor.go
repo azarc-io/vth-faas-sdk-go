@@ -92,10 +92,12 @@ func (c *chain) handleStageError(ctx SparkContext, node *node, stg *stage, err S
 	if err == nil {
 		return nil
 	}
+
 	if e := updateStage(ctx, stg.name, withStageError(err)); e != nil {
 		ctx.Log().Error(err, "error updating stage status")
 		return NewStageError(e)
 	}
+
 	switch err.ErrorType() {
 	case ErrorType_ERROR_TYPE_FAILED_UNSPECIFIED:
 		if node.compensate != nil {

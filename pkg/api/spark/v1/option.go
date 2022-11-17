@@ -84,6 +84,8 @@ func WithLog(log Logger) Option {
 	}
 }
 
+// WithDelegateStage delegates execution of all stages
+// TODO support delegating single stage by name
 func WithDelegateStage(delegate DelegateStageDefinitionFn) Option {
 	return func(jw *sparkOpts) *sparkOpts {
 		jw.delegateStage = delegate
@@ -91,6 +93,8 @@ func WithDelegateStage(delegate DelegateStageDefinitionFn) Option {
 	}
 }
 
+// WithDelegateCompletion delegates execution of all completion stages
+// TODO support delegating single completion stage by name
 func WithDelegateCompletion(delegate DelegateCompleteDefinitionFn) Option {
 	return func(jw *sparkOpts) *sparkOpts {
 		jw.delegateComplete = delegate
