@@ -102,6 +102,9 @@ func (c *ChainBuilder) getStages(stages []*stage, completeStages []*completeStag
 // FINALIZERS
 /************************************************************************/
 
+// buildChain creates a chain that can be executed
+// - Maps the chain
+// - Decorates it with breadcrumbs
 func (c *ChainBuilder) buildChain() *chain {
 	newChain := &chain{
 		rootNode:    c.rootNode.node,
@@ -114,8 +117,8 @@ func (c *ChainBuilder) buildChain() *chain {
 }
 
 // Build iterates over the entire chain and performs the following operations
-// - Map all stages of the chain for easy lookup
-// - Validate the chain
+// - Decorate the chain node with breadcrumbs
+// - Move the pointer back up the chain (depth-1)
 func (c *ChainBuilder) build() *node {
 	ret := c.current
 
