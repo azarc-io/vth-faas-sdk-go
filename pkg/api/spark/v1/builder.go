@@ -26,7 +26,7 @@ type chainNode struct {
 /************************************************************************/
 
 // Stage adds a stage to the current chain node, this could be at any depth of the chain
-func (c *ChainBuilder) Stage(name string, stageDefinitionFn StageDefinitionFn, options ...StageOption) ChainStage {
+func (c *ChainBuilder) Stage(name string, stageDefinitionFn StageDefinitionFn, options ...StageOption) ChainStageAny {
 	s := &stage{
 		node: c.current.node,
 		name: name,
@@ -39,7 +39,7 @@ func (c *ChainBuilder) Stage(name string, stageDefinitionFn StageDefinitionFn, o
 
 // Compensate registers a chain node at depth-1 in the chain, compensation is always on the parent
 // so this function looks at the previous node in the chain which is always the parent
-func (c *ChainBuilder) Compensate(newNode ChainNodeFinalizer) ChainCancelledOrComplete {
+func (c *ChainBuilder) Compensate(newNode Chain) ChainCancelledOrComplete {
 	n := newNode.build() // this causes the chain to move from depth to depth-1
 	n.nodeType = compensateNodeType
 
@@ -52,7 +52,7 @@ func (c *ChainBuilder) Compensate(newNode ChainNodeFinalizer) ChainCancelledOrCo
 
 // Cancelled registers a chain node at depth-1 in the chain, compensation is always on the parent
 // so this function looks at the previous node in the chain which is always the parent
-func (c *ChainBuilder) Cancelled(newNode ChainNodeFinalizer) ChainComplete {
+func (c *ChainBuilder) Cancelled(newNode Chain) ChainComplete {
 	n := newNode.build() // this causes the chain to move from depth to depth-1
 	n.nodeType = cancelNodeType
 
@@ -64,7 +64,7 @@ func (c *ChainBuilder) Cancelled(newNode ChainNodeFinalizer) ChainComplete {
 }
 
 // Complete returns a finalizer that can be used to build the node chain
-func (c *ChainBuilder) Complete(completeDefinitionFn CompleteDefinitionFn, options ...StageOption) ChainNodeFinalizer {
+func (c *ChainBuilder) Complete(completeDefinitionFn CompleteDefinitionFn, options ...StageOption) Chain {
 	name := fmt.Sprintf("%s_complete", c.current.node.name)
 	c.current.node.complete = &completeStage{
 		node: c.rootNode.node,

@@ -19,7 +19,7 @@ type basicSpark struct {
 	completeCalledCount   int
 }
 
-func (s *basicSpark) BuildChain(b Builder) ChainNodeFinalizer {
+func (s *basicSpark) BuildChain(b Builder) Chain {
 	s.buildChainCalledCount += 1
 	return b.NewChain("test-0").
 		Stage("stage-0", func(_ StageContext) (any, StageError) {

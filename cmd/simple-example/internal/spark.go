@@ -8,7 +8,7 @@ import (
 type Spark struct {
 }
 
-func (s Spark) BuildChain(b spark_v1.Builder) spark_v1.ChainNodeFinalizer {
+func (s Spark) BuildChain(b spark_v1.Builder) spark_v1.Chain {
 	return b.NewChain("chain-1").
 		Stage("stage-1", func(_ spark_v1.StageContext) (any, spark_v1.StageError) {
 			return "hello", nil
@@ -41,6 +41,6 @@ func (s Spark) BuildChain(b spark_v1.Builder) spark_v1.ChainNodeFinalizer {
 		})
 }
 
-func NewSpark() *Spark {
+func NewSpark() spark_v1.Spark {
 	return &Spark{}
 }

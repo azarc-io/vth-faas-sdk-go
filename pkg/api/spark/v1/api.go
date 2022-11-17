@@ -18,42 +18,56 @@ type (
 		ChainFinalizer
 	}
 
+	// BuilderChain the root of a chain
 	BuilderChain interface {
 		ChainNode
 	}
 
+	// ChainNode a node in the chain
 	ChainNode interface {
-		ChainStage
+		ChainStage // must have at least 1 stage
 	}
 
+	// ChainStage a stage in the chain node
 	ChainStage interface {
-		Stage(name string, stageDefinitionFn StageDefinitionFn, options ...StageOption) ChainStage
+		Stage(name string, stageDefinitionFn StageDefinitionFn, options ...StageOption) ChainStageAny
+	}
+
+	// ChainStageAny allows defining more stages and at least 1 of each compensate, cancelled or complete
+	ChainStageAny interface {
+		ChainStage
 		ChainCompensate
 		ChainCancelled
 		ChainComplete
 	}
 
+	// ChainCancelledOrComplete allows defining only cancel or completion
 	ChainCancelledOrComplete interface {
 		ChainCancelled
 		ChainComplete
 	}
 
+	// ChainCompensate contract the builder must implement for compensation
 	ChainCompensate interface {
-		Compensate(newNode ChainNodeFinalizer) ChainCancelledOrComplete
+		Compensate(newNode Chain) ChainCancelledOrComplete
 	}
 
+	// ChainCancelled contract the builder must implement for cancellation
 	ChainCancelled interface {
-		Cancelled(newNode ChainNodeFinalizer) ChainComplete
+		Cancelled(newNode Chain) ChainComplete
 	}
 
+	// ChainComplete contract the builder must implement for completion
 	ChainComplete interface {
-		Complete(completeDefinitionFn CompleteDefinitionFn, options ...StageOption) ChainNodeFinalizer
+		Complete(completeDefinitionFn CompleteDefinitionFn, options ...StageOption) Chain
 	}
 
-	ChainNodeFinalizer interface {
+	// Chain finalizes a node in the chain, used internally to build a part of the chain
+	Chain interface {
 		build() *node
 	}
 
+	// ChainFinalizer finalizes the entire chain, used internally to build the chain
 	ChainFinalizer interface {
 		buildChain() *chain
 	}
@@ -142,7 +156,7 @@ type (
 type (
 	// Spark the contract a developer must implement in order to be accepted by a worker
 	Spark interface {
-		BuildChain(b Builder) ChainNodeFinalizer
+		BuildChain(b Builder) Chain
 	}
 )
 
