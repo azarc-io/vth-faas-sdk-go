@@ -15,7 +15,7 @@ inputs:
     # Mime type is ignored for anything other than type: object
     # an input can support more than 1 mimetype, but it is up to you to include the relevant tags on your struct
     mime_types: [ ]
-    # You can provide a schema that can perform up to 3 requirements in the verathread UI
+    # You can provide a schema that can perform up to 3 requirements both in the UI and the Backend
     # - It lets the user know what the model you expect as your input to look like
     # - It can be used to transform data between different formats like xml -> json and back if you use our extended schema
     # - It can be used to validate the input before it is sent to your spark
@@ -24,7 +24,7 @@ inputs:
     required: true
     # Conditions allow you to hide or show an input based on any value that the user can configure in the
     # Verathread UI when a config.schema file is provided.
-    # E.g. if you had a schema that renders a form who's output looks like {"someObject": { "someKey": "someValue" }
+    # E.g. if you had a schema that renders a form who's output looks like {"someObject": { "someKey": "someValue" }}
     # then you can configure the condition below to only show this input when someKey == someValue
     condition: config.someObject.someKey == "someValue"
 # Output mappings
@@ -40,14 +40,14 @@ outputs:
     # you can only have 1 mime type on an output, this lets us inform the user of what to expect when they
     # consume this output, leave this empty for anything other than type: object
     mime_type: "application/json"
-    # You can provide a schema that can perform up to 3 requirements in the verathread UI
+    # You can provide a schema that can perform up to 3 requirements both in the UI and the Backend
     # - It lets the user know what the model you will produce as your output looks like
     # - It can be used to transform data between different formats like xml -> json and back if you use our extended schema
     # - It can be used to validate the output before it gets stored to the workflows blackboard
     schema: "test-schema1.json"
     # Conditions allow you to hide or show an input based on any value that the user can configure in the
     # Verathread UI when a config.schema file is provided.
-    # E.g. if you had a schema that renders a form who's output looks like {"someObject": { "someKey": "someValue" }
+    # E.g. if you had a schema that renders a form who's output looks like {"someObject": { "someKey": "someValue" }}
     # then you can configure the condition below to only show this input when someKey == someValue
     condition: config.someObject.someKey == "someValue"
 # Configuration required by this spark
