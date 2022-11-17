@@ -114,7 +114,7 @@ func (s *BuilderSuite) Test_Report_Should_Generate_Single_Error_On_Single_Duplic
 	r := GenerateReportForChain(b.buildChain())
 	s.Require().NotNil(r)
 	s.Require().Len(r.Errors, 1)
-	s.Equal("can not have duplicate stage names in the [chain]: stage-0 [at]: root > compensate", r.Errors[0].Error())
+	s.Equal("duplicate stage names are not permitted [chain]: stage-0 [at]: root > compensate", r.Errors[0].Error())
 
 	s.Require().True(n.HasCompletionStage(), "must have a completion stage")
 	s.Require().True(n.HasCompensationStage(), "must not have a compensation stage")
@@ -157,8 +157,8 @@ func (s *BuilderSuite) Test_Report_Should_Generate_Multiple_Error_On_Multiple_Du
 	r := GenerateReportForChain(b.buildChain())
 	s.Require().NotNil(r)
 	s.Require().Len(r.Errors, 2)
-	s.Equal("can not have duplicate stage names in the [chain]: stage-0 [at]: root > compensate", r.Errors[0].Error())
-	s.Equal("can not have duplicate stage names in the [chain]: stage-0 [at]: root > canceled", r.Errors[1].Error())
+	s.Equal("duplicate stage names are not permitted [chain]: stage-0 [at]: root > compensate", r.Errors[0].Error())
+	s.Equal("duplicate stage names are not permitted [chain]: stage-0 [at]: root > canceled", r.Errors[1].Error())
 
 	s.Require().True(n.HasCompletionStage(), "must have a completion stage")
 	s.Require().True(n.HasCompensationStage(), "must not have a compensation stage")
@@ -201,8 +201,8 @@ func (s *BuilderSuite) Test_Report_Should_Generate_Errors_On_Duplicate_Chain_Nam
 	r := GenerateReportForChain(b.buildChain())
 	s.Require().NotNil(r)
 	s.Require().Len(r.Errors, 2)
-	s.Equal("can not have duplicate chain names in the [name]: test-0 [at]: root > compensate", r.Errors[0].Error())
-	s.Equal("can not have duplicate chain names in the [name]: test-0 [at]: root > canceled", r.Errors[1].Error())
+	s.Equal("duplicate chain names are not permitted [name]: test-0 [at]: root > compensate", r.Errors[0].Error())
+	s.Equal("duplicate chain names are not permitted [name]: test-0 [at]: root > canceled", r.Errors[1].Error())
 
 	s.Require().True(n.HasCompletionStage(), "must have a completion stage")
 	s.Require().True(n.HasCompensationStage(), "must not have a compensation stage")
