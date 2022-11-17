@@ -42,7 +42,7 @@ func generateReportForChainRecursively(r *ChainReport, n *node) {
 
 	// chain node name must be unique
 	if _, ok := r.NodeMap[n.name]; ok {
-		r.Errors = append(r.Errors, fmt.Errorf("can not have duplicate chain names in the [name]: %s [at]: %s",
+		r.Errors = append(r.Errors, fmt.Errorf("duplicate chain names are not permitted [name]: %s [at]: %s",
 			n.name, n.breadcrumb))
 	} else {
 		r.NodeMap[n.name] = ChainReportNode{
@@ -61,7 +61,7 @@ func generateReportForChainRecursively(r *ChainReport, n *node) {
 		}
 
 		if _, ok := r.StageMap[s.name]; ok {
-			r.Errors = append(r.Errors, fmt.Errorf("can not have duplicate stage names in the [chain]: %s [at]: %s",
+			r.Errors = append(r.Errors, fmt.Errorf("duplicate stage names are not permitted [chain]: %s [at]: %s",
 				s.name, n.breadcrumb))
 		} else {
 			r.StageMap[s.name] = ChainReportStage{
