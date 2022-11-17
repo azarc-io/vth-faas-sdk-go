@@ -5,30 +5,46 @@ import (
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/config"
 )
 
-type SparkWorker struct {
+/************************************************************************/
+// TYPES
+/************************************************************************/
+
+type sparkWorker struct {
 	config               *config.Config
 	chain                *chain
 	variableHandler      IOHandler
 	stageProgressHandler StageProgressHandler
 	log                  Logger
+	ctx                  context.Context
 }
 
-func (w *SparkWorker) Run() {
-	//TODO implement me
-	panic("implement me")
-}
+/************************************************************************/
+// Worker IMPLEMENTATION
+/************************************************************************/
 
-func (w *SparkWorker) Execute(metadata Context) StageError {
+// Execute execute a single job
+func (w *sparkWorker) Execute(metadata Context) StageError {
 	jobContext := NewJobContext(metadata, w.stageProgressHandler, w.variableHandler, w.log)
 	return w.chain.Execute(jobContext)
 }
 
-func (w *SparkWorker) LocalContext(jobKey, correlationID, transactionId string) Context {
+// LocalContext generates a context that can be used when calling Execute directly instead of through the api.
+func (w *sparkWorker) LocalContext(jobKey, correlationID, transactionId string) Context {
 	metadata := NewSparkMetadata(context.Background(), jobKey, correlationID, transactionId, nil)
 	return NewJobContext(metadata, w.stageProgressHandler, w.variableHandler, w.log)
 }
 
-func (w *SparkWorker) validate(report ChainReport) error {
+// Run runs the worker and waits for kill signals and then gracefully shuts down the worker
+func (w *sparkWorker) Run() {
+	//TODO implement me
+	panic("implement me")
+}
+
+/************************************************************************/
+// HELPERS
+/************************************************************************/
+
+func (w *sparkWorker) validate(report ChainReport) error {
 	if len(report.Errors) > 0 {
 		for _, err := range report.Errors {
 			w.log.Error(err, "validation failed")
@@ -57,8 +73,12 @@ func (w *SparkWorker) validate(report ChainReport) error {
 	return nil
 }
 
-func NewSparkWorker(cfg *config.Config, spark Spark, options ...Option) (Worker, error) {
-	jw := &SparkWorker{config: cfg}
+/************************************************************************/
+// FACTORY
+/************************************************************************/
+
+func NewSparkWorker(ctx context.Context, spark Spark, options ...Option) (Worker, error) {
+	jw := &sparkWorker{ctx: ctx}
 	for _, opt := range options {
 		jw = opt(jw)
 	}
@@ -80,24 +100,28 @@ func NewSparkWorker(cfg *config.Config, spark Spark, options ...Option) (Worker,
 	return jw, nil
 }
 
-type Option = func(je *SparkWorker) *SparkWorker
+/************************************************************************/
+// OPTIONS
+/************************************************************************/
+
+type Option = func(je *sparkWorker) *sparkWorker
 
 func WithIOHandler(vh IOHandler) Option {
-	return func(jw *SparkWorker) *SparkWorker {
+	return func(jw *sparkWorker) *sparkWorker {
 		jw.variableHandler = vh
 		return jw
 	}
 }
 
 func WithStageProgressHandler(sph StageProgressHandler) Option {
-	return func(jw *SparkWorker) *SparkWorker {
+	return func(jw *sparkWorker) *sparkWorker {
 		jw.stageProgressHandler = sph
 		return jw
 	}
 }
 
 func WithLog(log Logger) Option {
-	return func(jw *SparkWorker) *SparkWorker {
+	return func(jw *sparkWorker) *sparkWorker {
 		jw.log = log
 		return jw
 	}

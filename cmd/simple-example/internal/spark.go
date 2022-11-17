@@ -1,11 +1,13 @@
 package spark
 
 import (
+	"context"
 	"fmt"
 	spark_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/spark/v1"
 )
 
 type Spark struct {
+	shutdown context.CancelFunc
 }
 
 func (s Spark) BuildChain(b spark_v1.Builder) spark_v1.Chain {
@@ -41,6 +43,8 @@ func (s Spark) BuildChain(b spark_v1.Builder) spark_v1.Chain {
 		})
 }
 
-func NewSpark() spark_v1.Spark {
-	return &Spark{}
+// NewSpark creates a Spark
+// shutdown is a reference to the context cancel function, it can be used to gracefully stop the worker if needed
+func NewSpark(shutdown context.CancelFunc) spark_v1.Spark {
+	return &Spark{shutdown: shutdown}
 }
