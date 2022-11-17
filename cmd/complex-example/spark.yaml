@@ -27,7 +27,7 @@ inputs:
     # E.g. if you had a schema that renders a form who's output looks like {"someObject": { "someKey": "someValue" }
     # then you can configure the condition below to only show this input when someKey == someValue
     condition: config.someObject.someKey == "someValue"
-# Output mappings (for a more complete example see the advanced example)
+# Output mappings
 # these will be displayed to the user in the Verathread UI and will allow the user to map your outputs
 # to the blackboard
 outputs:
