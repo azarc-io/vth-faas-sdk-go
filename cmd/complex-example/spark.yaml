@@ -32,6 +32,8 @@ inputs:
 # to the blackboard
 outputs:
   message:
+    # The label that will be displayed in the UI
+    label: Formatted Message
     # The type of input, basic types are supported (string, boolean, number, object)
     type: string
     # Mime type is ignored for anything other than type: object
