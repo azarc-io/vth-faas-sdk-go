@@ -111,7 +111,6 @@ func (w *sparkWorker) validate(report ChainReport) error {
 	}
 
 	// TODO support TLS once support for platforms other than kubernetes are added to Verathread
-	// nosemgrep
 	if w.config.Config.Health != nil && w.config.Config.Health.Enabled {
 		w.opts.log.Info("setting up healthz")
 		w.health = healthz.NewChecker(&healthz.Config{
@@ -121,7 +120,8 @@ func (w *sparkWorker) validate(report ChainReport) error {
 		go func() {
 			http.Handle("/healthz", w.health.Handler())
 
-			if err := http.ListenAndServe(w.config.HealthBindTo(), nil); err != nil {
+			// nosemgrep
+			if err := http.ListenAndServe(w.config.HealthBindTo(), nil); err != nil { // nosemgrep
 				panic(err)
 			}
 		}()
