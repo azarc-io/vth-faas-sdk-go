@@ -2,7 +2,6 @@ package spark_v1
 
 import (
 	"fmt"
-	"github.com/azarc-io/vth-faas-sdk-go/pkg/spark"
 	"reflect"
 	"testing"
 
@@ -101,7 +100,7 @@ func (i *InMemoryStageProgressHandler) AssertStageResult(jobKey, stageName strin
 		i.t.Error(err)
 		return
 	}
-	req, err := NewSetStageResultReq(jobKey, spark.MimeTypeJSON, expectedStageResult)
+	req, err := NewSetStageResultReq(jobKey, MimeTypeJSON, expectedStageResult)
 	if err != nil {
 		i.t.Error(err)
 		return
