@@ -2,15 +2,21 @@ package spark_v1
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"gopkg.in/yaml.v3"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/sethvargo/go-envconfig"
 )
 
-type Config struct {
+/************************************************************************/
+// SPARK CONFIG
+/************************************************************************/
+
+type config struct {
 	Config struct {
 		Health *configHealth `yaml:"health"`
 		Agent  *configAgent  `yaml:"agent"`
@@ -49,20 +55,20 @@ type configApp struct {
 	InstanceID  string `env:"APP_INSTANCE_ID" yaml:"instanceId"`
 }
 
-func (m Config) AgentAddress() string {
+func (m *config) agentAddress() string {
 	return fmt.Sprintf("%s:%d", m.Config.Agent.Host, m.Config.Agent.Port)
 }
 
-func (m Config) ServerAddress() string {
+func (m *config) serverAddress() string {
 	return fmt.Sprintf("%s:%d", m.Config.Server.Bind, m.Config.Server.Port)
 }
 
-func (m Config) HealthBindTo() string {
+func (m *config) healthBindTo() string {
 	return fmt.Sprintf("%s:%d", m.Config.Health.Bind, m.Config.Health.Port)
 }
 
-func loadConfig() (*Config, error) {
-	config := defaultConfig()
+func loadSparkConfig() (*config, error) {
+	config := &config{}
 
 	// check for a yaml config
 	if _, err := os.Stat("spark.yaml"); err == nil {
@@ -82,8 +88,54 @@ func loadConfig() (*Config, error) {
 	return config, nil
 }
 
-func defaultConfig() *Config {
-	c := &Config{}
+/************************************************************************/
+// USER CONFIG
+/************************************************************************/
+
+type bindableConfig struct {
+	b        []byte
+	filePath string
+}
+
+func newBindableConfig() BindableConfig {
+	c := &bindableConfig{}
+
+	var err error
+
+	// optional config path environment
+	yamlFilePath := "config.yaml"
+	jsonFilePath := "config.json"
+
+	if os.Getenv("CONFIG_FILE_PATH") != "" {
+		c.filePath = os.Getenv("CONFIG_FILE_PATH")
+		if c.b, err = os.ReadFile(c.filePath); err != nil {
+			panic(err)
+		}
+	} else if _, err = os.Stat(yamlFilePath); err == nil {
+		c.filePath = yamlFilePath
+		if c.b, err = os.ReadFile(yamlFilePath); err != nil {
+			panic(err)
+		}
+	} else if _, err = os.Stat(jsonFilePath); err == nil {
+		c.filePath = jsonFilePath
+		if c.b, err = os.ReadFile(jsonFilePath); err != nil {
+			panic(err)
+		}
+	}
 
 	return c
+}
+
+func (r *bindableConfig) Raw() ([]byte, error) {
+	return r.b, nil
+}
+
+func (r *bindableConfig) Bind(target any) error {
+	if strings.HasSuffix(r.filePath, ".yaml") {
+		return yaml.Unmarshal(r.b, &target)
+	} else if strings.HasSuffix(r.filePath, ".json") {
+		return json.Unmarshal(r.b, &target)
+	}
+
+	return fmt.Errorf("can not load config, unsupported extension: %s", r.filePath)
 }

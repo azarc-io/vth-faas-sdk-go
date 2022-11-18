@@ -5,6 +5,7 @@ import (
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/healthz"
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/signals"
 	"net/http"
+	"sync"
 	"time"
 )
 
@@ -13,13 +14,15 @@ import (
 /************************************************************************/
 
 type sparkWorker struct {
-	config    *Config
+	config    *config
 	chain     *chain
 	ctx       context.Context
 	opts      *sparkOpts
 	server    *server
 	createdAt time.Time
 	health    *healthz.Checker
+	spark     Spark
+	initOnce  sync.Once
 }
 
 /************************************************************************/
@@ -29,6 +32,9 @@ type sparkWorker struct {
 // Execute execute a single job
 // TODO this should not be exposed once all Azarc projects have been consolidated into Verathread
 func (w *sparkWorker) Execute(metadata Context) StageError {
+	// init the spark
+	w.initIfRequired()
+
 	jobContext := NewJobContext(metadata, w.opts)
 	return w.chain.execute(jobContext)
 }
@@ -43,17 +49,12 @@ func (w *sparkWorker) LocalContext(jobKey, correlationID, transactionId string) 
 func (w *sparkWorker) Run() {
 	// signal ch
 	s := signals.SetupSignalHandler()
+
 	// start server
-	if w.server != nil {
-		go func() {
-			if err := w.server.start(); err != nil {
-				panic(err)
-			}
-		}()
-		w.opts.log.Info("spark worker started in %v, listening on: %s", time.Since(w.createdAt), w.config.ServerAddress())
-	} else {
-		w.opts.log.Info("spark worker started in %v", time.Since(w.createdAt))
-	}
+	w.startServer()
+
+	// init the spark
+	w.initIfRequired()
 
 	// wait for signals
 	select {
@@ -67,6 +68,8 @@ func (w *sparkWorker) Run() {
 		w.opts.log.Info("shutting down server")
 		w.server.stop()
 	}
+
+	w.spark.Stop()
 }
 
 /************************************************************************/
@@ -121,7 +124,7 @@ func (w *sparkWorker) validate(report ChainReport) error {
 			http.Handle("/healthz", w.health.Handler())
 
 			// nosemgrep
-			if err := http.ListenAndServe(w.config.HealthBindTo(), nil); err != nil { // nosemgrep
+			if err := http.ListenAndServe(w.config.healthBindTo(), nil); err != nil { // nosemgrep
 				panic(err)
 			}
 		}()
@@ -131,11 +134,33 @@ func (w *sparkWorker) validate(report ChainReport) error {
 }
 
 func (w *sparkWorker) loadConfiguration() {
-	c, err := loadConfig()
+	c, err := loadSparkConfig()
 	if err != nil {
 		panic(err)
 	}
 	w.config = c
+}
+
+func (w *sparkWorker) startServer() {
+	if w.server != nil {
+		go func() {
+			if err := w.server.start(); err != nil {
+				panic(err)
+			}
+		}()
+		w.opts.log.Info("spark worker started in %v, listening on: %s", time.Since(w.createdAt), w.config.serverAddress())
+	} else {
+		w.opts.log.Info("spark worker started in %v", time.Since(w.createdAt))
+	}
+}
+
+func (w *sparkWorker) initIfRequired() {
+	w.initOnce.Do(func() {
+		err := w.spark.Init(newInitContext())
+		if err != nil {
+			panic(err)
+		}
+	})
 }
 
 /************************************************************************/
@@ -143,12 +168,12 @@ func (w *sparkWorker) loadConfiguration() {
 /************************************************************************/
 
 func NewSparkWorker(ctx context.Context, spark Spark, options ...Option) (Worker, error) {
-	jw := &sparkWorker{
+	var jw = &sparkWorker{
 		ctx:       ctx,
 		opts:      &sparkOpts{},
 		createdAt: time.Now(),
+		spark:     spark,
 	}
-
 	for _, opt := range options {
 		jw.opts = opt(jw.opts)
 	}
@@ -157,7 +182,7 @@ func NewSparkWorker(ctx context.Context, spark Spark, options ...Option) (Worker
 	jw.loadConfiguration()
 
 	// build the chain
-	builder := NewBuilder()
+	builder := newBuilder()
 	spark.BuildChain(builder)
 	chain := builder.buildChain()
 

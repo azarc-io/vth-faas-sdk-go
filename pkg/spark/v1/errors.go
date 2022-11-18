@@ -38,6 +38,7 @@ var (
 	ErrStageNotFoundInNodeChain = errors.New("stage not found in the node chain")
 	ErrConditionalStageSkipped  = errors.New("conditional stage execution")
 	ErrChainIsNotValid          = errors.New("chain is not valid")
+	ErrInputVariableNotFound    = errors.New("input variable not found")
 
 	errorTypeToStageStatusMapper = map[ErrorType]StageStatus{
 		ErrorType_ERROR_TYPE_RETRY:              StageStatus_STAGE_STATUS_FAILED,

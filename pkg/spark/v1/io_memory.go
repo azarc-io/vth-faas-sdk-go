@@ -10,12 +10,12 @@ type inMemoryIOHandler struct {
 	t         *testing.T
 }
 
-func NewInMemoryIOHandler(t *testing.T) IOHandler {
+func NewInMemoryIOHandler(t *testing.T) TestIOHandler {
 	i := &inMemoryIOHandler{t: t, variables: map[string]*Var{}}
 	return i
 }
 
-func (i *inMemoryIOHandler) Inputs(jobKey string, names ...string) *Inputs {
+func (i *inMemoryIOHandler) Inputs(jobKey string, names ...string) Inputs {
 	var (
 		vars []*Variable
 		err  error
@@ -24,17 +24,17 @@ func (i *inMemoryIOHandler) Inputs(jobKey string, names ...string) *Inputs {
 		key := i.key(jobKey, n)
 		if v, ok := i.variables[key]; ok {
 			var va *Variable
-			va, err = NewVariable(v.Name, v.MimeType, v.Value)
+			va, err = newVariable(v.Name, v.MimeType, v.Value)
 			vars = append(vars, va)
 		}
 	}
 	if len(vars) == 0 {
-		i.t.Fatalf("no variables found for the params: ")
+		i.t.Fatal("no variables found for the params: ")
 	}
-	return NewInputs(err, vars...)
+	return newInputs(err, vars...)
 }
 
-func (i *inMemoryIOHandler) Input(jobKey, name string) *Input {
+func (i *inMemoryIOHandler) Input(jobKey, name string) Input {
 	inputs := i.Inputs(jobKey, name)
 	return inputs.Get(name)
 }
@@ -44,6 +44,10 @@ func (i *inMemoryIOHandler) Output(jobKey string, variables ...*Var) error {
 		i.variables[i.key(jobKey, v.Name)] = v
 	}
 	return nil
+}
+
+func (i *inMemoryIOHandler) SetVar(jobKey string, v *Var) {
+	i.variables[i.key(jobKey, v.Name)] = v
 }
 
 func (i *inMemoryIOHandler) key(jobKey, name string) string {

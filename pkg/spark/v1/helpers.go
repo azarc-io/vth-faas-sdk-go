@@ -1,6 +1,9 @@
 package spark_v1
 
-import "errors"
+import (
+	"encoding/json"
+	"errors"
+)
 
 var CompleteSuccess = func(ctx CompleteContext) StageError {
 	return nil
@@ -29,4 +32,17 @@ func addBreadcrumb(nodes ...*node) {
 	if len(nextNodes) > 0 {
 		addBreadcrumb(nextNodes...)
 	}
+}
+
+func toMap(data any) (map[string]any, error) {
+	b, err := json.Marshal(data)
+	if err != nil {
+		return nil, err
+	}
+	var m = map[string]any{}
+	err = json.Unmarshal(b, &m)
+	if err != nil {
+		return nil, err
+	}
+	return m, nil
 }

@@ -79,9 +79,14 @@ type (
 
 type (
 	IOHandler interface {
-		Inputs(jobKey string, names ...string) *Inputs
-		Input(jobKey, name string) *Input
+		Inputs(jobKey string, names ...string) Inputs
+		Input(jobKey, name string) Input
 		Output(jobKey string, variables ...*Var) error
+	}
+
+	TestIOHandler interface {
+		IOHandler
+		SetVar(jobKey string, v *Var)
 	}
 )
 
@@ -93,9 +98,38 @@ type (
 	StageProgressHandler interface {
 		Get(jobKey, name string) (*StageStatus, error)
 		Set(stageStatus *SetStageStatusRequest) error
-		GetResult(jobKey, name string) *Result
+		GetResult(jobKey, name string) Bindable
 		SetResult(resultResult *SetStageResultRequest) error
 		SetJobStatus(jobStatus *SetJobStatusRequest) error
+	}
+)
+
+/************************************************************************/
+// DATA APIS
+/************************************************************************/
+
+type (
+	Gettable interface {
+		Get(name string) Bindable
+	}
+
+	Bindable interface {
+		Bind(a any) error
+		Raw() ([]byte, error)
+		String() string
+	}
+
+	BindableConfig interface {
+		Bind(a any) error
+		Raw() ([]byte, error)
+	}
+
+	Input interface {
+		Bindable
+	}
+
+	Inputs interface {
+		Get(name string) Bindable
 	}
 )
 
@@ -112,6 +146,10 @@ type (
 		LastActiveStage() *LastActiveStage
 	}
 
+	InitContext interface {
+		Config() BindableConfig
+	}
+
 	SparkContext interface {
 		Context
 		IOHandler() IOHandler
@@ -125,9 +163,9 @@ type (
 
 	StageContext interface {
 		Context
-		Inputs(names ...string) *Inputs
-		Input(names string) *Input
-		StageResult(name string) *Result
+		Inputs(names ...string) Inputs
+		Input(names string) Input
+		StageResult(name string) Bindable
 		Log() Logger
 		Name() string
 	}
@@ -161,6 +199,8 @@ type (
 	// Spark the contract a developer must implement in order to be accepted by a worker
 	Spark interface {
 		BuildChain(b Builder) Chain
+		Init(ctx InitContext) error
+		Stop()
 	}
 )
 

@@ -23,7 +23,7 @@ type ExecutorSuite struct {
 /************************************************************************/
 
 func (s *ExecutorSuite) Test_Execute_Single_Stage_Then_Complete_With_No_Logic_Should_Not_Error() {
-	b := NewBuilder()
+	b := newBuilder()
 	b.NewChain("test-0").
 		Stage("stage-0", func(_ StageContext) (any, StageError) {
 			return nil, nil
@@ -45,7 +45,7 @@ func (s *ExecutorSuite) Test_Execute_Single_Stage_Then_Complete_With_No_Logic_Sh
 
 // TODO confirm this with Jono
 //func (s *ExecutorSuite) Test_Fetch_Nil_Stage_Result_Should_Return_Nil() {
-//	b := NewBuilder()
+//	b := newBuilder()
 //	b.NewChain("test-0").
 //		Stage("stage-0", func(_ StageContext) (any, StageError) {
 //			return nil, nil
@@ -72,7 +72,7 @@ func (s *ExecutorSuite) Test_Execute_Single_Stage_Then_Complete_With_No_Logic_Sh
 //}
 
 func (s *ExecutorSuite) Test_Complete_Can_Fetch_String_Stage_Result() {
-	b := NewBuilder()
+	b := newBuilder()
 	b.NewChain("test-0").
 		Stage("stage-0", func(_ StageContext) (any, StageError) {
 			return "test", nil
@@ -110,7 +110,7 @@ func (s *ExecutorSuite) Test_Complete_Can_Fetch_String_Stage_Result() {
 }
 
 func (s *ExecutorSuite) Test_Complete_Can_Fetch_Numeric_Stage_Result() {
-	b := NewBuilder()
+	b := newBuilder()
 	b.NewChain("test-0").
 		Stage("stage-0", func(_ StageContext) (any, StageError) {
 			return 1, nil
@@ -155,7 +155,7 @@ func (s *ExecutorSuite) Test_Should_Compensate_If_Stage_Return_Error() {
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 
-	b := NewBuilder()
+	b := newBuilder()
 	b.NewChain("test-0").
 		Stage("stage-0", func(_ StageContext) (any, StageError) {
 			return nil, NewStageError(errors.New("unstable"))
@@ -191,7 +191,7 @@ func (s *ExecutorSuite) Test_Should_Compensate_If_Stage_Return_Error() {
 //	wg := sync.WaitGroup{}
 //	wg.Add(1)
 //
-//	b := NewBuilder()
+//	b := newBuilder()
 //	b.NewChain("test-0").
 //		Stage("stage-0", func(ctx StageContext) (any, StageError) {
 //			time.Sleep(time.Second)
@@ -228,7 +228,7 @@ func (s *ExecutorSuite) Test_Should_Skip_Stage_If_Stage_Returns_Skip_Option() {
 	wg := sync.WaitGroup{}
 	wg.Add(2)
 
-	b := NewBuilder()
+	b := newBuilder()
 	b.NewChain("test-0").
 		Stage("stage-0", func(ctx StageContext) (any, StageError) {
 			wg.Done()
@@ -277,7 +277,7 @@ func (s *ExecutorSuite) Test_Should_Cancel_Chain_If_Stage_Returns_Cancel_Option(
 	wg := sync.WaitGroup{}
 	wg.Add(2)
 
-	b := NewBuilder()
+	b := newBuilder()
 	b.NewChain("test-0").
 		Stage("stage-0", func(ctx StageContext) (any, StageError) {
 			ctx.Log().Info("stage-0 called")
@@ -336,7 +336,7 @@ func (s *ExecutorSuite) Test_Should_Cancel_Chain_If_Stage_Returns_Fatal_Option()
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 
-	b := NewBuilder()
+	b := newBuilder()
 	b.NewChain("test-0").
 		Stage("stage-0", func(ctx StageContext) (any, StageError) {
 			ctx.Log().Info("stage-0 called")
