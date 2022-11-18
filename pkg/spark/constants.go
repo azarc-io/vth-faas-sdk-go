@@ -1,4 +1,4 @@
-package api
+package spark
 
 const (
 	MimeTypeJSON = "application/json"

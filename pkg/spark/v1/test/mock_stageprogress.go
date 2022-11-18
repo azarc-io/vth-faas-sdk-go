@@ -5,9 +5,9 @@
 package spark_v1_mock
 
 import (
+	"github.com/azarc-io/vth-faas-sdk-go/pkg/spark/v1"
 	reflect "reflect"
 
-	sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/spark/v1"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -35,10 +35,10 @@ func (m *MockStageProgressHandler) EXPECT() *MockStageProgressHandlerMockRecorde
 }
 
 // Get mocks base method.
-func (m *MockStageProgressHandler) Get(arg0, arg1 string) (*sdk_v1.StageStatus, error) {
+func (m *MockStageProgressHandler) Get(arg0, arg1 string) (*spark_v1.StageStatus, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Get", arg0, arg1)
-	ret0, _ := ret[0].(*sdk_v1.StageStatus)
+	ret0, _ := ret[0].(*spark_v1.StageStatus)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -50,10 +50,10 @@ func (mr *MockStageProgressHandlerMockRecorder) Get(arg0, arg1 interface{}) *gom
 }
 
 // GetResult mocks base method.
-func (m *MockStageProgressHandler) GetResult(arg0, arg1 string) *sdk_v1.Result {
+func (m *MockStageProgressHandler) GetResult(arg0, arg1 string) *spark_v1.Result {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetResult", arg0, arg1)
-	ret0, _ := ret[0].(*sdk_v1.Result)
+	ret0, _ := ret[0].(*spark_v1.Result)
 	return ret0
 }
 
@@ -64,7 +64,7 @@ func (mr *MockStageProgressHandlerMockRecorder) GetResult(arg0, arg1 interface{}
 }
 
 // Set mocks base method.
-func (m *MockStageProgressHandler) Set(arg0 *sdk_v1.SetStageStatusRequest) error {
+func (m *MockStageProgressHandler) Set(arg0 *spark_v1.SetStageStatusRequest) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Set", arg0)
 	ret0, _ := ret[0].(error)
@@ -78,7 +78,7 @@ func (mr *MockStageProgressHandlerMockRecorder) Set(arg0 interface{}) *gomock.Ca
 }
 
 // SetJobStatus mocks base method.
-func (m *MockStageProgressHandler) SetJobStatus(arg0 *sdk_v1.SetJobStatusRequest) error {
+func (m *MockStageProgressHandler) SetJobStatus(arg0 *spark_v1.SetJobStatusRequest) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SetJobStatus", arg0)
 	ret0, _ := ret[0].(error)
@@ -92,7 +92,7 @@ func (mr *MockStageProgressHandlerMockRecorder) SetJobStatus(arg0 interface{}) *
 }
 
 // SetResult mocks base method.
-func (m *MockStageProgressHandler) SetResult(arg0 *sdk_v1.SetStageResultRequest) error {
+func (m *MockStageProgressHandler) SetResult(arg0 *spark_v1.SetStageResultRequest) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SetResult", arg0)
 	ret0, _ := ret[0].(error)

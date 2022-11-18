@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/azarc-io/vth-faas-sdk-go/pkg/spark"
 	"reflect"
 
 	"github.com/samber/lo"
 
-	"github.com/azarc-io/vth-faas-sdk-go/pkg/api"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -27,7 +27,7 @@ func (x *StageResult) Raw() ([]byte, error) {
 }
 
 func (x *StageResult) Bind(a any) error {
-	return serdesMap[api.MimeTypeJSON].unmarshal(x.Data, a)
+	return serdesMap[spark.MimeTypeJSON].unmarshal(x.Data, a)
 }
 
 func NewSetStageResultReq(jobKey, name string, data any) (*SetStageResultRequest, error) {
@@ -148,7 +148,7 @@ type serdes struct {
 }
 
 var serdesMap = map[string]serdes{
-	api.MimeTypeJSON: {
+	spark.MimeTypeJSON: {
 		unmarshal: func(value *structpb.Value, a any) error {
 			data, err := value.MarshalJSON()
 			if err != nil {

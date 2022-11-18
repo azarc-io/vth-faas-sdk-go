@@ -6,9 +6,9 @@ package spark_v1_mock
 
 import (
 	context "context"
+	sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/spark/v1"
 	reflect "reflect"
 
-	sdk_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/api/spark/v1"
 	gomock "github.com/golang/mock/gomock"
 )
 

@@ -1,5 +1,6 @@
 package tests
 
+// TODO Move tests to /pkg/spark and get them working again
 //import (
 //	ctx "context"
 //	"errors"

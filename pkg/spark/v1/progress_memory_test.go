@@ -2,10 +2,10 @@ package spark_v1
 
 import (
 	"fmt"
+	"github.com/azarc-io/vth-faas-sdk-go/pkg/spark"
 	"reflect"
 	"testing"
 
-	"github.com/azarc-io/vth-faas-sdk-go/pkg/api"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -101,7 +101,7 @@ func (i *InMemoryStageProgressHandler) AssertStageResult(jobKey, stageName strin
 		i.t.Error(err)
 		return
 	}
-	req, err := NewSetStageResultReq(jobKey, api.MimeTypeJSON, expectedStageResult)
+	req, err := NewSetStageResultReq(jobKey, spark.MimeTypeJSON, expectedStageResult)
 	if err != nil {
 		i.t.Error(err)
 		return
