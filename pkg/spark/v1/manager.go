@@ -6,7 +6,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-func CreateManagerServiceClient(config *Config) (ManagerServiceClient, error) {
+func CreateManagerServiceClient(config *config) (ManagerServiceClient, error) {
 	retryOpts := []grpc_retry.CallOption{
 		grpc_retry.WithBackoff(grpc_retry.BackoffExponential(config.Config.Agent.RetryBackoff)),
 	}
@@ -15,7 +15,7 @@ func CreateManagerServiceClient(config *Config) (ManagerServiceClient, error) {
 		grpc.WithStreamInterceptor(grpc_retry.StreamClientInterceptor(retryOpts...)),
 		grpc.WithUnaryInterceptor(grpc_retry.UnaryClientInterceptor(retryOpts...)),
 	}
-	cc, err := grpc.Dial(config.AgentAddress(), opts...)
+	cc, err := grpc.Dial(config.agentAddress(), opts...)
 	if err != nil {
 		return nil, err
 	}

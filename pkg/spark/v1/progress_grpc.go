@@ -13,7 +13,7 @@ func newGrpcStageProgressHandler(client ManagerServiceClient) StageProgressHandl
 }
 
 func (g *stageProgressHandler) Get(jobKey, name string) (*StageStatus, error) {
-	resp, err := g.client.GetStageStatus(context.Background(), NewGetStageStatusReq(jobKey, name))
+	resp, err := g.client.GetStageStatus(context.Background(), newGetStageStatusReq(jobKey, name))
 	return &resp.Status, err
 }
 
@@ -22,12 +22,12 @@ func (g *stageProgressHandler) Set(stageStatus *SetStageStatusRequest) error {
 	return err
 }
 
-func (g *stageProgressHandler) GetResult(jobKey, name string) *Result {
-	result, err := g.client.GetStageResult(context.Background(), NewStageResultReq(jobKey, name))
+func (g *stageProgressHandler) GetResult(jobKey, name string) Bindable {
+	result, err := g.client.GetStageResult(context.Background(), newStageResultReq(jobKey, name))
 	if err != nil {
-		return NewResult(err, nil)
+		return newResult(err, nil)
 	}
-	return NewResult(nil, result.Result)
+	return newResult(nil, result.Result)
 }
 
 func (g *stageProgressHandler) SetResult(result *SetStageResultRequest) error {

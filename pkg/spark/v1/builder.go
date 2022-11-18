@@ -6,7 +6,7 @@ import "fmt"
 // TYPES
 /************************************************************************/
 
-type ChainBuilder struct {
+type chainBuilder struct {
 	rootNode *chainNode
 	current  *chainNode
 	prev     *chainNode
@@ -26,7 +26,7 @@ type chainNode struct {
 /************************************************************************/
 
 // Stage adds a stage to the current chain node, this could be at any depth of the chain
-func (c *ChainBuilder) Stage(name string, stageDefinitionFn StageDefinitionFn, options ...StageOption) ChainStageAny {
+func (c *chainBuilder) Stage(name string, stageDefinitionFn StageDefinitionFn, options ...StageOption) ChainStageAny {
 	s := &stage{
 		node: c.current.node,
 		name: name,
@@ -39,7 +39,7 @@ func (c *ChainBuilder) Stage(name string, stageDefinitionFn StageDefinitionFn, o
 
 // Compensate registers a chain node at depth-1 in the chain, compensation is always on the parent
 // so this function looks at the previous node in the chain which is always the parent
-func (c *ChainBuilder) Compensate(newNode Chain) ChainCancelledOrComplete {
+func (c *chainBuilder) Compensate(newNode Chain) ChainCancelledOrComplete {
 	n := newNode.build() // this causes the chain to move from depth to depth-1
 	n.nodeType = compensateNodeType
 
@@ -52,7 +52,7 @@ func (c *ChainBuilder) Compensate(newNode Chain) ChainCancelledOrComplete {
 
 // Cancelled registers a chain node at depth-1 in the chain, compensation is always on the parent
 // so this function looks at the previous node in the chain which is always the parent
-func (c *ChainBuilder) Cancelled(newNode Chain) ChainComplete {
+func (c *chainBuilder) Cancelled(newNode Chain) ChainComplete {
 	n := newNode.build() // this causes the chain to move from depth to depth-1
 	n.nodeType = cancelNodeType
 
@@ -64,7 +64,7 @@ func (c *ChainBuilder) Cancelled(newNode Chain) ChainComplete {
 }
 
 // Complete returns a finalizer that can be used to build the node chain
-func (c *ChainBuilder) Complete(completeDefinitionFn CompleteDefinitionFn, options ...StageOption) Chain {
+func (c *chainBuilder) Complete(completeDefinitionFn CompleteDefinitionFn, options ...StageOption) Chain {
 	name := fmt.Sprintf("%s_complete", c.current.node.name)
 	c.current.node.complete = &completeStage{
 		node: c.rootNode.node,
@@ -76,8 +76,12 @@ func (c *ChainBuilder) Complete(completeDefinitionFn CompleteDefinitionFn, optio
 	return c
 }
 
+/************************************************************************/
+// HELPERS
+/************************************************************************/
+
 // createResumeOnRetryStagesMap maps stages that can be retried
-func (c *ChainBuilder) createResumeOnRetryStagesMap(newChain *chain) {
+func (c *chainBuilder) createResumeOnRetryStagesMap(newChain *chain) {
 	stages, completeStages := c.getStages([]*stage{}, []*completeStage{}, newChain.rootNode)
 	for _, stg := range stages {
 		newChain.stagesMap[stg.name] = stg
@@ -88,7 +92,7 @@ func (c *ChainBuilder) createResumeOnRetryStagesMap(newChain *chain) {
 }
 
 // getStages returns all stages + completion stages
-func (c *ChainBuilder) getStages(stages []*stage, completeStages []*completeStage, nodes ...*node) ([]*stage, []*completeStage) {
+func (c *chainBuilder) getStages(stages []*stage, completeStages []*completeStage, nodes ...*node) ([]*stage, []*completeStage) {
 	var nextNodes []*node
 	for _, n := range nodes {
 		completeStages = appendIfNotNil(completeStages, n.complete)
@@ -105,7 +109,7 @@ func (c *ChainBuilder) getStages(stages []*stage, completeStages []*completeStag
 // buildChain creates a chain that can be executed
 // - Maps the chain
 // - Decorates it with breadcrumbs
-func (c *ChainBuilder) buildChain() *chain {
+func (c *chainBuilder) buildChain() *chain {
 	newChain := &chain{
 		rootNode:    c.rootNode.node,
 		stagesMap:   map[string]*stage{},
@@ -119,7 +123,7 @@ func (c *ChainBuilder) buildChain() *chain {
 // Build iterates over the entire chain and performs the following operations
 // - Decorate the chain node with breadcrumbs
 // - Move the pointer back up the chain (depth-1)
-func (c *ChainBuilder) build() *node {
+func (c *chainBuilder) build() *node {
 	ret := c.current
 
 	addBreadcrumb(c.rootNode.node)
@@ -141,7 +145,7 @@ func (c *ChainBuilder) build() *node {
 // - if this is the first chain the builder sees then it's marked as the root chain
 // - if a root chain already exists then the new chain is returned but not stored because it will be a
 // compensation or a cancellation chain
-func (c *ChainBuilder) NewChain(name string) BuilderChain {
+func (c *chainBuilder) NewChain(name string) BuilderChain {
 	n := &chainNode{
 		BuilderChain: c,
 		node: &node{
@@ -165,6 +169,7 @@ func (c *ChainBuilder) NewChain(name string) BuilderChain {
 	return n
 }
 
-func NewBuilder() Builder {
-	return &ChainBuilder{}
+// newBuilder main entry point to the builder
+func newBuilder() Builder {
+	return &chainBuilder{}
 }

@@ -139,7 +139,7 @@ func (c *chain) handleStageError(ctx SparkContext, node *node, stg *stage, err S
 
 func storeStageResult(ctx SparkContext, stg *stage, result any) StageError {
 	if result != nil { //nolint:nestif
-		req, err := NewSetStageResultReq(ctx.JobKey(), stg.name, result)
+		req, err := newSetStageResultReq(ctx.JobKey(), stg.name, result)
 		if err != nil {
 			ctx.Log().Error(err, "error creating set stage status request")
 			if e := updateStage(ctx, stg.name, withError(err)); e != nil {

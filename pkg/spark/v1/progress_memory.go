@@ -53,9 +53,9 @@ func (i *InMemoryStageProgressHandler) Set(stageStatus *SetStageStatusRequest) e
 	return nil
 }
 
-func (i *InMemoryStageProgressHandler) GetResult(jobKey, name string) *Result {
+func (i *InMemoryStageProgressHandler) GetResult(jobKey, name string) Bindable {
 	if variable, ok := i.results[i.key(jobKey, name)]; ok {
-		return NewResult(nil, variable.Result)
+		return newResult(nil, variable.Result)
 	}
 	i.t.Fatalf("stage result not found for params >> jobKey: %s, stageName: %s", jobKey, name)
 	return nil
@@ -100,7 +100,7 @@ func (i *InMemoryStageProgressHandler) AssertStageResult(jobKey, stageName strin
 		i.t.Error(err)
 		return
 	}
-	req, err := NewSetStageResultReq(jobKey, MimeTypeJSON, expectedStageResult)
+	req, err := newSetStageResultReq(jobKey, MimeTypeJSON, expectedStageResult)
 	if err != nil {
 		i.t.Error(err)
 		return

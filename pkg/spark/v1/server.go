@@ -20,7 +20,7 @@ var connectionTimeout = time.Second * 10
 /************************************************************************/
 
 type server struct {
-	config *Config
+	config *config
 	worker Worker
 	svr    *grpc.Server
 }
@@ -29,7 +29,7 @@ type server struct {
 // SERVER
 /************************************************************************/
 
-func newServer(cfg *Config, worker Worker) *server {
+func newServer(cfg *config, worker Worker) *server {
 	return &server{config: cfg, worker: worker}
 }
 
@@ -43,7 +43,7 @@ func (s *server) start() error {
 
 	reflection.Register(s.svr)
 
-	listener, err := net.Listen("tcp", s.config.ServerAddress())
+	listener, err := net.Listen("tcp", s.config.serverAddress())
 	if err != nil {
 		log.Error(err, "error setting up the listener")
 		return err

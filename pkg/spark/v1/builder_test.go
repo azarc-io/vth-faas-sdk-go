@@ -18,7 +18,7 @@ type BuilderSuite struct {
 /************************************************************************/
 
 func (s *BuilderSuite) Test_Should_Create_Root_Node_With_No_Children() {
-	b := NewBuilder()
+	b := newBuilder()
 	n := b.NewChain("test-0").
 		Stage("stage-0", func(_ StageContext) (any, StageError) {
 			return nil, nil
@@ -40,7 +40,7 @@ func (s *BuilderSuite) Test_Should_Create_Root_Node_With_No_Children() {
 }
 
 func (s *BuilderSuite) Test_Should_Create_Root_Node_With_Child_Node() {
-	b := NewBuilder()
+	b := newBuilder()
 	n := b.NewChain("test-0").
 		Stage("stage-0", func(_ StageContext) (any, StageError) {
 			return nil, nil
@@ -82,7 +82,7 @@ func (s *BuilderSuite) Test_Should_Create_Root_Node_With_Child_Node() {
 }
 
 func (s *BuilderSuite) Test_Report_Should_Generate_Single_Error_On_Single_Duplicate_Stage_Names() {
-	b := NewBuilder()
+	b := newBuilder()
 	n := b.NewChain("test-0").
 		Stage("stage-0", func(_ StageContext) (any, StageError) {
 			return nil, nil
@@ -125,7 +125,7 @@ func (s *BuilderSuite) Test_Report_Should_Generate_Single_Error_On_Single_Duplic
 }
 
 func (s *BuilderSuite) Test_Report_Should_Generate_Multiple_Error_On_Multiple_Duplicate_Stage_Names() {
-	b := NewBuilder()
+	b := newBuilder()
 	n := b.NewChain("test-0").
 		Stage("stage-0", func(_ StageContext) (any, StageError) {
 			return nil, nil
@@ -169,7 +169,7 @@ func (s *BuilderSuite) Test_Report_Should_Generate_Multiple_Error_On_Multiple_Du
 }
 
 func (s *BuilderSuite) Test_Report_Should_Generate_Errors_On_Duplicate_Chain_Names() {
-	b := NewBuilder()
+	b := newBuilder()
 	n := b.NewChain("test-0").
 		Stage("stage-0", func(_ StageContext) (any, StageError) {
 			return nil, nil
@@ -213,7 +213,7 @@ func (s *BuilderSuite) Test_Report_Should_Generate_Errors_On_Duplicate_Chain_Nam
 }
 
 func (s *BuilderSuite) Test_Report_Should_Generate_Errors_On_Empty_Names() {
-	b := NewBuilder()
+	b := newBuilder()
 	n := b.NewChain("").
 		Stage("stage-0", func(_ StageContext) (any, StageError) {
 			return nil, nil

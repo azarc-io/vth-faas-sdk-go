@@ -50,10 +50,10 @@ func (mr *MockStageProgressHandlerMockRecorder) Get(arg0, arg1 interface{}) *gom
 }
 
 // GetResult mocks base method.
-func (m *MockStageProgressHandler) GetResult(arg0, arg1 string) *spark_v1.Result {
+func (m *MockStageProgressHandler) GetResult(arg0, arg1 string) spark_v1.Bindable {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetResult", arg0, arg1)
-	ret0, _ := ret[0].(*spark_v1.Result)
+	ret0, _ := ret[0].(spark_v1.Bindable)
 	return ret0
 }
 

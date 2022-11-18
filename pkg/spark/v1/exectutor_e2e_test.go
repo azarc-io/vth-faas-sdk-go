@@ -13,7 +13,7 @@ func (s *ExecutorSuite) Test_Should_Retry_Stage_If_Stage_Returns_Retry_Option() 
 	wg := sync.WaitGroup{}
 	wg.Add(3)
 
-	b := NewBuilder()
+	b := newBuilder()
 	b.NewChain("test-0").
 		Stage("stage-0", func(ctx StageContext) (any, StageError) {
 			wg.Done()

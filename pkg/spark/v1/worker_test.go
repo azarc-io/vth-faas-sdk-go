@@ -31,6 +31,14 @@ type basicSpark struct {
 	delegatedCompleteNames []string
 }
 
+func (s *basicSpark) Init(ctx InitContext) error {
+	return nil
+}
+
+func (s *basicSpark) Stop() {
+
+}
+
 func (s *basicSpark) BuildChain(b Builder) Chain {
 	s.buildChainCalledCount += 1
 	return b.NewChain("test-0").
@@ -64,6 +72,14 @@ type slowSpark struct {
 	stageCalledCount      int32
 	completeCalledCount   int32
 	buildChainCalledCount int32
+}
+
+func (s *slowSpark) Init(ctx InitContext) error {
+	return nil
+}
+
+func (s *slowSpark) Stop() {
+
 }
 
 func (s *slowSpark) BuildChain(b Builder) Chain {
