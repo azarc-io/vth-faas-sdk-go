@@ -110,6 +110,8 @@ func (w *sparkWorker) validate(report ChainReport) error {
 		w.server = newServer(w.config, w)
 	}
 
+	// TODO support TLS once support for platforms other than kubernetes are added to Verathread
+	// nosemgrep
 	if w.config.Config.Health != nil && w.config.Config.Health.Enabled {
 		w.opts.log.Info("setting up healthz")
 		w.health = healthz.NewChecker(&healthz.Config{
