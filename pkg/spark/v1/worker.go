@@ -23,6 +23,7 @@ type sparkWorker struct {
 	health    *healthz.Checker
 	spark     Spark
 	initOnce  sync.Once
+	cancel    context.CancelFunc
 }
 
 /************************************************************************/
@@ -59,6 +60,7 @@ func (w *sparkWorker) Run() {
 	// wait for signals
 	select {
 	case <-s:
+		w.cancel()
 	case <-w.ctx.Done():
 	}
 
@@ -168,8 +170,10 @@ func (w *sparkWorker) initIfRequired() {
 /************************************************************************/
 
 func NewSparkWorker(ctx context.Context, spark Spark, options ...Option) (Worker, error) {
+	wrappedCtx, cancel := context.WithCancel(ctx)
 	var jw = &sparkWorker{
-		ctx:       ctx,
+		ctx:       wrappedCtx,
+		cancel:    cancel,
 		opts:      &sparkOpts{},
 		createdAt: time.Now(),
 		spark:     spark,

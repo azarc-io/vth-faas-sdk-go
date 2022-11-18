@@ -31,7 +31,7 @@ type basicSpark struct {
 	delegatedCompleteNames []string
 }
 
-func (s *basicSpark) Init() error {
+func (s *basicSpark) Init(ctx InitContext) error {
 	return nil
 }
 
@@ -74,7 +74,7 @@ type slowSpark struct {
 	buildChainCalledCount int32
 }
 
-func (s *slowSpark) Init() error {
+func (s *slowSpark) Init(ctx InitContext) error {
 	return nil
 }
 
