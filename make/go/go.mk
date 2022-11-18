@@ -152,7 +152,7 @@ pretest::
 
 .PHONY: test
 test: pretest installtest ## Run all go tests.
-	go test $(GO_TEST_FLAGS) $(GOPKGS)
+	go test -race -v $(GO_TEST_FLAGS) $(GOPKGS)
 
 .PHONY: testrace
 testrace: pretest installtest

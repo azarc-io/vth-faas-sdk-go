@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/suite"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -21,11 +22,11 @@ type WorkerSuite struct {
 /************************************************************************/
 
 type basicSpark struct {
-	buildChainCalledCount  int
-	stageCalledCount       int
-	completeCalledCount    int
-	stageDelegatedCount    int
-	completeDelegatedCount int
+	buildChainCalledCount  int32
+	stageCalledCount       int32
+	completeCalledCount    int32
+	stageDelegatedCount    int32
+	completeDelegatedCount int32
 	delegatedStageNames    []string
 	delegatedCompleteNames []string
 }
@@ -34,23 +35,23 @@ func (s *basicSpark) BuildChain(b Builder) Chain {
 	s.buildChainCalledCount += 1
 	return b.NewChain("test-0").
 		Stage("stage-0", func(_ StageContext) (any, StageError) {
-			s.stageCalledCount += 1
+			atomic.AddInt32(&s.stageCalledCount, 1)
 			return nil, nil
 		}).
 		Complete(func(context CompleteContext) StageError {
-			s.completeCalledCount += 1
+			atomic.AddInt32(&s.completeCalledCount, 1)
 			return nil
 		})
 }
 
 func (s *basicSpark) delegateStage(ctx StageContext, cb StageDefinitionFn) (any, StageError) {
-	s.stageDelegatedCount += 1
+	atomic.AddInt32(&s.stageDelegatedCount, 1)
 	s.delegatedStageNames = append(s.delegatedStageNames, ctx.Name())
 	return cb(ctx)
 }
 
 func (s *basicSpark) delegateCompletion(ctx CompleteContext, cb CompleteDefinitionFn) StageError {
-	s.completeDelegatedCount += 1
+	atomic.AddInt32(&s.completeDelegatedCount, 1)
 	s.delegatedCompleteNames = append(s.delegatedCompleteNames, ctx.Name())
 	return cb(ctx)
 }
@@ -60,9 +61,9 @@ func (s *basicSpark) delegateCompletion(ctx CompleteContext, cb CompleteDefiniti
 /************************************************************************/
 
 type slowSpark struct {
-	stageCalledCount      int
-	completeCalledCount   int
-	buildChainCalledCount int
+	stageCalledCount      int32
+	completeCalledCount   int32
+	buildChainCalledCount int32
 }
 
 func (s *slowSpark) BuildChain(b Builder) Chain {
@@ -70,18 +71,18 @@ func (s *slowSpark) BuildChain(b Builder) Chain {
 	return b.NewChain("test-0").
 		Stage("stage-0", func(ctx StageContext) (any, StageError) {
 			ctx.Log().Info("stage-0 called")
-			s.stageCalledCount += 1
+			atomic.AddInt32(&s.stageCalledCount, 1)
 			time.Sleep(time.Millisecond * 500)
 			return nil, nil
 		}).
 		Stage("stage-1", func(ctx StageContext) (any, StageError) {
-			s.stageCalledCount += 1
+			atomic.AddInt32(&s.stageCalledCount, 1)
 			ctx.Log().Info("stage-2 called")
 			return nil, nil
 		}).
 		Complete(func(ctx CompleteContext) StageError {
 			ctx.Log().Info("complete called")
-			s.completeCalledCount += 1
+			atomic.AddInt32(&s.completeCalledCount, 1)
 			return nil
 		})
 }
@@ -97,9 +98,9 @@ func (s *WorkerSuite) Test_Should_Call_BuildChain_On_Registration() {
 	err := worker.Execute(worker.LocalContext(jobKey, "cid", "tid"))
 	s.Require().Nil(err)
 
-	s.Require().Equal(1, spark.buildChainCalledCount)
-	s.Require().Equal(1, spark.stageCalledCount)
-	s.Require().Equal(1, spark.completeCalledCount)
+	s.Require().Equal(int32(1), atomic.LoadInt32(&spark.buildChainCalledCount))
+	s.Require().Equal(int32(1), atomic.LoadInt32(&spark.stageCalledCount))
+	s.Require().Equal(int32(1), atomic.LoadInt32(&spark.completeCalledCount))
 }
 
 func (s *WorkerSuite) Test_Should_Delegate_Stage_Execution_If_Option_Provided() {
@@ -109,11 +110,11 @@ func (s *WorkerSuite) Test_Should_Delegate_Stage_Execution_If_Option_Provided() 
 	err := worker.Execute(worker.LocalContext(jobKey, "cid", "tid"))
 	s.Require().Nil(err)
 
-	s.Require().Equal(1, spark.buildChainCalledCount)
-	s.Require().Equal(1, spark.stageCalledCount)
-	s.Require().Equal(1, spark.completeCalledCount)
-	s.Require().Equal(1, spark.stageDelegatedCount)
-	s.Require().Equal(0, spark.completeDelegatedCount)
+	s.Require().Equal(int32(1), atomic.LoadInt32(&spark.buildChainCalledCount))
+	s.Require().Equal(int32(1), atomic.LoadInt32(&spark.stageCalledCount))
+	s.Require().Equal(int32(1), atomic.LoadInt32(&spark.completeCalledCount))
+	s.Require().Equal(int32(1), atomic.LoadInt32(&spark.stageDelegatedCount))
+	s.Require().Equal(int32(0), atomic.LoadInt32(&spark.completeDelegatedCount))
 	s.Require().Equal([]string{"stage-0"}, spark.delegatedStageNames)
 }
 
@@ -124,11 +125,11 @@ func (s *WorkerSuite) Test_Should_Delegate_Completion_If_Option_Provided() {
 	err := worker.Execute(worker.LocalContext(jobKey, "cid", "tid"))
 	s.Require().Nil(err)
 
-	s.Require().Equal(1, spark.buildChainCalledCount)
-	s.Require().Equal(1, spark.stageCalledCount)
-	s.Require().Equal(1, spark.completeCalledCount)
-	s.Require().Equal(0, spark.stageDelegatedCount)
-	s.Require().Equal(1, spark.completeDelegatedCount)
+	s.Require().Equal(int32(1), atomic.LoadInt32(&spark.buildChainCalledCount))
+	s.Require().Equal(int32(1), atomic.LoadInt32(&spark.stageCalledCount))
+	s.Require().Equal(int32(1), atomic.LoadInt32(&spark.completeCalledCount))
+	s.Require().Equal(int32(0), atomic.LoadInt32(&spark.stageDelegatedCount))
+	s.Require().Equal(int32(1), atomic.LoadInt32(&spark.completeDelegatedCount))
 	s.Require().Equal([]string{"test-0_complete"}, spark.delegatedCompleteNames)
 }
 
@@ -157,9 +158,9 @@ func (s *WorkerSuite) Test_Should_Drain_Running_Stages_During_Shutdown_When_Cont
 
 	<-done
 
-	s.Require().Equal(1, spark.buildChainCalledCount, "the chain should run at least once")
-	s.Require().Equal(1, spark.stageCalledCount, "only the first stage should have run")
-	s.Require().Equal(0, spark.completeCalledCount, "completion should not be called")
+	s.Require().Equal(int32(1), atomic.LoadInt32(&spark.buildChainCalledCount), "the chain should run at least once")
+	s.Require().Equal(int32(1), atomic.LoadInt32(&spark.stageCalledCount), "only the first stage should have run")
+	s.Require().Equal(int32(0), atomic.LoadInt32(&spark.completeCalledCount), "completion should not be called")
 }
 
 /************************************************************************/
