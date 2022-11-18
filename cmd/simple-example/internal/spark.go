@@ -10,6 +10,14 @@ type Spark struct {
 	shutdown context.CancelFunc
 }
 
+func (s Spark) Init(ctx spark_v12.InitContext) error {
+	return nil
+}
+
+func (s Spark) Stop() {
+
+}
+
 func (s Spark) BuildChain(b spark_v12.Builder) spark_v12.Chain {
 	return b.NewChain("chain-1").
 		Stage("stage-1", func(_ spark_v12.StageContext) (any, spark_v12.StageError) {
