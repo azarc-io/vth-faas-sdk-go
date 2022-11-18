@@ -17,7 +17,7 @@ config:
   schema: ""
   # Options below are only for local development, they will differ when deployed through Verathread
   health: # the health port, enabled when deployed by verathread to monitor the health of the spark
-    enabled: false
+    enabled: true
     bind: 0.0.0.0
     port: 8081
   agent: # the configuration required to communicate with the verathread agent
@@ -26,8 +26,8 @@ config:
     retryBackoff: 1s
     maxRetries: 20
   server: # the port to expose the modules api on, this allows the agent to communicate with the spark
+    enabled: true
     bind: 0.0.0.0
     port: 8080
-    enabled: true
   logging: # log level for both the sdk and developer
     level: "info"

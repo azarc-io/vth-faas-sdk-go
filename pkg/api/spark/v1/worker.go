@@ -2,7 +2,9 @@ package spark_v1
 
 import (
 	"context"
+	"github.com/azarc-io/vth-faas-sdk-go/pkg/healthz"
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/signals"
+	"net/http"
 	"time"
 )
 
@@ -17,6 +19,7 @@ type sparkWorker struct {
 	opts      *sparkOpts
 	server    *Server
 	createdAt time.Time
+	health    *healthz.Checker
 }
 
 /************************************************************************/
@@ -104,6 +107,21 @@ func (w *sparkWorker) validate(report ChainReport) error {
 	if w.config.Config.Server != nil && w.config.Config.Server.Enabled {
 		w.opts.log.Info("setting up server")
 		w.server = NewServer(w.config, w)
+	}
+
+	if w.config.Config.Health != nil && w.config.Config.Health.Enabled {
+		w.opts.log.Info("setting up healthz")
+		w.health = healthz.NewChecker(&healthz.Config{
+			RuntimeTTL: time.Second * 5,
+		})
+
+		go func() {
+			http.Handle("/healthz", w.health.Handler())
+
+			if err := http.ListenAndServe(w.config.HealthBindTo(), nil); err != nil {
+				panic(err)
+			}
+		}()
 	}
 
 	return nil

@@ -21,7 +21,7 @@ type Config struct {
 }
 
 type configHealth struct {
-	Enabled string `env:"HEALTH_ENABLED" yaml:"enabled"`
+	Enabled bool   `env:"HEALTH_ENABLED" yaml:"enabled"`
 	Bind    string `env:"SERVER_BIND" yaml:"bind"`
 	Port    int    `env:"HEALTH_PORT" yaml:"port"`
 }
@@ -55,6 +55,10 @@ func (m Config) AgentAddress() string {
 
 func (m Config) ServerAddress() string {
 	return fmt.Sprintf("%s:%d", m.Config.Server.Bind, m.Config.Server.Port)
+}
+
+func (m Config) HealthBindTo() string {
+	return fmt.Sprintf("%s:%d", m.Config.Health.Bind, m.Config.Health.Port)
 }
 
 func loadConfig() (*Config, error) {
