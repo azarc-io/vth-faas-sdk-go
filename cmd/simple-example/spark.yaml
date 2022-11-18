@@ -1,0 +1,33 @@
+# Displayed in the UI and Marketplace
+label: Simple Example
+# Displayed in the UI and Marketplace
+description: A basic example that executes 2 stages to create both a hello and world strings and then combines them on completion
+# Input mappings (for a more complete example see the advanced example)
+# these will be displayed to the user in the Verathread UI and will allow the user to map data from the blackboard
+# to these inputs
+inputs: { }
+# Output mappings (for a more complete example see the advanced example)
+# these will be displayed to the user in the Verathread UI and will allow the user to map your outputs
+# to the blackboard
+outputs: { }
+# Configuration required by this spark
+config:
+  # The ui will render a form using this schema which will provide you with static configuration that can be
+  # changed by the user through the Verathread UI
+  schema: ""
+  # Options below are only for local development, they will differ when deployed through Verathread
+  health: # the health port, enabled when deployed by verathread to monitor the health of the spark
+    enabled: true
+    bind: 0.0.0.0
+    port: 8081
+  agent: # the configuration required to communicate with the verathread agent
+    host: 127.0.0.1
+    port: 8031
+    retryBackoff: 1s
+    maxRetries: 20
+  server: # the port to expose the modules api on, this allows the agent to communicate with the spark
+    enabled: true
+    bind: 0.0.0.0
+    port: 8080
+  logging: # log level for both the sdk and developer
+    level: "info"
