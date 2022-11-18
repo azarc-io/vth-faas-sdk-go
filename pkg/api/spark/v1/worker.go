@@ -3,6 +3,7 @@ package spark_v1
 import (
 	"context"
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/signals"
+	"time"
 )
 
 /************************************************************************/
@@ -10,11 +11,12 @@ import (
 /************************************************************************/
 
 type sparkWorker struct {
-	config *Config
-	chain  *chain
-	ctx    context.Context
-	opts   *sparkOpts
-	server *Server
+	config    *Config
+	chain     *chain
+	ctx       context.Context
+	opts      *sparkOpts
+	server    *Server
+	createdAt time.Time
 }
 
 /************************************************************************/
@@ -44,9 +46,9 @@ func (w *sparkWorker) Run() {
 				panic(err)
 			}
 		}()
-		w.opts.log.Info("spark worker started, listening on: %s", w.config.ServerAddress())
+		w.opts.log.Info("spark worker started in %v, listening on: %s", time.Since(w.createdAt), w.config.ServerAddress())
 	} else {
-		w.opts.log.Info("spark worker started")
+		w.opts.log.Info("spark worker started in %v", time.Since(w.createdAt))
 	}
 
 	// wait for signals
@@ -60,7 +62,6 @@ func (w *sparkWorker) Run() {
 	if w.server != nil {
 		w.opts.log.Info("shutting down server")
 		w.server.Stop()
-		w.opts.log.Info("draining running sparks")
 	}
 }
 
@@ -122,9 +123,11 @@ func (w *sparkWorker) loadConfiguration() {
 
 func NewSparkWorker(ctx context.Context, spark Spark, options ...Option) (Worker, error) {
 	jw := &sparkWorker{
-		ctx:  ctx,
-		opts: &sparkOpts{},
+		ctx:       ctx,
+		opts:      &sparkOpts{},
+		createdAt: time.Now(),
 	}
+
 	for _, opt := range options {
 		jw.opts = opt(jw.opts)
 	}

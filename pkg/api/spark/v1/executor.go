@@ -17,71 +17,81 @@ func (c *chain) execute(ctx SparkContext) StageError {
 func (c *chain) runner(ctx SparkContext, node *node) StageError {
 	stages := getStagesToResume(node, ctx.LastActiveStage())
 	for _, stg := range stages {
-		ctx.Log().AddFields(stageLogField, stg.name).AddFields(jobKeyLogField, ctx.JobKey())
+		select {
+		case <-ctx.Ctx().Done():
+			return nil
+		default:
+			ctx.Log().AddFields(stageLogField, stg.name).AddFields(jobKeyLogField, ctx.JobKey())
 
-		if err := stg.ApplyConditionalExecutionOptions(ctx, stg.name); err != nil {
-			er := updateStage(ctx, stg.name, withStageError(err))
+			if err := stg.ApplyConditionalExecutionOptions(ctx, stg.name); err != nil {
+				er := updateStage(ctx, stg.name, withStageError(err))
+				if er != nil {
+					ctx.Log().Error(er, "error updating stage status to 'started'")
+					return NewStageError(er)
+				}
+				continue
+			}
+
+			er := updateStage(ctx, stg.name, withStageStatus(StageStatus_STAGE_STATUS_STARTED))
+
 			if er != nil {
 				ctx.Log().Error(er, "error updating stage status to 'started'")
 				return NewStageError(er)
 			}
-			continue
-		}
 
-		er := updateStage(ctx, stg.name, withStageStatus(StageStatus_STAGE_STATUS_STARTED))
+			var result any
+			var stageErr StageError
 
-		if er != nil {
-			ctx.Log().Error(er, "error updating stage status to 'started'")
-			return NewStageError(er)
-		}
-
-		var result any
-		var stageErr StageError
-
-		// stage execution is delegated in which case call the delegate
-		// instead and expect that it will invoke the stage and return a result, error
-		if ctx.delegateStage() != nil {
-			result, stageErr = ctx.delegateStage()(NewStageContext(ctx, stg.name), stg.cb)
-		} else {
-			result, stageErr = stg.cb(NewStageContext(ctx, stg.name))
-		}
-
-		if err := c.handleStageError(ctx, node, stg, stageErr); err != nil {
-			if err.ErrorType() == ErrorType_ERROR_TYPE_SKIP {
-				continue
+			// stage execution is delegated in which case call the delegate
+			// instead and expect that it will invoke the stage and return a result, error
+			if ctx.delegateStage() != nil {
+				result, stageErr = ctx.delegateStage()(NewStageContext(ctx, stg.name), stg.cb)
+			} else {
+				result, stageErr = stg.cb(NewStageContext(ctx, stg.name))
 			}
-			return err
-		}
 
-		if err := storeStageResult(ctx, stg, result); err != nil {
-			return err
-		}
+			if err := c.handleStageError(ctx, node, stg, stageErr); err != nil {
+				if err.ErrorType() == ErrorType_ERROR_TYPE_SKIP {
+					continue
+				}
+				return err
+			}
 
-		if err := updateStage(ctx, stg.name, withStageStatus(StageStatus_STAGE_STATUS_COMPLETED)); err != nil {
-			ctx.Log().Error(err, "error setting the stage status to 'completed'")
-			return NewStageError(err)
+			if err := storeStageResult(ctx, stg, result); err != nil {
+				return err
+			}
+
+			if err := updateStage(ctx, stg.name, withStageStatus(StageStatus_STAGE_STATUS_COMPLETED)); err != nil {
+				ctx.Log().Error(err, "error setting the stage status to 'completed'")
+				return NewStageError(err)
+			}
 		}
 	}
 
-	if node.complete != nil {
-		if er := updateStage(ctx, node.complete.name, withStageStatus(StageStatus_STAGE_STATUS_STARTED)); er != nil {
-			ctx.Log().Error(er, "error setting the completed stage status to 'started'")
-			return NewStageError(er)
-		}
+	select {
+	case <-ctx.Ctx().Done():
+		return nil
+	default:
+		if node.complete != nil {
+			if er := updateStage(ctx, node.complete.name, withStageStatus(StageStatus_STAGE_STATUS_STARTED)); er != nil {
+				ctx.Log().Error(er, "error setting the completed stage status to 'started'")
+				return NewStageError(er)
+			}
 
-		var stageErr StageError
+			var stageErr StageError
 
-		if ctx.delegateComplete() != nil {
-			stageErr = ctx.delegateComplete()(NewCompleteContext(ctx, node.complete.name), node.complete.cb)
-		} else {
-			stageErr = node.complete.cb(NewCompleteContext(ctx, node.complete.name))
-		}
+			if ctx.delegateComplete() != nil {
+				stageErr = ctx.delegateComplete()(NewCompleteContext(ctx, node.complete.name), node.complete.cb)
+			} else {
+				stageErr = node.complete.cb(NewCompleteContext(ctx, node.complete.name))
+			}
 
-		if e := updateStage(ctx, node.complete.name, withStageStatusOrError(StageStatus_STAGE_STATUS_COMPLETED, stageErr)); e != nil {
-			ctx.Log().Error(e, "error setting the completed stage status to 'completed'")
-			return NewStageError(e)
+			if e := updateStage(ctx, node.complete.name, withStageStatusOrError(StageStatus_STAGE_STATUS_COMPLETED, stageErr)); e != nil {
+				ctx.Log().Error(e, "error setting the completed stage status to 'completed'")
+				return NewStageError(e)
+			}
+			return stageErr
 		}
-		return stageErr
 	}
 
 	return nil

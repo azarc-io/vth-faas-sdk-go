@@ -10,7 +10,6 @@ import (
 /************************************************************************/
 
 type job struct {
-	ctx                     ctx.Context
 	metadata                *sparkMetadata
 	stageProgressHandler    StageProgressHandler
 	variableHandler         IOHandler
@@ -46,7 +45,7 @@ func (j *job) StageProgressHandler() StageProgressHandler {
 }
 
 func (j *job) Ctx() ctx.Context {
-	return j.ctx
+	return j.metadata.ctx
 }
 
 func (j *job) JobKey() string {

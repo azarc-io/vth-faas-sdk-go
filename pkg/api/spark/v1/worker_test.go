@@ -2,6 +2,7 @@ package spark_v1
 
 import (
 	"context"
+	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/suite"
 	"testing"
 	"time"
@@ -68,9 +69,9 @@ func (s *slowSpark) BuildChain(b Builder) Chain {
 	s.buildChainCalledCount += 1
 	return b.NewChain("test-0").
 		Stage("stage-0", func(ctx StageContext) (any, StageError) {
-			s.stageCalledCount += 1
-			time.Sleep(time.Millisecond * 200)
 			ctx.Log().Info("stage-0 called")
+			s.stageCalledCount += 1
+			time.Sleep(time.Millisecond * 500)
 			return nil, nil
 		}).
 		Stage("stage-1", func(ctx StageContext) (any, StageError) {
@@ -131,26 +132,35 @@ func (s *WorkerSuite) Test_Should_Delegate_Completion_If_Option_Provided() {
 	s.Require().Equal([]string{"test-0_complete"}, spark.delegatedCompleteNames)
 }
 
-//func (s *WorkerSuite) Test_Should_Drain_Running_Stages_During_Shutdown_When_Context_Is_Cancelled() {
-//	ctx, cancel := context.WithCancel(context.Background())
-//	jobKey := "test"
-//	worker, _, _, spark := s.createWorker(ctx)
-//
-//	go func() {
-//		time.Sleep(time.Millisecond * 50)
-//		// cancel the context
-//		cancel()
-//	}()
-//
-//	err := worker.Execute(worker.LocalContext(jobKey, "cid", "tid"))
-//	s.Require().Nil(err)
-//
-//	// only stage 0 should have executed correctly while stage 1 did not execute
-//
-//	s.Require().Equal(1, spark.buildChainCalledCount)
-//	s.Require().Equal(1, spark.stageCalledCount)
-//	s.Require().Equal(0, spark.completeCalledCount)
-//}
+func (s *WorkerSuite) Test_Should_Drain_Running_Stages_During_Shutdown_When_Context_Is_Cancelled() {
+	ctx, cancel := context.WithCancel(context.Background())
+	jobKey := "test"
+	worker, _, _, spark := s.createSlowWorker(ctx)
+	done := make(chan struct{})
+
+	go func() {
+		worker.Run()
+		close(done)
+	}()
+
+	go func() {
+		time.Sleep(time.Millisecond * 100)
+		// cancel the context
+		log.Info().Msg("cancelling")
+		cancel()
+	}()
+
+	go func() {
+		err := worker.Execute(worker.LocalContext(jobKey, "cid", "tid"))
+		s.Require().Nil(err)
+	}()
+
+	<-done
+
+	s.Require().Equal(1, spark.buildChainCalledCount, "the chain should run at least once")
+	s.Require().Equal(1, spark.stageCalledCount, "only the first stage should have run")
+	s.Require().Equal(0, spark.completeCalledCount, "completion should not be called")
+}
 
 /************************************************************************/
 // HELPERS
