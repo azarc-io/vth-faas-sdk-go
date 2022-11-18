@@ -8,7 +8,7 @@ type stageProgressHandler struct {
 	client ManagerServiceClient
 }
 
-func NewStageProgressHandler(client ManagerServiceClient) StageProgressHandler {
+func newGrpcStageProgressHandler(client ManagerServiceClient) StageProgressHandler {
 	return &stageProgressHandler{client: client}
 }
 

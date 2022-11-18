@@ -17,7 +17,7 @@ type sparkWorker struct {
 	chain     *chain
 	ctx       context.Context
 	opts      *sparkOpts
-	server    *Server
+	server    *server
 	createdAt time.Time
 	health    *healthz.Checker
 }
@@ -27,6 +27,7 @@ type sparkWorker struct {
 /************************************************************************/
 
 // Execute execute a single job
+// TODO this should not be exposed once all Azarc projects have been consolidated into Verathread
 func (w *sparkWorker) Execute(metadata Context) StageError {
 	jobContext := NewJobContext(metadata, w.opts)
 	return w.chain.execute(jobContext)
@@ -96,12 +97,12 @@ func (w *sparkWorker) validate(report ChainReport) error {
 
 	if w.opts.variableHandler == nil {
 		w.opts.log.Info("setting up grpc i/o handler")
-		w.opts.variableHandler = NewIOHandler(grpcClient)
+		w.opts.variableHandler = newGrpcIOHandler(grpcClient)
 	}
 
 	if w.opts.stageProgressHandler == nil {
 		w.opts.log.Info("setting up grpc progress handler")
-		w.opts.stageProgressHandler = NewStageProgressHandler(grpcClient)
+		w.opts.stageProgressHandler = newGrpcStageProgressHandler(grpcClient)
 	}
 
 	if w.config.Config.Server != nil && w.config.Config.Server.Enabled {
@@ -159,7 +160,7 @@ func NewSparkWorker(ctx context.Context, spark Spark, options ...Option) (Worker
 	chain := builder.buildChain()
 
 	// validate the chain
-	report := GenerateReportForChain(chain)
+	report := generateReportForChain(chain)
 
 	jw.chain = chain
 

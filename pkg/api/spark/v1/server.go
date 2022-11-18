@@ -19,7 +19,7 @@ var connectionTimeout = time.Second * 10
 // TYPES
 /************************************************************************/
 
-type Server struct {
+type server struct {
 	config *Config
 	worker Worker
 	svr    *grpc.Server
@@ -29,11 +29,11 @@ type Server struct {
 // SERVER
 /************************************************************************/
 
-func newServer(cfg *Config, worker Worker) *Server {
-	return &Server{config: cfg, worker: worker}
+func newServer(cfg *Config, worker Worker) *server {
+	return &server{config: cfg, worker: worker}
 }
 
-func (s *Server) start() error {
+func (s *server) start() error {
 	// LOGGER SAMPLE >> add .Fields(fields) with the spark name on it
 	log := NewLogger()
 
@@ -57,7 +57,7 @@ func (s *Server) start() error {
 	return nil
 }
 
-func (s *Server) stop() {
+func (s *server) stop() {
 	if s.svr != nil {
 		s.svr.GracefulStop()
 	}
@@ -67,7 +67,7 @@ func (s *Server) stop() {
 // RPC IMPLEMENTATIONS
 /************************************************************************/
 
-func (s *Server) ExecuteJob(ctx context.Context, request *ExecuteJobRequest) (*ExecuteJobResponse, error) {
+func (s *server) ExecuteJob(ctx context.Context, request *ExecuteJobRequest) (*ExecuteJobResponse, error) {
 	jobContext := NewSparkMetadata(ctx, request.Key, request.CorrelationId, request.TransactionId, nil)
 	go func() { // TODO goroutine pool
 		_ = s.worker.Execute(jobContext)

@@ -4,15 +4,15 @@ import (
 	"context"
 )
 
-type VariableHandler struct {
+type variableHandler struct {
 	client ManagerServiceClient
 }
 
-func NewIOHandler(client ManagerServiceClient) IOHandler {
-	return VariableHandler{client}
+func newGrpcIOHandler(client ManagerServiceClient) IOHandler {
+	return variableHandler{client}
 }
 
-func (g VariableHandler) Inputs(jobKey string, names ...string) *Inputs {
+func (g variableHandler) Inputs(jobKey string, names ...string) *Inputs {
 	variables, err := g.client.GetVariables(context.Background(), NewGetVariablesRequest(jobKey, names...))
 	if err != nil {
 		return NewInputs(err)
@@ -24,11 +24,11 @@ func (g VariableHandler) Inputs(jobKey string, names ...string) *Inputs {
 	return NewInputs(err, vars...)
 }
 
-func (g VariableHandler) Input(jobKey, name string) *Input {
+func (g variableHandler) Input(jobKey, name string) *Input {
 	return g.Inputs(jobKey, name).Get(name)
 }
 
-func (g VariableHandler) Output(jobKey string, variables ...*Var) error {
+func (g variableHandler) Output(jobKey string, variables ...*Var) error {
 	request, err := NewSetVariablesRequest(jobKey, variables...)
 	if err != nil {
 		return err

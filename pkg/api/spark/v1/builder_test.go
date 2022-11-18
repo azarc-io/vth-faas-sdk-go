@@ -69,7 +69,7 @@ func (s *BuilderSuite) Test_Should_Create_Root_Node_With_Child_Node() {
 		build()
 
 	// generate report for validation
-	r := GenerateReportForChain(b.buildChain())
+	r := generateReportForChain(b.buildChain())
 	s.Require().NotNil(r)
 	s.Require().Len(r.Errors, 0)
 
@@ -111,7 +111,7 @@ func (s *BuilderSuite) Test_Report_Should_Generate_Single_Error_On_Single_Duplic
 		build()
 
 	// generate report for validation
-	r := GenerateReportForChain(b.buildChain())
+	r := generateReportForChain(b.buildChain())
 	s.Require().NotNil(r)
 	s.Require().Len(r.Errors, 1)
 	s.Equal("duplicate stage names are not permitted [chain]: stage-0 [at]: root > compensate", r.Errors[0].Error())
@@ -154,7 +154,7 @@ func (s *BuilderSuite) Test_Report_Should_Generate_Multiple_Error_On_Multiple_Du
 		build()
 
 	// generate report for validation
-	r := GenerateReportForChain(b.buildChain())
+	r := generateReportForChain(b.buildChain())
 	s.Require().NotNil(r)
 	s.Require().Len(r.Errors, 2)
 	s.Equal("duplicate stage names are not permitted [chain]: stage-0 [at]: root > compensate", r.Errors[0].Error())
@@ -198,7 +198,7 @@ func (s *BuilderSuite) Test_Report_Should_Generate_Errors_On_Duplicate_Chain_Nam
 		build()
 
 	// generate report for validation
-	r := GenerateReportForChain(b.buildChain())
+	r := generateReportForChain(b.buildChain())
 	s.Require().NotNil(r)
 	s.Require().Len(r.Errors, 2)
 	s.Equal("duplicate chain names are not permitted [name]: test-0 [at]: root > compensate", r.Errors[0].Error())
@@ -242,7 +242,7 @@ func (s *BuilderSuite) Test_Report_Should_Generate_Errors_On_Empty_Names() {
 		build()
 
 	// generate report for validation
-	r := GenerateReportForChain(b.buildChain())
+	r := generateReportForChain(b.buildChain())
 	s.Require().NotNil(r)
 	s.Require().Len(r.Errors, 2)
 	s.Equal("chain name can not be empty [at]: root", r.Errors[0].Error())

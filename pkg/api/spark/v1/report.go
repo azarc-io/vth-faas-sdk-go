@@ -22,8 +22,8 @@ type (
 	}
 )
 
-// GenerateReportForChain generates a map of what the chain looks like
-func GenerateReportForChain(n *chain) ChainReport {
+// generateReportForChain generates a map of what the chain looks like
+func generateReportForChain(n *chain) ChainReport {
 	r := ChainReport{
 		StageMap: map[string]ChainReportStage{},
 		NodeMap:  map[string]ChainReportNode{},
