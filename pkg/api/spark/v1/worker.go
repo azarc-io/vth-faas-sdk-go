@@ -45,7 +45,7 @@ func (w *sparkWorker) Run() {
 	// start server
 	if w.server != nil {
 		go func() {
-			if err := w.server.Start(); err != nil {
+			if err := w.server.start(); err != nil {
 				panic(err)
 			}
 		}()
@@ -64,7 +64,7 @@ func (w *sparkWorker) Run() {
 	w.opts.log.Info("gracefully shutting down spark")
 	if w.server != nil {
 		w.opts.log.Info("shutting down server")
-		w.server.Stop()
+		w.server.stop()
 	}
 }
 
@@ -106,7 +106,7 @@ func (w *sparkWorker) validate(report ChainReport) error {
 
 	if w.config.Config.Server != nil && w.config.Config.Server.Enabled {
 		w.opts.log.Info("setting up server")
-		w.server = NewServer(w.config, w)
+		w.server = newServer(w.config, w)
 	}
 
 	if w.config.Config.Health != nil && w.config.Config.Health.Enabled {
