@@ -60,7 +60,7 @@ func newErrConditionalStageSkipped(stageName string) error {
 	return fmt.Errorf("%w: stage '%s' skipped", ErrConditionalStageSkipped, stageName)
 }
 
-func NewStageError(err error, opts ...ErrorOption) *stageError {
+func NewStageError(err error, opts ...ErrorOption) StageError {
 	stg := &stageError{err: err}
 	for _, opt := range opts {
 		stg = opt(stg)
