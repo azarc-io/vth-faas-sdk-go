@@ -184,15 +184,16 @@ func (sc stageContext) Log() Logger {
 
 type initContext struct {
 	loader BindableConfig
+	opts   *sparkOpts
 }
 
-func (i initContext) Config() BindableConfig {
+func (i *initContext) Config() BindableConfig {
 	if i.loader == nil {
-		i.loader = newBindableConfig()
+		i.loader = newBindableConfig(i.opts)
 	}
 	return i.loader
 }
 
-func newInitContext() InitContext {
-	return &initContext{}
+func newInitContext(opts *sparkOpts) InitContext {
+	return &initContext{opts: opts}
 }
