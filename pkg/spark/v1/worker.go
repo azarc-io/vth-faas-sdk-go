@@ -158,7 +158,7 @@ func (w *sparkWorker) startServer() {
 
 func (w *sparkWorker) initIfRequired() {
 	w.initOnce.Do(func() {
-		err := w.spark.Init(newInitContext())
+		err := w.spark.Init(newInitContext(w.opts))
 		if err != nil {
 			panic(err)
 		}

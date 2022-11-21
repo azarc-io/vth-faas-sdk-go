@@ -59,9 +59,19 @@ type sparkOpts struct {
 	log                  Logger
 	delegateStage        DelegateStageDefinitionFn
 	delegateComplete     DelegateCompleteDefinitionFn
+	config               []byte
+	configType           ConfigType
 }
 
 type Option = func(je *sparkOpts) *sparkOpts
+
+func WithConfiguration(b []byte, t ConfigType) Option {
+	return func(jw *sparkOpts) *sparkOpts {
+		jw.config = b
+		jw.configType = t
+		return jw
+	}
+}
 
 func WithIOHandler(vh IOHandler) Option {
 	return func(jw *sparkOpts) *sparkOpts {

@@ -95,10 +95,15 @@ func loadSparkConfig() (*config, error) {
 type bindableConfig struct {
 	b        []byte
 	filePath string
+	opts     *sparkOpts
 }
 
-func newBindableConfig() BindableConfig {
-	c := &bindableConfig{}
+func newBindableConfig(opts *sparkOpts) BindableConfig {
+	c := &bindableConfig{opts: opts}
+
+	if opts.config != nil {
+		return c
+	}
 
 	var err error
 
@@ -131,6 +136,15 @@ func (r *bindableConfig) Raw() ([]byte, error) {
 }
 
 func (r *bindableConfig) Bind(target any) error {
+	if r.opts.config != nil {
+		switch r.opts.configType {
+		case ConfigTypeJson:
+			return json.Unmarshal(r.opts.config, &target)
+		case ConfigTypeYaml:
+			return yaml.Unmarshal(r.opts.config, &target)
+		}
+	}
+
 	if strings.HasSuffix(r.filePath, ".yaml") {
 		return yaml.Unmarshal(r.b, &target)
 	} else if strings.HasSuffix(r.filePath, ".json") {

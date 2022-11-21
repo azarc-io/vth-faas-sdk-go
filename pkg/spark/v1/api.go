@@ -8,6 +8,17 @@ import (
 //go:generate mockgen -destination=./test/mock_stageprogress.go -package=spark_v1_mock github.com/azarc-io/vth-faas-sdk-go/pkg/api/spark/v1 StageProgressHandler
 
 /************************************************************************/
+// CONFIGURATION
+/************************************************************************/
+
+type ConfigType string
+
+const (
+	ConfigTypeYaml ConfigType = "yaml"
+	ConfigTypeJson ConfigType = "json"
+)
+
+/************************************************************************/
 // BUILDER
 /************************************************************************/
 
