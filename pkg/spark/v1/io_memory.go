@@ -2,6 +2,7 @@ package spark_v1
 
 import (
 	"fmt"
+	sparkv1 "github.com/azarc-io/vth-faas-sdk-go/internal/gen/azarc/spark/v1"
 	"testing"
 )
 
@@ -17,13 +18,13 @@ func NewInMemoryIOHandler(t *testing.T) TestIOHandler {
 
 func (i *inMemoryIOHandler) Inputs(jobKey string, names ...string) Inputs {
 	var (
-		vars []*Variable
+		vars []*sparkv1.Variable
 		err  error
 	)
 	for _, n := range names {
 		key := i.key(jobKey, n)
 		if v, ok := i.variables[key]; ok {
-			var va *Variable
+			var va *sparkv1.Variable
 			va, err = newVariable(v.Name, v.MimeType, v.Value)
 			vars = append(vars, va)
 		}

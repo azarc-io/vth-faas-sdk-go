@@ -2,6 +2,7 @@ package spark_v1
 
 import (
 	"context"
+	sparkv1 "github.com/azarc-io/vth-faas-sdk-go/internal/gen/azarc/spark/v1"
 	"net"
 	"time"
 
@@ -39,7 +40,7 @@ func (s *server) start() error {
 
 	// nosemgrep
 	s.svr = grpc.NewServer(grpc.ConnectionTimeout(connectionTimeout))
-	RegisterAgentServiceServer(s.svr, s)
+	sparkv1.RegisterAgentServiceServer(s.svr, s)
 
 	reflection.Register(s.svr)
 
@@ -67,10 +68,10 @@ func (s *server) stop() {
 // RPC IMPLEMENTATIONS
 /************************************************************************/
 
-func (s *server) ExecuteJob(ctx context.Context, request *ExecuteJobRequest) (*ExecuteJobResponse, error) {
+func (s *server) ExecuteJob(ctx context.Context, request *sparkv1.ExecuteJobRequest) (*sparkv1.ExecuteJobResponse, error) {
 	jobContext := NewSparkMetadata(ctx, request.Key, request.CorrelationId, request.TransactionId, nil)
 	go func() { // TODO goroutine pool
 		_ = s.worker.Execute(jobContext)
 	}()
-	return &ExecuteJobResponse{AgentId: s.config.Config.App.InstanceID}, nil
+	return &sparkv1.ExecuteJobResponse{AgentId: s.config.Config.App.InstanceID}, nil
 }

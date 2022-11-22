@@ -2,10 +2,11 @@ package spark_v1
 
 import (
 	"context"
+	sparkv1 "github.com/azarc-io/vth-faas-sdk-go/internal/gen/azarc/spark/v1"
 )
 
-//go:generate mockgen -destination=./test/mock_context.go -package spark_v1_mock github.com/azarc-io/vth-faas-sdk-go/pkg/api/spark/v1 Context
-//go:generate mockgen -destination=./test/mock_stageprogress.go -package=spark_v1_mock github.com/azarc-io/vth-faas-sdk-go/pkg/api/spark/v1 StageProgressHandler
+//go:generate mockgen -destination=./test/mock_context.go -package spark_v1_mock github.com/azarc-io/vth-faas-sdk-go/pkg/spark/v1 Context
+//go:generate mockgen -destination=./test/mock_stageprogress.go -package=spark_v1_mock github.com/azarc-io/vth-faas-sdk-go/pkg/spark/v1 StageProgressHandler
 
 /************************************************************************/
 // CONFIGURATION
@@ -107,11 +108,24 @@ type (
 
 type (
 	StageProgressHandler interface {
-		Get(jobKey, name string) (*StageStatus, error)
-		Set(stageStatus *SetStageStatusRequest) error
+		Get(jobKey, name string) (*sparkv1.StageStatus, error)
+		Set(stageStatus *sparkv1.SetStageStatusRequest) error
 		GetResult(jobKey, name string) Bindable
-		SetResult(resultResult *SetStageResultRequest) error
-		SetJobStatus(jobStatus *SetJobStatusRequest) error
+		SetResult(resultResult *sparkv1.SetStageResultRequest) error
+		SetJobStatus(jobStatus *sparkv1.SetJobStatusRequest) error
+	}
+
+	TestStageProgressHandler interface {
+		StageProgressHandler
+		AssertStageCompleted(jobKey, stageName string)
+		AssertStageStarted(jobKey, stageName string)
+		AssertStageSkipped(jobKey, stageName string)
+		AssertStageCancelled(jobKey, stageName string)
+		AssertStageFailed(jobKey, stageName string)
+		AssertStageUnspecified(jobKey, stageName string)
+		AddBehaviour() *Behaviour
+		ResetBehaviour()
+		AssertStageResult(jobKey, stageName string, expectedStageResult any)
 	}
 )
 
@@ -154,7 +168,7 @@ type (
 		JobKey() string
 		CorrelationID() string
 		TransactionID() string
-		LastActiveStage() *LastActiveStage
+		LastActiveStage() *sparkv1.LastActiveStage
 	}
 
 	InitContext interface {
@@ -165,7 +179,7 @@ type (
 		Context
 		IOHandler() IOHandler
 		StageProgressHandler() StageProgressHandler
-		LastActiveStage() *LastActiveStage
+		LastActiveStage() *sparkv1.LastActiveStage
 		Log() Logger
 		WithoutLastActiveStage() SparkContext
 		delegateStage() DelegateStageDefinitionFn
@@ -236,8 +250,8 @@ type (
 		Error() string
 		Code() uint32
 		Metadata() map[string]any
-		ErrorType() ErrorType
-		ToErrorMessage() *Error
+		ErrorType() sparkv1.ErrorType
+		ToErrorMessage() *sparkv1.Error
 	}
 )
 

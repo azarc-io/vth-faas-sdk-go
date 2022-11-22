@@ -2,6 +2,7 @@ package spark_v1
 
 import (
 	ctx "context"
+	sparkv1 "github.com/azarc-io/vth-faas-sdk-go/internal/gen/azarc/spark/v1"
 	"golang.org/x/net/context"
 )
 
@@ -42,7 +43,7 @@ func (j *jobContext) TransactionID() string {
 	return j.metadata.transactionID
 }
 
-func (j *jobContext) LastActiveStage() *LastActiveStage {
+func (j *jobContext) LastActiveStage() *sparkv1.LastActiveStage {
 	return j.metadata.lastActiveStage
 }
 
@@ -93,7 +94,7 @@ type sparkMetadata struct {
 	jobKey          string
 	correlationID   string
 	transactionID   string
-	lastActiveStage *LastActiveStage
+	lastActiveStage *sparkv1.LastActiveStage
 }
 
 func (j *sparkMetadata) JobKey() string {
@@ -112,11 +113,11 @@ func (j *sparkMetadata) Ctx() context.Context {
 	return j.ctx
 }
 
-func (j *sparkMetadata) LastActiveStage() *LastActiveStage {
+func (j *sparkMetadata) LastActiveStage() *sparkv1.LastActiveStage {
 	return j.lastActiveStage
 }
 
-func NewSparkMetadata(ctx context.Context, jobKey, correlationID, transactionID string, lastActiveStage *LastActiveStage) Context {
+func NewSparkMetadata(ctx context.Context, jobKey, correlationID, transactionID string, lastActiveStage *sparkv1.LastActiveStage) Context {
 	return &sparkMetadata{
 		ctx:             ctx,
 		jobKey:          jobKey,
@@ -126,7 +127,7 @@ func NewSparkMetadata(ctx context.Context, jobKey, correlationID, transactionID 
 	}
 }
 
-func NewSparkMetadataFromGrpcRequest(ctx context.Context, req *ExecuteJobRequest) sparkMetadata {
+func NewSparkMetadataFromGrpcRequest(ctx context.Context, req *sparkv1.ExecuteJobRequest) sparkMetadata {
 	return sparkMetadata{
 		ctx:             ctx,
 		jobKey:          req.Key,

@@ -8,7 +8,8 @@ import (
 
 func main() {
 	ctx, cancel := context.WithCancel(context.Background())
-	spark := impl.NewSpark(cancel)
+	defer cancel()
+	spark := impl.NewSpark()
 	worker, err := sdk_v1.NewSparkWorker(ctx, spark)
 	if err != nil {
 		panic(err)

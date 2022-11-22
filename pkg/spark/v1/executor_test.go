@@ -3,6 +3,7 @@ package spark_v1
 import (
 	"context"
 	"errors"
+	sparkv1 "github.com/azarc-io/vth-faas-sdk-go/internal/gen/azarc/spark/v1"
 	"github.com/stretchr/testify/suite"
 	"strconv"
 	"sync"
@@ -39,8 +40,8 @@ func (s *ExecutorSuite) Test_Execute_Single_Stage_Then_Complete_With_No_Logic_Sh
 	err := c.execute(jobContext)
 
 	s.Require().Nil(err)
-	sph.AssertStageStatus(jobKey, "test-0_complete", StageStatus_STAGE_STATUS_COMPLETED)
-	sph.AssertStageStatus(jobKey, "stage-0", StageStatus_STAGE_STATUS_COMPLETED)
+	sph.AssertStageCompleted(jobKey, "test-0_complete")
+	sph.AssertStageCompleted(jobKey, "stage-0")
 }
 
 // TODO confirm this with Jono
@@ -105,8 +106,8 @@ func (s *ExecutorSuite) Test_Complete_Can_Fetch_String_Stage_Result() {
 	err := c.execute(jobContext)
 
 	s.Require().Nil(err)
-	sph.AssertStageStatus(jobKey, "test-0_complete", StageStatus_STAGE_STATUS_COMPLETED)
-	sph.AssertStageStatus(jobKey, "stage-0", StageStatus_STAGE_STATUS_COMPLETED)
+	sph.AssertStageCompleted(jobKey, "test-0_complete")
+	sph.AssertStageCompleted(jobKey, "stage-0")
 }
 
 func (s *ExecutorSuite) Test_Complete_Can_Fetch_Numeric_Stage_Result() {
@@ -147,8 +148,8 @@ func (s *ExecutorSuite) Test_Complete_Can_Fetch_Numeric_Stage_Result() {
 	err := c.execute(jobContext)
 
 	s.Require().Nil(err)
-	sph.AssertStageStatus(jobKey, "test-0_complete", StageStatus_STAGE_STATUS_COMPLETED)
-	sph.AssertStageStatus(jobKey, "stage-0", StageStatus_STAGE_STATUS_COMPLETED)
+	sph.AssertStageCompleted(jobKey, "test-0_complete")
+	sph.AssertStageCompleted(jobKey, "stage-0")
 }
 
 func (s *ExecutorSuite) Test_Should_Compensate_If_Stage_Return_Error() {
@@ -178,8 +179,8 @@ func (s *ExecutorSuite) Test_Should_Compensate_If_Stage_Return_Error() {
 
 	s.Require().NotNil(err)
 	s.Require().Equal("unstable", err.Error())
-	sph.AssertStageStatus(jobKey, "compensate_complete", StageStatus_STAGE_STATUS_COMPLETED)
-	sph.AssertStageStatus(jobKey, "stage-0", StageStatus_STAGE_STATUS_FAILED)
+	sph.AssertStageCompleted(jobKey, "compensate_complete")
+	sph.AssertStageFailed(jobKey, "stage-0")
 
 	if WaitTimeout(&wg, time.Second) {
 		s.FailNow("time out waiting for compensate")
@@ -264,9 +265,9 @@ func (s *ExecutorSuite) Test_Should_Skip_Stage_If_Stage_Returns_Skip_Option() {
 
 	err := c.execute(jobContext)
 	s.Require().Nil(err)
-	sph.AssertStageStatus(jobKey, "stage-0", StageStatus_STAGE_STATUS_SKIPPED)
-	sph.AssertStageStatus(jobKey, "stage-1", StageStatus_STAGE_STATUS_COMPLETED)
-	sph.AssertStageStatus(jobKey, "test-0_complete", StageStatus_STAGE_STATUS_COMPLETED)
+	sph.AssertStageSkipped(jobKey, "stage-0")
+	sph.AssertStageCompleted(jobKey, "stage-1")
+	sph.AssertStageCompleted(jobKey, "test-0_complete")
 
 	if WaitTimeout(&wg, time.Second) {
 		s.FailNow("time out waiting for all steps to complete")
@@ -317,15 +318,15 @@ func (s *ExecutorSuite) Test_Should_Cancel_Chain_If_Stage_Returns_Cancel_Option(
 
 	if e, ok := err.(StageError); ok {
 		s.Require().Equal("canceled in stage", e.Metadata()["reason"])
-		s.Require().Equal(ErrorType_ERROR_TYPE_CANCELLED, e.ErrorType())
+		s.Require().Equal(sparkv1.ErrorType_ERROR_TYPE_CANCELLED, e.ErrorType())
 		s.Require().Equal(uint32(0), err.Code())
 	} else {
 		s.Require().FailNow("incorrect error type")
 	}
 
-	sph.AssertStageStatus(jobKey, "stage-0", StageStatus_STAGE_STATUS_CANCELLED)
-	sph.AssertStageStatus(jobKey, "stage-3", StageStatus_STAGE_STATUS_COMPLETED)
-	sph.AssertStageStatus(jobKey, "cancel_complete", StageStatus_STAGE_STATUS_COMPLETED)
+	sph.AssertStageCancelled(jobKey, "stage-0")
+	sph.AssertStageCompleted(jobKey, "stage-3")
+	sph.AssertStageCompleted(jobKey, "cancel_complete")
 
 	if WaitTimeout(&wg, time.Second) {
 		s.FailNow("time out waiting for all steps to complete")
@@ -374,13 +375,13 @@ func (s *ExecutorSuite) Test_Should_Cancel_Chain_If_Stage_Returns_Fatal_Option()
 	s.Require().Equal("unstable", err.Error())
 
 	if e, ok := err.(StageError); ok {
-		s.Require().Equal(ErrorType_ERROR_TYPE_FATAL, e.ErrorType())
+		s.Require().Equal(sparkv1.ErrorType_ERROR_TYPE_FATAL, e.ErrorType())
 		s.Require().Equal(uint32(0), err.Code())
 	} else {
 		s.Require().FailNow("incorrect error type")
 	}
 
-	sph.AssertStageStatus(jobKey, "stage-0", StageStatus_STAGE_STATUS_FAILED)
+	sph.AssertStageFailed(jobKey, "stage-0")
 
 	if WaitTimeout(&wg, time.Second) {
 		s.FailNow("time out waiting for all steps to complete")
@@ -393,7 +394,7 @@ func (s *ExecutorSuite) Test_Should_Cancel_Chain_If_Stage_Returns_Fatal_Option()
 
 func (s *ExecutorSuite) newJobContext(
 	jobKey string, cid string, txId string,
-) (SparkContext, *InMemoryStageProgressHandler, IOHandler) {
+) (SparkContext, TestStageProgressHandler, TestIOHandler) {
 	sph := NewInMemoryStageProgressHandler(s.T())
 	vh := NewInMemoryIOHandler(s.T())
 	metadata := NewSparkMetadata(context.Background(), jobKey, cid, txId, nil)

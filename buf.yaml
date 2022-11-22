@@ -1,0 +1,32 @@
+version: v1
+name: "buf.build/azarc/vth-sdk"
+deps:
+  - buf.build/envoyproxy/protoc-gen-validate
+  - buf.build/googleapis/googleapis
+  - buf.build/azarc/vth-common
+  - buf.build/azarc/vth-sdk
+build:
+  excludes:
+    - cmd/web
+breaking:
+  use:
+    - FILE
+lint:
+  use:
+    - BASIC
+    - FILE_LOWER_SNAKE_CASE
+  except:
+    - ENUM_NO_ALLOW_ALIAS
+    - IMPORT_NO_PUBLIC
+    - PACKAGE_DIRECTORY_MATCH
+    - PACKAGE_SAME_DIRECTORY
+  ignore_only:
+    ENUM_NO_ALLOW_ALIAS:
+      - google/appengine/v1/app_yaml.proto
+      - google/cloud/recommendationengine/v1beta1/catalog.proto
+      - google/cloud/websecurityscanner/v1beta/scan_config_error.proto
+      - google/storage/v1/storage.proto
+    IMPORT_NO_PUBLIC:
+      - google/cloud/policytroubleshooter/v1/checker.proto
+      - google/cloud/securitycenter/v1/securitycenter_service.proto
+      - google/cloud/securitycenter/v1p1beta1/securitycenter_service.proto
