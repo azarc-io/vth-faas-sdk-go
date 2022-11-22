@@ -119,6 +119,7 @@ func newBindableConfig(opts *sparkOpts) BindableConfig {
 	jsonFilePath := "config.json"
 
 	if os.Getenv("CONFIG_SECRET") != "" {
+		c.opts.configType = ConfigTypeJson
 		c.b = []byte(os.Getenv("CONFIG_SECRET"))
 	} else if os.Getenv("CONFIG_FILE_PATH") != "" {
 		c.filePath = os.Getenv("CONFIG_FILE_PATH")
