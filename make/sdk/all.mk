@@ -43,3 +43,8 @@ gorelease:: $(GO_RELEASER)
 .PHONY: gobuild
 gobuild:: $(GO_RELEASER)
 	goreleaser build --rm-dist
+
+generateremote:
+	buf mod update
+	buf generate buf.build/azarc/vth-common -o internal/gen
+	buf generate buf.build/azarc/vth-sdk -o internal/gen
