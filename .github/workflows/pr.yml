@@ -52,15 +52,6 @@ jobs:
           BUF_BIN_OVERRIDE: buf
           GITHUB_TOKEN: "${{ secrets.PAT_TOKEN }}"
 
-      - name: Lint Proto
-        run: make buflint
-        env:
-          BUF_BREAKING_AGAINST_INPUT: 'https://github.com/azarc-io/vth-faas-sdk-go.git#branch=main'
-          BUF_INPUT_HTTPS_USERNAME: ${{ github.actor }}
-          BUF_INPUT_HTTPS_PASSWORD: ${{ github.token }}
-          BUF_BIN_OVERRIDE: buf
-          GITHUB_TOKEN: "${{ secrets.PAT_TOKEN }}"
-
   test:
     runs-on: ubuntu-20.04
     steps:
