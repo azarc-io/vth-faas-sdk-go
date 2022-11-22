@@ -4,7 +4,11 @@ deps:
   - remote: buf.build
     owner: azarc
     repository: vth-common
-    commit: e547a793b4854232bae946aa4ebd7c22
+    commit: e9d34fce8c6f489c9f9afc372a385b52
+  - remote: buf.build
+    owner: azarc
+    repository: vth-sdk
+    commit: cab7484441d14ceeb3d2a9793e63770f
   - remote: buf.build
     owner: envoyproxy
     repository: protoc-gen-validate

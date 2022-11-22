@@ -50,7 +50,6 @@ type Runtime struct {
 type CheckFunc func() error
 
 type check struct {
-	mutex  sync.Mutex
 	period time.Duration
 	fn     CheckFunc
 	err    error
@@ -139,7 +138,7 @@ func (c *Checker) Register(name string, period time.Duration, fn CheckFunc) {
 	check := &check{
 		period: period,
 		fn:     fn,
-		err:    errors.New("pending"),
+		err:    errors.New("pending"), //nolint
 		stopch: make(chan bool, 1),
 	}
 

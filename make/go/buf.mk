@@ -43,7 +43,7 @@ ifneq ($(BUF_LINT_INPUT),)
 buflint: $(BUF)
 	@$(BUF_BIN) lint $(BUF_LINT_INPUT)
 
-postlint:: buflint
+postlint::
 endif
 
 ifneq ($(BUF_BREAKING_INPUT),)
@@ -53,6 +53,6 @@ bufbreaking: $(BUF)
 	@echo buf breaking $(BUF_BREAKING_INPUT) --against $(BUF_BREAKING_AGAINST_INPUT)
 	@$(BUF_BIN) breaking $(BUF_BREAKING_INPUT) --against $(BUF_BREAKING_AGAINST_INPUT)
 
-postlint:: bufbreaking
+postlint::
 endif
 endif

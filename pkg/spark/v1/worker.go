@@ -3,8 +3,8 @@ package spark_v1
 import (
 	"context"
 	sparkv1 "github.com/azarc-io/vth-faas-sdk-go/internal/gen/azarc/spark/v1"
-	"github.com/azarc-io/vth-faas-sdk-go/pkg/healthz"
-	"github.com/azarc-io/vth-faas-sdk-go/pkg/signals"
+	"github.com/azarc-io/vth-faas-sdk-go/internal/healthz"
+	"github.com/azarc-io/vth-faas-sdk-go/internal/signals"
 	"net/http"
 	"sync"
 	"time"
