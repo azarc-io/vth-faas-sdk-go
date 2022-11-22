@@ -4,18 +4,13 @@ import (
 	"context"
 	spark "github.com/azarc-io/vth-faas-sdk-go/cmd/simple-example/internal"
 	spark_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/spark/v1"
-	"github.com/rs/zerolog/log"
 	"github.com/stretchr/testify/assert"
-	"os"
 	"testing"
 )
 
 func Test_Should_Say_Hello_World(t *testing.T) {
 	io := spark_v1.NewInMemoryIOHandler(t)
 	sph := spark_v1.NewInMemoryStageProgressHandler(t)
-
-	w, _ := os.Getwd()
-	log.Info().Msgf("PWD: %s", w)
 
 	worker, err := spark_v1.NewSparkWorker(
 		context.Background(),
