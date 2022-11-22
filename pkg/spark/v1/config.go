@@ -70,6 +70,13 @@ func (m *config) healthBindTo() string {
 func loadSparkConfig() (*config, error) {
 	config := &config{}
 
+	if os.Getenv("SPARK_SECRET") != "" {
+		if err := yaml.Unmarshal([]byte(os.Getenv("SPARK_SECRET")), &config); err != nil {
+			return nil, err
+		}
+		return config, nil
+	}
+
 	// check for a yaml config
 	if _, err := os.Stat("spark.yaml"); err == nil {
 		b, err := os.ReadFile("spark.yaml")
@@ -111,7 +118,9 @@ func newBindableConfig(opts *sparkOpts) BindableConfig {
 	yamlFilePath := "config.yaml"
 	jsonFilePath := "config.json"
 
-	if os.Getenv("CONFIG_FILE_PATH") != "" {
+	if os.Getenv("CONFIG_SECRET") != "" {
+		c.b = []byte(os.Getenv("CONFIG_SECRET"))
+	} else if os.Getenv("CONFIG_FILE_PATH") != "" {
 		c.filePath = os.Getenv("CONFIG_FILE_PATH")
 		if c.b, err = os.ReadFile(c.filePath); err != nil {
 			panic(err)
