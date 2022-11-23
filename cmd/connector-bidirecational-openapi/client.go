@@ -6,19 +6,25 @@ import (
 
 type mockClient struct {
 	connected bool
-	address   *config
+	address   string
+	spec      string
 }
 
-func (c mockClient) Connect() error {
+func (c mockClient) connect() error {
 	c.connected = true
 	return nil
 }
 
-func (c mockClient) Disconnect() error {
+func (c mockClient) disconnect() error {
 	c.connected = false
 	return nil
 }
 
-func (c mockClient) DoExternalRequest(body []byte, headers connectorv1.Headers) ([]byte, map[string]any, error) {
+func (c mockClient) DoExternalRequest(
+	endpoint string,
+	mimeType string,
+	body []byte,
+	headers connectorv1.Headers,
+) ([]byte, map[string]any, error) {
 	return []byte(`"result": "hello!"`), map[string]any{}, nil
 }
