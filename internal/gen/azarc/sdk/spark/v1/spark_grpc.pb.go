@@ -95,7 +95,7 @@ var AgentService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "azarc/spark/v1/spark.proto",
+	Metadata: "azarc/sdk/spark/v1/spark.proto",
 }
 
 // ManagerServiceClient is the client API for ManagerService service.
@@ -431,5 +431,5 @@ var ManagerService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "azarc/spark/v1/spark.proto",
+	Metadata: "azarc/sdk/spark/v1/spark.proto",
 }

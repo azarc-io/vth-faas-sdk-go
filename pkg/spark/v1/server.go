@@ -2,7 +2,7 @@ package spark_v1
 
 import (
 	"context"
-	sparkv1 "github.com/azarc-io/vth-faas-sdk-go/internal/gen/azarc/spark/v1"
+	sparkv1 "github.com/azarc-io/vth-faas-sdk-go/internal/gen/azarc/sdk/spark/v1"
 	"net"
 	"time"
 

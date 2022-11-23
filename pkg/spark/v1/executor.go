@@ -1,6 +1,6 @@
 package spark_v1
 
-import sparkv1 "github.com/azarc-io/vth-faas-sdk-go/internal/gen/azarc/spark/v1"
+import sparkv1 "github.com/azarc-io/vth-faas-sdk-go/internal/gen/azarc/sdk/spark/v1"
 
 const (
 	stageLogField  = "stage"
