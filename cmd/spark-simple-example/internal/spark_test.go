@@ -2,7 +2,7 @@ package spark_test
 
 import (
 	"context"
-	spark "github.com/azarc-io/vth-faas-sdk-go/cmd/simple-example/internal"
+	spark "github.com/azarc-io/vth-faas-sdk-go/cmd/spark-simple-example/internal"
 	spark_v1 "github.com/azarc-io/vth-faas-sdk-go/pkg/spark/v1"
 	"github.com/stretchr/testify/assert"
 	"testing"

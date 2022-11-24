@@ -5,16 +5,10 @@ package connectorv1
 /************************************************************************/
 
 type ConfigType string
-type ConfigSchemaType int
 
 const (
 	ConfigTypeYaml ConfigType = "yaml"
 	ConfigTypeJson ConfigType = "json"
-)
-
-const (
-	InboundSchema ConfigSchemaType = iota
-	OutboundSchema
 )
 
 type Configuration interface {
@@ -72,6 +66,8 @@ type Ingress interface {
 // MODELS
 /************************************************************************/
 
+type Headers = map[string]any
+
 type (
 	OutboundRequest interface {
 		Body() Bindable
@@ -106,8 +102,6 @@ type (
 // API
 /************************************************************************/
 
-type Headers = map[string]any
-
 type Connector interface {
 	Start(ctx StartContext) error
 	Stop(ctx StopContext) error
@@ -125,14 +119,4 @@ type InboundConnector interface {
 type OutboundConnector interface {
 	Connector
 	HandleOutboundRequest(request OutboundRequest) (any, Headers, error) // see line 26, please
-}
-
-type OutboundRequest1 struct {
-	Payload []byte
-	Headers Headers
-}
-
-type OutboundResponse2 struct {
-	Payload []byte
-	Headers Headers
 }
