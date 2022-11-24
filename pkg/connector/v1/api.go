@@ -109,6 +109,8 @@ type (
 /************************************************************************/
 
 type Connector interface {
+	// Start can be used to initialise your server or client
+	// Note: This function should return and not block
 	Start(ctx StartContext) error
 	Stop(ctx StopContext) error
 }
