@@ -1,0 +1,7 @@
+label: OpenAPI Server
+description: Standard hello world
+ingress:
+  - name: "http-8080"
+    enabled: true
+    type: http
+    port: 8080
