@@ -30,7 +30,7 @@ func (s mockBroker) disconnect() error {
 	return nil
 }
 
-func (s mockBroker) Subscribe(cfg *subscription, inboundRequest func(req *request) (string, []byte, connectorv1.Headers, error)) error {
+func (s mockBroker) Subscribe(cfg *subscription, inboundRequest func(req *message) error) error {
 	return nil
 }
 

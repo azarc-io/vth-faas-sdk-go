@@ -37,17 +37,23 @@ type (
 type (
 	StartContext interface {
 		Config() Configuration
-		Ingress() (Ingress, error)
-		ForwardingContext() ForwardingContext
+		Ingress(name string) (Ingress, error)
 		InboundDescriptors() []InboundDescriptor
 		OutboundDescriptors() []OutboundDescriptor
+		Forwarder() Forwarder
 	}
 
 	StopContext interface {
 		Logger
 	}
+)
 
-	ForwardingContext interface {
+/************************************************************************/
+// Forwarding
+/************************************************************************/
+
+type (
+	Forwarder interface {
 		Logger
 		Forward(name string, body []byte, headers Headers) (InboundResponse, error)
 	}
@@ -113,7 +119,6 @@ type ConnectorService interface {
 
 type InboundConnector interface {
 	Connector
-	Forward(payload []byte, headers Headers)
 }
 
 type OutboundConnector interface {

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	connectorv1 "github.com/azarc-io/vth-faas-sdk-go/pkg/connector/v1"
 )
 
@@ -21,10 +22,10 @@ type config struct {
 }
 
 type request struct {
-	ctx     connectorv1.ForwardingContext
-	path    string
-	body    []byte
-	headers map[string]interface{}
+	forwarder connectorv1.Forwarder
+	path      string
+	body      []byte
+	headers   map[string]interface{}
 }
 
 /************************************************************************/
@@ -91,7 +92,7 @@ func (c connector) Start(ctx connectorv1.StartContext) error {
 
 	// request the ingress configuration from the context, if ingress is
 	// not enabled in the connector.yaml then this will error
-	ingress, err := ctx.Ingress()
+	ingress, err := ctx.Ingress("http-8080")
 	if err != nil {
 		return err
 	}
@@ -102,14 +103,14 @@ func (c connector) Start(ctx connectorv1.StartContext) error {
 	// ingress port will be provided by the agent when deployed through verathread
 	c.server = &mockServer{bindHost: ingress.IngressHost(), bindPort: ingress.IngressPort(), spec: c.config.ServerOpenApiSpec}
 	// register a handler with our mock server, you have to wrap the handler so that you can
-	// pass a forwarding context to your actual handler, that will give give you access to everything
+	// pass a forwarding context to your actual handler, that will give you access to everything
 	// you need to handle an inbound request
 	c.server.onRequest = func(path string, body []byte, headers map[string]interface{}) (*response, error) {
 		rPath, rBody, rHeaders, err := c.handleInboundRequest(&request{
-			ctx:     ctx.ForwardingContext(),
-			path:    path,
-			body:    body,
-			headers: headers,
+			forwarder: ctx.Forwarder(),
+			path:      path,
+			body:      body,
+			headers:   headers,
 		})
 
 		if err != nil {
@@ -119,9 +120,11 @@ func (c connector) Start(ctx connectorv1.StartContext) error {
 		return &response{body: rBody, headers: rHeaders, path: rPath}, nil
 	}
 	// start the server
-	if err := c.server.start(); err != nil {
-		return err
-	}
+	go func() {
+		if err := c.server.start(); err != nil {
+			panic(err)
+		}
+	}()
 
 	return nil
 }
@@ -141,15 +144,15 @@ func (c connector) Stop(ctx connectorv1.StopContext) error {
 
 // handleInboundRequest handles inbound requests from the server e.g. open api server
 func (c connector) handleInboundRequest(req *request) (string, []byte, connectorv1.Headers, error) {
-	response, err := req.ctx.Forward(req.path, req.body, req.headers)
+	response, err := req.forwarder.Forward(req.path, req.body, req.headers)
 	if err != nil {
-		req.ctx.LogError(err, "could not handle inbound request")
+		req.forwarder.LogError(err, "could not handle inbound request")
 		return "", nil, nil, err
 	}
 
 	rawBody, err := response.Body().Raw()
 	if err != nil {
-		req.ctx.LogError(err, "could not fetch response from agent")
+		req.forwarder.LogError(err, "could not fetch response from agent")
 		return "", nil, nil, err
 	}
 
@@ -161,7 +164,7 @@ func (c connector) handleInboundRequest(req *request) (string, []byte, connector
 /************************************************************************/
 
 func main() {
-	service := connectorv1.New(&connector{})
+	service := connectorv1.New(context.Background(), &connector{})
 	if err := service.Start(); err != nil {
 		panic(err)
 	}

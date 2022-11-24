@@ -1,5 +1,7 @@
 package connectorv1
 
+import "context"
+
 type connector struct {
 }
 
@@ -8,7 +10,7 @@ func (c connector) Start() error {
 	panic("implement me")
 }
 
-func New(con Connector) ConnectorService {
+func New(ctx context.Context, con Connector) ConnectorService {
 	c := &connector{}
 
 	return c

@@ -19,10 +19,10 @@ type config struct {
 }
 
 type request struct {
-	ctx     connectorv1.ForwardingContext
-	path    string
-	body    []byte
-	headers map[string]interface{}
+	forwarder   connectorv1.Forwarder
+	messageName string
+	body        []byte
+	headers     map[string]interface{}
 }
 
 /************************************************************************/
@@ -87,7 +87,17 @@ func (c connector) Start(ctx connectorv1.StartContext) error {
 			return err
 		}
 
-		if err := c.broker.Subscribe(subCfg, c.handleInboundRequest); err != nil {
+		if err := c.broker.Subscribe(subCfg, func(msg *message) error {
+			if err := c.handleInboundRequest(&request{
+				forwarder:   ctx.Forwarder(),
+				messageName: descriptor.MessageName(),
+				body:        msg.body,
+				headers:     msg.headers,
+			}); err != nil {
+				return err
+			}
+			return nil
+		}); err != nil {
 			return err
 		}
 	}
@@ -116,20 +126,14 @@ func (c connector) Stop(_ connectorv1.StopContext) error {
 /************************************************************************/
 
 // handleInboundRequest handles inbound requests from the server e.g. open api server
-func (c connector) handleInboundRequest(req *request) (string, []byte, connectorv1.Headers, error) {
-	response, err := req.ctx.Forward(req.path, req.body, req.headers)
+func (c connector) handleInboundRequest(req *request) error {
+	_, err := req.forwarder.Forward(req.messageName, req.body, req.headers)
 	if err != nil {
-		req.ctx.LogError(err, "could not handle inbound request")
-		return "", nil, nil, err
+		req.forwarder.LogError(err, "could not handle inbound request")
+		return err
 	}
 
-	rawBody, err := response.Body().Raw()
-	if err != nil {
-		req.ctx.LogError(err, "could not fetch response from agent")
-		return "", nil, nil, err
-	}
-
-	return response.MessageName(), rawBody, response.Headers(), nil
+	return nil
 }
 
 /************************************************************************/
@@ -137,7 +141,7 @@ func (c connector) handleInboundRequest(req *request) (string, []byte, connector
 /************************************************************************/
 
 func main() {
-	service := connectorv1.New(&connector{publishers: map[string]*publication{}})
+	service := connectorv1.New(nil, &connector{publishers: map[string]*publication{}})
 	if err := service.Start(); err != nil {
 		panic(err)
 	}

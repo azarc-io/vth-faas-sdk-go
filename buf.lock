@@ -4,7 +4,7 @@ deps:
   - remote: buf.build
     owner: azarc
     repository: vth-common
-    commit: e9d34fce8c6f489c9f9afc372a385b52
+    commit: c26c419575f94dea996615769cae30a7
   - remote: buf.build
     owner: azarc
     repository: vth-sdk
