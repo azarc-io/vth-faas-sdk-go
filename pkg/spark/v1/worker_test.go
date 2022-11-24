@@ -183,7 +183,7 @@ func (s *WorkerSuite) Test_Should_Drain_Running_Stages_During_Shutdown_When_Cont
 // HELPERS
 /************************************************************************/
 
-func (s *WorkerSuite) createWorker(ctx context.Context, delStage, delComplete bool) (Worker, *InMemoryStageProgressHandler, IOHandler, *basicSpark) {
+func (s *WorkerSuite) createWorker(ctx context.Context, delStage, delComplete bool) (Worker, TestStageProgressHandler, IOHandler, *basicSpark) {
 	spark := &basicSpark{}
 	sph := NewInMemoryStageProgressHandler(s.T())
 	vh := NewInMemoryIOHandler(s.T())
@@ -206,7 +206,7 @@ func (s *WorkerSuite) createWorker(ctx context.Context, delStage, delComplete bo
 	return worker, sph, vh, spark
 }
 
-func (s *WorkerSuite) createSlowWorker(ctx context.Context) (Worker, *InMemoryStageProgressHandler, IOHandler, *slowSpark) {
+func (s *WorkerSuite) createSlowWorker(ctx context.Context) (Worker, TestStageProgressHandler, IOHandler, *slowSpark) {
 	spark := &slowSpark{}
 	sph := NewInMemoryStageProgressHandler(s.T())
 	vh := NewInMemoryIOHandler(s.T())

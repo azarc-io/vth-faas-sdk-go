@@ -1,5 +1,7 @@
 package spark_v1
 
+import sparkv1 "github.com/azarc-io/vth-faas-sdk-go/internal/gen/azarc/sdk/spark/v1"
+
 /************************************************************************/
 // STAGE OPTIONS
 /************************************************************************/
@@ -36,14 +38,14 @@ func newStageOptionParams(ctx SparkContext, stageName string) StageOptionParams 
 	}
 }
 
-func WithStageStatus(stageName string, status StageStatus) StageOption {
+func WithStageStatus(stageName string, status sparkv1.StageStatus) StageOption {
 	return func(sop StageOptionParams) StageError {
 		stageStatus, err := sop.StageProgressHandler().Get(sop.Context().JobKey(), stageName)
 		if err != nil {
-			return NewStageError(err, WithErrorType(ErrorType_ERROR_TYPE_FAILED_UNSPECIFIED))
+			return NewStageError(err, withErrorType(sparkv1.ErrorType_ERROR_TYPE_FAILED_UNSPECIFIED))
 		}
 		if *stageStatus != status {
-			return NewStageError(newErrConditionalStageSkipped(stageName), WithErrorType(ErrorType_ERROR_TYPE_SKIP))
+			return NewStageError(newErrConditionalStageSkipped(stageName), withErrorType(sparkv1.ErrorType_ERROR_TYPE_SKIP))
 		}
 		return nil
 	}

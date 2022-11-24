@@ -1,4 +1,8 @@
 version: v1
+managed:
+  enabled: true
+  go_package_prefix:
+    default: github.com/azarc-io/vth-faas-sdk-go/internal/gen
 plugins:
   - name: go
     out: .

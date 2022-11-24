@@ -1,6 +1,9 @@
 package spark_v1
 
-import "fmt"
+import (
+	"fmt"
+	sparkv1 "github.com/azarc-io/vth-faas-sdk-go/internal/gen/azarc/sdk/spark/v1"
+)
 
 var (
 	rootNodeType       = nodeType("root")
@@ -57,7 +60,7 @@ type stage struct {
 // CHAIN HELPERS
 /************************************************************************/
 
-func (c *chain) getNodeToResume(lastActiveStage *LastActiveStage) (*node, error) {
+func (c *chain) getNodeToResume(lastActiveStage *sparkv1.LastActiveStage) (*node, error) {
 	if lastActiveStage == nil {
 		return c.rootNode, nil
 	}

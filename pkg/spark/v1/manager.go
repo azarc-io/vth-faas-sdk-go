@@ -1,12 +1,13 @@
 package spark_v1
 
 import (
+	sparkv1 "github.com/azarc-io/vth-faas-sdk-go/internal/gen/azarc/sdk/spark/v1"
 	grpc_retry "github.com/grpc-ecosystem/go-grpc-middleware/retry"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
-func CreateManagerServiceClient(config *config) (ManagerServiceClient, error) {
+func CreateManagerServiceClient(config *config) (sparkv1.ManagerServiceClient, error) {
 	retryOpts := []grpc_retry.CallOption{
 		grpc_retry.WithBackoff(grpc_retry.BackoffExponential(config.Config.Agent.RetryBackoff)),
 	}
@@ -19,5 +20,5 @@ func CreateManagerServiceClient(config *config) (ManagerServiceClient, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewManagerServiceClient(cc), nil
+	return sparkv1.NewManagerServiceClient(cc), nil
 }

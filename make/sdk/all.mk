@@ -3,7 +3,8 @@ BUF_BREAKING_INPUT := .
 BUF_BREAKING_AGAINST_INPUT ?= .git\#branch=main
 BUF_FORMAT_INPUT := .
 BUF_VERSION ?= v1.9.0
-GOLANGCI_SKIP_FILES = pkg/spark/v1/*.pb.go
+GOLANGCI_SKIP_DIRS = internal/gen internal/healthz internal/signals
+GOLANGCI_SKIP_FILES = ''
 GO_GET_PKGS := $(GO_GET_PKGS) \
 	github.com/srikrsna/protoc-gen-gotag@v0.6.2 \
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.1.0 \
@@ -31,7 +32,7 @@ bufgenerateclean::
 # Called before linting, testing etc. to make sure all outputs are generated before linting or testing
 .PHONY: bufgeneratesteps
 bufgeneratesteps::
-	buf generate
+
 
 # Called when make build is run
 .PHONY: gorelease
@@ -42,3 +43,8 @@ gorelease:: $(GO_RELEASER)
 .PHONY: gobuild
 gobuild:: $(GO_RELEASER)
 	goreleaser build --rm-dist
+
+generateremote:
+	buf mod update
+	buf generate buf.build/azarc/vth-common -o internal/gen
+	buf generate buf.build/azarc/vth-sdk -o internal/gen

@@ -2,13 +2,14 @@ package spark_v1
 
 import (
 	"context"
+	sparkv1 "github.com/azarc-io/vth-faas-sdk-go/internal/gen/azarc/sdk/spark/v1"
 )
 
 type variableHandler struct {
-	client ManagerServiceClient
+	client sparkv1.ManagerServiceClient
 }
 
-func newGrpcIOHandler(client ManagerServiceClient) IOHandler {
+func newGrpcIOHandler(client sparkv1.ManagerServiceClient) IOHandler {
 	return variableHandler{client}
 }
 
@@ -17,7 +18,7 @@ func (g variableHandler) Inputs(jobKey string, names ...string) Inputs {
 	if err != nil {
 		return newInputs(err)
 	}
-	var vars []*Variable //nolint:prealloc
+	var vars []*sparkv1.Variable //nolint:prealloc
 	for _, v := range variables.Variables {
 		vars = append(vars, v)
 	}

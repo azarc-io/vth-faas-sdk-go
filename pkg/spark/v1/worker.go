@@ -2,8 +2,9 @@ package spark_v1
 
 import (
 	"context"
-	"github.com/azarc-io/vth-faas-sdk-go/pkg/healthz"
-	"github.com/azarc-io/vth-faas-sdk-go/pkg/signals"
+	sparkv1 "github.com/azarc-io/vth-faas-sdk-go/internal/gen/azarc/sdk/spark/v1"
+	"github.com/azarc-io/vth-faas-sdk-go/internal/healthz"
+	"github.com/azarc-io/vth-faas-sdk-go/internal/signals"
 	"net/http"
 	"sync"
 	"time"
@@ -91,7 +92,7 @@ func (w *sparkWorker) validate(report ChainReport) error {
 		return ErrChainIsNotValid
 	}
 
-	var grpcClient ManagerServiceClient
+	var grpcClient sparkv1.ManagerServiceClient
 	if w.opts.variableHandler == nil || w.opts.stageProgressHandler == nil {
 		var err error
 		grpcClient, err = CreateManagerServiceClient(w.config)

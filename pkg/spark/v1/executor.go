@@ -1,5 +1,7 @@
 package spark_v1
 
+import sparkv1 "github.com/azarc-io/vth-faas-sdk-go/internal/gen/azarc/sdk/spark/v1"
+
 const (
 	stageLogField  = "stage"
 	jobKeyLogField = "job_key"
@@ -32,7 +34,7 @@ func (c *chain) runner(ctx SparkContext, node *node) StageError {
 				continue
 			}
 
-			er := updateStage(ctx, stg.name, withStageStatus(StageStatus_STAGE_STATUS_STARTED))
+			er := updateStage(ctx, stg.name, withStageStatus(sparkv1.StageStatus_STAGE_STATUS_STARTED))
 
 			if er != nil {
 				ctx.Log().Error(er, "error updating stage status to 'started'")
@@ -51,7 +53,7 @@ func (c *chain) runner(ctx SparkContext, node *node) StageError {
 			}
 
 			if err := c.handleStageError(ctx, node, stg, stageErr); err != nil {
-				if err.ErrorType() == ErrorType_ERROR_TYPE_SKIP {
+				if err.ErrorType() == sparkv1.ErrorType_ERROR_TYPE_SKIP {
 					continue
 				}
 				return err
@@ -61,7 +63,7 @@ func (c *chain) runner(ctx SparkContext, node *node) StageError {
 				return err
 			}
 
-			if err := updateStage(ctx, stg.name, withStageStatus(StageStatus_STAGE_STATUS_COMPLETED)); err != nil {
+			if err := updateStage(ctx, stg.name, withStageStatus(sparkv1.StageStatus_STAGE_STATUS_COMPLETED)); err != nil {
 				ctx.Log().Error(err, "error setting the stage status to 'completed'")
 				return NewStageError(err)
 			}
@@ -73,7 +75,7 @@ func (c *chain) runner(ctx SparkContext, node *node) StageError {
 		return nil
 	default:
 		if node.complete != nil {
-			if er := updateStage(ctx, node.complete.name, withStageStatus(StageStatus_STAGE_STATUS_STARTED)); er != nil {
+			if er := updateStage(ctx, node.complete.name, withStageStatus(sparkv1.StageStatus_STAGE_STATUS_STARTED)); er != nil {
 				ctx.Log().Error(er, "error setting the completed stage status to 'started'")
 				return NewStageError(er)
 			}
@@ -86,7 +88,7 @@ func (c *chain) runner(ctx SparkContext, node *node) StageError {
 				stageErr = node.complete.cb(NewCompleteContext(ctx, node.complete.name))
 			}
 
-			if e := updateStage(ctx, node.complete.name, withStageStatusOrError(StageStatus_STAGE_STATUS_COMPLETED, stageErr)); e != nil {
+			if e := updateStage(ctx, node.complete.name, withStageStatusOrError(sparkv1.StageStatus_STAGE_STATUS_COMPLETED, stageErr)); e != nil {
 				ctx.Log().Error(e, "error setting the completed stage status to 'completed'")
 				return NewStageError(e)
 			}
@@ -109,7 +111,7 @@ func (c *chain) handleStageError(ctx SparkContext, node *node, stg *stage, err S
 	}
 
 	switch err.ErrorType() {
-	case ErrorType_ERROR_TYPE_FAILED_UNSPECIFIED:
+	case sparkv1.ErrorType_ERROR_TYPE_FAILED_UNSPECIFIED:
 		if node.compensate != nil {
 			e := c.runner(ctx.WithoutLastActiveStage(), node.compensate)
 			if e != nil {
@@ -117,7 +119,7 @@ func (c *chain) handleStageError(ctx SparkContext, node *node, stg *stage, err S
 			}
 		}
 		return err
-	case ErrorType_ERROR_TYPE_CANCELLED:
+	case sparkv1.ErrorType_ERROR_TYPE_CANCELLED:
 		if node.cancel != nil {
 			e := c.runner(ctx.WithoutLastActiveStage(), node.cancel)
 			if e != nil {
@@ -125,15 +127,15 @@ func (c *chain) handleStageError(ctx SparkContext, node *node, stg *stage, err S
 			}
 		}
 		return err
-	case ErrorType_ERROR_TYPE_RETRY:
+	case sparkv1.ErrorType_ERROR_TYPE_RETRY:
 		return err
-	case ErrorType_ERROR_TYPE_SKIP:
+	case sparkv1.ErrorType_ERROR_TYPE_SKIP:
 		return err
-	case ErrorType_ERROR_TYPE_FATAL:
+	case sparkv1.ErrorType_ERROR_TYPE_FATAL:
 		fallthrough
 	default:
 		ctx.Log().Error(err, "unsupported error type returned from stage '%s'", stg.name)
-		return NewStageError(err, WithErrorType(ErrorType_ERROR_TYPE_FATAL))
+		return NewStageError(err, withErrorType(sparkv1.ErrorType_ERROR_TYPE_FATAL))
 	}
 }
 
@@ -160,10 +162,10 @@ func storeStageResult(ctx SparkContext, stg *stage, result any) StageError {
 	return nil
 }
 
-type updateStageOption = func(stage *SetStageStatusRequest) *SetStageStatusRequest
+type updateStageOption = func(stage *sparkv1.SetStageStatusRequest) *sparkv1.SetStageStatusRequest
 
-func withStageStatusOrError(status StageStatus, err StageError) updateStageOption {
-	return func(stage *SetStageStatusRequest) *SetStageStatusRequest {
+func withStageStatusOrError(status sparkv1.StageStatus, err StageError) updateStageOption {
+	return func(stage *sparkv1.SetStageStatusRequest) *sparkv1.SetStageStatusRequest {
 		if err != nil {
 			return withStageError(err)(stage)
 		}
@@ -171,44 +173,44 @@ func withStageStatusOrError(status StageStatus, err StageError) updateStageOptio
 	}
 }
 
-func withStageStatus(status StageStatus) updateStageOption {
-	return func(stage *SetStageStatusRequest) *SetStageStatusRequest {
+func withStageStatus(status sparkv1.StageStatus) updateStageOption {
+	return func(stage *sparkv1.SetStageStatusRequest) *sparkv1.SetStageStatusRequest {
 		stage.Status = status
 		return stage
 	}
 }
 
 func withStageError(err StageError) updateStageOption {
-	return func(stage *SetStageStatusRequest) *SetStageStatusRequest {
+	return func(stage *sparkv1.SetStageStatusRequest) *sparkv1.SetStageStatusRequest {
 		if err == nil {
 			return stage
 		}
-		stage.Status = ErrorTypeToStageStatus(err.ErrorType())
+		stage.Status = errorTypeToStageStatus(err.ErrorType())
 		stage.Err = err.ToErrorMessage()
 		return stage
 	}
 }
 
 func withError(err error) updateStageOption {
-	return func(stage *SetStageStatusRequest) *SetStageStatusRequest {
+	return func(stage *sparkv1.SetStageStatusRequest) *sparkv1.SetStageStatusRequest {
 		if err == nil {
 			return stage
 		}
-		stage.Status = StageStatus_STAGE_STATUS_FAILED
+		stage.Status = sparkv1.StageStatus_STAGE_STATUS_FAILED
 		stage.Err = NewStageError(err).ToErrorMessage()
 		return stage
 	}
 }
 
 func updateStage(ctx SparkContext, name string, opts ...updateStageOption) error {
-	req := &SetStageStatusRequest{JobKey: ctx.JobKey(), Name: name}
+	req := &sparkv1.SetStageStatusRequest{JobKey: ctx.JobKey(), Name: name}
 	for _, opt := range opts {
 		req = opt(req)
 	}
 	return ctx.StageProgressHandler().Set(req)
 }
 
-func getStagesToResume(n *node, lastActiveStage *LastActiveStage) []*stage {
+func getStagesToResume(n *node, lastActiveStage *sparkv1.LastActiveStage) []*stage {
 	if lastActiveStage == nil {
 		return n.stages
 	}
