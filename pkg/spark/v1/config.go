@@ -70,6 +70,17 @@ func (m *config) healthBindTo() string {
 func loadSparkConfig() (*config, error) {
 	config := &config{}
 
+	if os.Getenv("SPARK_FILE_PATH") != "" {
+		b, err := os.ReadFile(os.Getenv("SPARK_FILE_PATH"))
+		if err != nil {
+			return nil, err
+		}
+		if err := yaml.Unmarshal(b, &config); err != nil {
+			return nil, err
+		}
+		return config, nil
+	}
+
 	if os.Getenv("SPARK_SECRET") != "" {
 		if err := yaml.Unmarshal([]byte(os.Getenv("SPARK_SECRET")), &config); err != nil {
 			return nil, err
