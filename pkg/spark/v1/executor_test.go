@@ -3,7 +3,6 @@ package spark_v1
 import (
 	"context"
 	_ "embed"
-	"encoding/json"
 	"errors"
 	sparkv1 "github.com/azarc-io/vth-faas-sdk-go/internal/gen/azarc/sdk/spark/v1"
 	"github.com/stretchr/testify/suite"
@@ -399,12 +398,6 @@ type wrapper struct {
 }
 
 func (s *ExecutorSuite) Test_Can_Set_Json_Input_And_Fetch_Json_Output() {
-	jsb, _ := json.Marshal(sampleJson)
-	jsb, _ = json.Marshal(sampleJson)
-	var str string
-	err1 := json.Unmarshal(jsb, &str)
-	s.Require().Nil(err1)
-
 	b := newBuilder()
 	b.NewChain("test-0").
 		Stage("stage-0", func(ctx StageContext) (any, StageError) {
