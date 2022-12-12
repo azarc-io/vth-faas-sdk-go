@@ -42,10 +42,10 @@ var (
 	ErrInputVariableNotFound    = errors.New("input variable not found")
 
 	errorTypeToStageStatusMapper = map[sparkv1.ErrorType]sparkv1.StageStatus{
-		sparkv1.ErrorType_ERROR_TYPE_RETRY:              sparkv1.StageStatus_STAGE_STATUS_FAILED,
-		sparkv1.ErrorType_ERROR_TYPE_SKIP:               sparkv1.StageStatus_STAGE_STATUS_SKIPPED,
-		sparkv1.ErrorType_ERROR_TYPE_CANCELLED:          sparkv1.StageStatus_STAGE_STATUS_CANCELLED,
-		sparkv1.ErrorType_ERROR_TYPE_FAILED_UNSPECIFIED: sparkv1.StageStatus_STAGE_STATUS_FAILED,
+		sparkv1.ErrorType_ERROR_TYPE_RETRY:              sparkv1.StageStatus_STAGE_FAILED,
+		sparkv1.ErrorType_ERROR_TYPE_SKIP:               sparkv1.StageStatus_STAGE_SKIPPED,
+		sparkv1.ErrorType_ERROR_TYPE_CANCELLED:          sparkv1.StageStatus_STAGE_CANCELED,
+		sparkv1.ErrorType_ERROR_TYPE_FAILED_UNSPECIFIED: sparkv1.StageStatus_STAGE_FAILED,
 	}
 )
 
@@ -176,5 +176,5 @@ func errorTypeToStageStatus(errType sparkv1.ErrorType) sparkv1.StageStatus {
 	if err, ok := errorTypeToStageStatusMapper[errType]; ok {
 		return err
 	}
-	return sparkv1.StageStatus_STAGE_STATUS_FAILED
+	return sparkv1.StageStatus_STAGE_FAILED
 }

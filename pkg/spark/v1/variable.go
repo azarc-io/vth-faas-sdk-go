@@ -3,9 +3,9 @@ package spark_v1
 type Var struct {
 	Name     string
 	MimeType string
-	Value    any
+	Value    interface{}
 }
 
-func NewVar(name, mimeType string, value any) *Var {
+func NewVar(name, mimeType string, value interface{}) *Var {
 	return &Var{name, mimeType, value}
 }

@@ -34,7 +34,7 @@ func (c *chain) runner(ctx SparkContext, node *node) StageError {
 				continue
 			}
 
-			er := updateStage(ctx, stg.name, withStageStatus(sparkv1.StageStatus_STAGE_STATUS_STARTED))
+			er := updateStage(ctx, stg.name, withStageStatus(sparkv1.StageStatus_STAGE_STARTED))
 
 			if er != nil {
 				ctx.Log().Error(er, "error updating stage status to 'started'")
@@ -63,7 +63,7 @@ func (c *chain) runner(ctx SparkContext, node *node) StageError {
 				return err
 			}
 
-			if err := updateStage(ctx, stg.name, withStageStatus(sparkv1.StageStatus_STAGE_STATUS_COMPLETED)); err != nil {
+			if err := updateStage(ctx, stg.name, withStageStatus(sparkv1.StageStatus_STAGE_COMPLETED)); err != nil {
 				ctx.Log().Error(err, "error setting the stage status to 'completed'")
 				return NewStageError(err)
 			}
@@ -75,7 +75,7 @@ func (c *chain) runner(ctx SparkContext, node *node) StageError {
 		return nil
 	default:
 		if node.complete != nil {
-			if er := updateStage(ctx, node.complete.name, withStageStatus(sparkv1.StageStatus_STAGE_STATUS_STARTED)); er != nil {
+			if er := updateStage(ctx, node.complete.name, withStageStatus(sparkv1.StageStatus_STAGE_STARTED)); er != nil {
 				ctx.Log().Error(er, "error setting the completed stage status to 'started'")
 				return NewStageError(er)
 			}
@@ -88,7 +88,7 @@ func (c *chain) runner(ctx SparkContext, node *node) StageError {
 				stageErr = node.complete.cb(NewCompleteContext(ctx, node.complete.name))
 			}
 
-			if e := updateStage(ctx, node.complete.name, withStageStatusOrError(sparkv1.StageStatus_STAGE_STATUS_COMPLETED, stageErr)); e != nil {
+			if e := updateStage(ctx, node.complete.name, withStageStatusOrError(sparkv1.StageStatus_STAGE_COMPLETED, stageErr)); e != nil {
 				ctx.Log().Error(e, "error setting the completed stage status to 'completed'")
 				return NewStageError(e)
 			}
@@ -196,14 +196,14 @@ func withError(err error) updateStageOption {
 		if err == nil {
 			return stage
 		}
-		stage.Status = sparkv1.StageStatus_STAGE_STATUS_FAILED
+		stage.Status = sparkv1.StageStatus_STAGE_FAILED
 		stage.Err = NewStageError(err).ToErrorMessage()
 		return stage
 	}
 }
 
 func updateStage(ctx SparkContext, name string, opts ...updateStageOption) error {
-	req := &sparkv1.SetStageStatusRequest{JobKey: ctx.JobKey(), Name: name}
+	req := &sparkv1.SetStageStatusRequest{Key: ctx.JobKey(), Name: name}
 	for _, opt := range opts {
 		req = opt(req)
 	}

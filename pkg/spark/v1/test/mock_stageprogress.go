@@ -78,20 +78,6 @@ func (mr *MockStageProgressHandlerMockRecorder) Set(arg0 interface{}) *gomock.Ca
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Set", reflect.TypeOf((*MockStageProgressHandler)(nil).Set), arg0)
 }
 
-// SetJobStatus mocks base method.
-func (m *MockStageProgressHandler) SetJobStatus(arg0 *sparkv1.SetJobStatusRequest) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetJobStatus", arg0)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// SetJobStatus indicates an expected call of SetJobStatus.
-func (mr *MockStageProgressHandlerMockRecorder) SetJobStatus(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetJobStatus", reflect.TypeOf((*MockStageProgressHandler)(nil).SetJobStatus), arg0)
-}
-
 // SetResult mocks base method.
 func (m *MockStageProgressHandler) SetResult(arg0 *sparkv1.SetStageResultRequest) error {
 	m.ctrl.T.Helper()

@@ -28,15 +28,10 @@ func (g *stageProgressHandler) GetResult(jobKey, name string) Bindable {
 	if err != nil {
 		return newResult(err, nil)
 	}
-	return newResult(nil, result.Result)
+	return newResult(nil, result)
 }
 
 func (g *stageProgressHandler) SetResult(result *sparkv1.SetStageResultRequest) error {
 	_, err := g.client.SetStageResult(context.Background(), result)
-	return err
-}
-
-func (g *stageProgressHandler) SetJobStatus(jobStatus *sparkv1.SetJobStatusRequest) error {
-	_, err := g.client.SetJobStatus(context.Background(), jobStatus)
 	return err
 }

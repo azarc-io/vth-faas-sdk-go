@@ -68,10 +68,10 @@ func (s *server) stop() {
 // RPC IMPLEMENTATIONS
 /************************************************************************/
 
-func (s *server) ExecuteJob(ctx context.Context, request *sparkv1.ExecuteJobRequest) (*sparkv1.ExecuteJobResponse, error) {
+func (s *server) ExecuteJob(ctx context.Context, request *sparkv1.ExecuteJobRequest) (*sparkv1.Void, error) {
 	jobContext := NewSparkMetadata(ctx, request.Key, request.CorrelationId, request.TransactionId, nil)
 	go func() { // TODO goroutine pool
 		_ = s.worker.Execute(jobContext)
 	}()
-	return &sparkv1.ExecuteJobResponse{AgentId: s.config.Config.App.InstanceID}, nil
+	return &sparkv1.Void{}, nil
 }
