@@ -1,4 +1,4 @@
-package spark_v1
+package common
 
 const (
 	NoMimeType   = ""

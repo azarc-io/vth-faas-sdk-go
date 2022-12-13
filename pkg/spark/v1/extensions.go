@@ -10,7 +10,7 @@ import (
 /************************************************************************/
 
 func newSetStageResultReq(jobKey, name string, data interface{}) (*sparkv1.SetStageResultRequest, error) {
-	b, err := MarshalBinary(data)
+	b, err := sparkv1.MarshalBinary(data)
 
 	return &sparkv1.SetStageResultRequest{
 		Key:  jobKey,
@@ -20,7 +20,7 @@ func newSetStageResultReq(jobKey, name string, data interface{}) (*sparkv1.SetSt
 }
 
 func newVariable(name, mimeType string, value interface{}) (*sparkv1.Variable, error) {
-	pbValue, err := MarshalBinary(value)
+	pbValue, err := sparkv1.MarshalBinary(value)
 	if err != nil {
 		return nil, fmt.Errorf("error creating variable named '%s': %w", name, err)
 	}
@@ -95,7 +95,7 @@ func (i *input) Raw() ([]byte, error) {
 		return nil, i.err
 	}
 
-	return ConvertBytes(i.variable.Data, i.variable.MimeType)
+	return sparkv1.ConvertBytes(i.variable.Data, i.variable.MimeType)
 }
 
 func (i *input) Bind(a interface{}) error {
@@ -103,7 +103,7 @@ func (i *input) Bind(a interface{}) error {
 		return i.err
 	}
 
-	if err := UnmarshalBinaryTo(i.variable.Data, a, ""); err != nil {
+	if err := sparkv1.UnmarshalBinaryTo(i.variable.Data, a, ""); err != nil {
 		return err
 	}
 
@@ -160,7 +160,7 @@ func (r *result) Raw() ([]byte, error) {
 		return nil, r.err
 	}
 
-	return ConvertBytes(r.result.Data, "")
+	return sparkv1.ConvertBytes(r.result.Data, "")
 }
 
 func (r *result) Bind(a interface{}) error {
@@ -168,7 +168,7 @@ func (r *result) Bind(a interface{}) error {
 		return r.err
 	}
 
-	return UnmarshalBinaryTo(r.result.Data, a, "")
+	return sparkv1.UnmarshalBinaryTo(r.result.Data, a, "")
 }
 
 func (r *result) String() string {
