@@ -14,15 +14,12 @@ func newGrpcIOHandler(client sparkv1.ManagerServiceClient) IOHandler {
 }
 
 func (g variableHandler) Inputs(jobKey string, names ...string) Inputs {
-	variables, err := g.client.GetVariables(context.Background(), newGetVariablesRequest(jobKey, names...))
+	variables, err := g.client.GetInputs(context.Background(), newGetVariablesRequest(jobKey, names...))
 	if err != nil {
-		return newInputs(err)
+		return newInputs(err, nil)
 	}
-	var vars []*sparkv1.Variable //nolint:prealloc
-	for _, v := range variables.Variables {
-		vars = append(vars, v)
-	}
-	return newInputs(err, vars...)
+
+	return newInputs(err, variables.Variables)
 }
 
 func (g variableHandler) Input(jobKey, name string) Input {
@@ -34,6 +31,6 @@ func (g variableHandler) Output(jobKey string, variables ...*Var) error {
 	if err != nil {
 		return err
 	}
-	_, err = g.client.SetVariables(context.Background(), request)
+	_, err = g.client.SetOutputs(context.Background(), request)
 	return err
 }

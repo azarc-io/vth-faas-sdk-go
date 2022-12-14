@@ -112,7 +112,6 @@ type (
 		Set(stageStatus *sparkv1.SetStageStatusRequest) error
 		GetResult(jobKey, name string) Bindable
 		SetResult(resultResult *sparkv1.SetStageResultRequest) error
-		SetJobStatus(jobStatus *sparkv1.SetJobStatusRequest) error
 	}
 
 	TestStageProgressHandler interface {
@@ -122,7 +121,6 @@ type (
 		AssertStageSkipped(jobKey, stageName string)
 		AssertStageCancelled(jobKey, stageName string)
 		AssertStageFailed(jobKey, stageName string)
-		AssertStageUnspecified(jobKey, stageName string)
 		AddBehaviour() *Behaviour
 		ResetBehaviour()
 		AssertStageResult(jobKey, stageName string, expectedStageResult any)

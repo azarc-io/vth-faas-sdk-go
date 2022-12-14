@@ -2,6 +2,7 @@ package spark_v1
 
 import (
 	"context"
+	_ "embed"
 	"errors"
 	sparkv1 "github.com/azarc-io/vth-faas-sdk-go/internal/gen/azarc/sdk/spark/v1"
 	"github.com/stretchr/testify/suite"
@@ -10,6 +11,9 @@ import (
 	"testing"
 	"time"
 )
+
+//go:embed stub/sample.json
+var sampleJson string
 
 /************************************************************************/
 // TYPES
@@ -85,10 +89,10 @@ func (s *ExecutorSuite) Test_Complete_Can_Fetch_String_Stage_Result() {
 			s.Equal("test", string(raw))
 
 			// Test Bind
-			var res string
-			err = ctx.StageResult("stage-0").Bind(&res)
+			var res2 string
+			err = ctx.StageResult("stage-0").Bind(&res2)
 			s.Require().Nil(err)
-			s.Equal("test", res)
+			s.Equal("test", res2)
 			return nil
 		})
 
@@ -125,6 +129,7 @@ func (s *ExecutorSuite) Test_Complete_Can_Fetch_Numeric_Stage_Result() {
 			byteToInt, _ := strconv.Atoi(string(raw))
 			s.Require().Nil(err)
 			s.Equal(1, byteToInt)
+
 			raw, err = ctx.StageResult("stage-1").Raw()
 			byteToInt, _ = strconv.Atoi(string(raw))
 			s.Require().Nil(err)
@@ -386,6 +391,66 @@ func (s *ExecutorSuite) Test_Should_Cancel_Chain_If_Stage_Returns_Fatal_Option()
 	if WaitTimeout(&wg, time.Second) {
 		s.FailNow("time out waiting for all steps to complete")
 	}
+}
+
+type wrapper struct {
+	Data []byte
+}
+
+func (s *ExecutorSuite) Test_Can_Set_Json_Input_And_Fetch_Json_Output() {
+	b := newBuilder()
+	b.NewChain("test-0").
+		Stage("stage-0", func(ctx StageContext) (any, StageError) {
+			var sadString string
+
+			// fetch the input SAD
+			if err := ctx.Input("sad").Bind(&sadString); err != nil {
+				return "", NewStageError(err)
+			}
+
+			return sadString, nil
+		}).
+		Complete(func(ctx CompleteContext) StageError {
+			// Test Raw
+			raw, err := ctx.StageResult("stage-0").Raw()
+			s.Require().Nil(err)
+			s.Equal(sampleJson, string(raw))
+
+			// Test Bind
+			var res string
+			err = ctx.StageResult("stage-0").Bind(&res)
+			s.Require().Nil(err)
+			s.Equal(sampleJson, res)
+			return nil
+		})
+
+	c := b.buildChain()
+	jobKey := "test"
+	sph := NewInMemoryStageProgressHandler(s.T())
+	vh := NewInMemoryIOHandler(s.T())
+	metadata := NewSparkMetadata(context.Background(), jobKey, "cid", "tid", nil)
+	jobContext := NewJobContext(metadata, &sparkOpts{
+		variableHandler:      vh,
+		stageProgressHandler: sph,
+		log:                  NewLogger(),
+	})
+
+	vh.SetVar("test", NewVar("sad", "application/json", sampleJson))
+
+	err := c.execute(jobContext)
+	s.Require().Nil(err)
+
+	result, err2 := vh.Input(jobKey, "sad").Raw()
+	s.Require().Nil(err2)
+
+	var result2 string
+	err2 = vh.Input(jobKey, "sad").Bind(&result2)
+	s.Require().Nil(err2)
+
+	sph.AssertStageCompleted(jobKey, "test-0_complete")
+	sph.AssertStageCompleted(jobKey, "stage-0")
+	s.Equal(sampleJson, string(result))
+	s.Equal(sampleJson, result2)
 }
 
 /************************************************************************/

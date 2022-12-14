@@ -18,7 +18,7 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type AgentServiceClient interface {
-	ExecuteJob(ctx context.Context, in *ExecuteJobRequest, opts ...grpc.CallOption) (*ExecuteJobResponse, error)
+	ExecuteJob(ctx context.Context, in *ExecuteJobRequest, opts ...grpc.CallOption) (*Void, error)
 }
 
 type agentServiceClient struct {
@@ -29,8 +29,8 @@ func NewAgentServiceClient(cc grpc.ClientConnInterface) AgentServiceClient {
 	return &agentServiceClient{cc}
 }
 
-func (c *agentServiceClient) ExecuteJob(ctx context.Context, in *ExecuteJobRequest, opts ...grpc.CallOption) (*ExecuteJobResponse, error) {
-	out := new(ExecuteJobResponse)
+func (c *agentServiceClient) ExecuteJob(ctx context.Context, in *ExecuteJobRequest, opts ...grpc.CallOption) (*Void, error) {
+	out := new(Void)
 	err := c.cc.Invoke(ctx, "/sdk.spark.v1.AgentService/ExecuteJob", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -42,14 +42,14 @@ func (c *agentServiceClient) ExecuteJob(ctx context.Context, in *ExecuteJobReque
 // All implementations should embed UnimplementedAgentServiceServer
 // for forward compatibility
 type AgentServiceServer interface {
-	ExecuteJob(context.Context, *ExecuteJobRequest) (*ExecuteJobResponse, error)
+	ExecuteJob(context.Context, *ExecuteJobRequest) (*Void, error)
 }
 
 // UnimplementedAgentServiceServer should be embedded to have forward compatible implementations.
 type UnimplementedAgentServiceServer struct {
 }
 
-func (UnimplementedAgentServiceServer) ExecuteJob(context.Context, *ExecuteJobRequest) (*ExecuteJobResponse, error) {
+func (UnimplementedAgentServiceServer) ExecuteJob(context.Context, *ExecuteJobRequest) (*Void, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ExecuteJob not implemented")
 }
 
@@ -103,13 +103,14 @@ var AgentService_ServiceDesc = grpc.ServiceDesc{
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ManagerServiceClient interface {
 	GetStageStatus(ctx context.Context, in *GetStageStatusRequest, opts ...grpc.CallOption) (*GetStageStatusResponse, error)
-	SetStageStatus(ctx context.Context, in *SetStageStatusRequest, opts ...grpc.CallOption) (*SetStageStatusResponse, error)
+	SetStageStatus(ctx context.Context, in *SetStageStatusRequest, opts ...grpc.CallOption) (*Void, error)
 	GetStageResult(ctx context.Context, in *GetStageResultRequest, opts ...grpc.CallOption) (*GetStageResultResponse, error)
-	SetStageResult(ctx context.Context, in *SetStageResultRequest, opts ...grpc.CallOption) (*SetStageResultResponse, error)
-	GetVariables(ctx context.Context, in *GetVariablesRequest, opts ...grpc.CallOption) (*GetVariablesResponse, error)
-	SetVariables(ctx context.Context, in *SetVariablesRequest, opts ...grpc.CallOption) (*SetVariablesResponse, error)
-	SetJobStatus(ctx context.Context, in *SetJobStatusRequest, opts ...grpc.CallOption) (*SetJobStatusResponse, error)
-	RegisterHeartbeat(ctx context.Context, in *RegisterHeartbeatRequest, opts ...grpc.CallOption) (*RegisterHeartbeatResponse, error)
+	SetStageResult(ctx context.Context, in *SetStageResultRequest, opts ...grpc.CallOption) (*Void, error)
+	GetInputs(ctx context.Context, in *GetInputsRequest, opts ...grpc.CallOption) (*GetInputsResponse, error)
+	SetOutputs(ctx context.Context, in *SetOutputsRequest, opts ...grpc.CallOption) (*Void, error)
+	SyncOutputs(ctx context.Context, in *SyncOutputsRequest, opts ...grpc.CallOption) (*Void, error)
+	JobStarting(ctx context.Context, in *JobStartingRequest, opts ...grpc.CallOption) (*Void, error)
+	FinishJob(ctx context.Context, in *FinishJobRequest, opts ...grpc.CallOption) (*Void, error)
 }
 
 type managerServiceClient struct {
@@ -129,8 +130,8 @@ func (c *managerServiceClient) GetStageStatus(ctx context.Context, in *GetStageS
 	return out, nil
 }
 
-func (c *managerServiceClient) SetStageStatus(ctx context.Context, in *SetStageStatusRequest, opts ...grpc.CallOption) (*SetStageStatusResponse, error) {
-	out := new(SetStageStatusResponse)
+func (c *managerServiceClient) SetStageStatus(ctx context.Context, in *SetStageStatusRequest, opts ...grpc.CallOption) (*Void, error) {
+	out := new(Void)
 	err := c.cc.Invoke(ctx, "/sdk.spark.v1.ManagerService/SetStageStatus", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -147,8 +148,8 @@ func (c *managerServiceClient) GetStageResult(ctx context.Context, in *GetStageR
 	return out, nil
 }
 
-func (c *managerServiceClient) SetStageResult(ctx context.Context, in *SetStageResultRequest, opts ...grpc.CallOption) (*SetStageResultResponse, error) {
-	out := new(SetStageResultResponse)
+func (c *managerServiceClient) SetStageResult(ctx context.Context, in *SetStageResultRequest, opts ...grpc.CallOption) (*Void, error) {
+	out := new(Void)
 	err := c.cc.Invoke(ctx, "/sdk.spark.v1.ManagerService/SetStageResult", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -156,36 +157,45 @@ func (c *managerServiceClient) SetStageResult(ctx context.Context, in *SetStageR
 	return out, nil
 }
 
-func (c *managerServiceClient) GetVariables(ctx context.Context, in *GetVariablesRequest, opts ...grpc.CallOption) (*GetVariablesResponse, error) {
-	out := new(GetVariablesResponse)
-	err := c.cc.Invoke(ctx, "/sdk.spark.v1.ManagerService/GetVariables", in, out, opts...)
+func (c *managerServiceClient) GetInputs(ctx context.Context, in *GetInputsRequest, opts ...grpc.CallOption) (*GetInputsResponse, error) {
+	out := new(GetInputsResponse)
+	err := c.cc.Invoke(ctx, "/sdk.spark.v1.ManagerService/GetInputs", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *managerServiceClient) SetVariables(ctx context.Context, in *SetVariablesRequest, opts ...grpc.CallOption) (*SetVariablesResponse, error) {
-	out := new(SetVariablesResponse)
-	err := c.cc.Invoke(ctx, "/sdk.spark.v1.ManagerService/SetVariables", in, out, opts...)
+func (c *managerServiceClient) SetOutputs(ctx context.Context, in *SetOutputsRequest, opts ...grpc.CallOption) (*Void, error) {
+	out := new(Void)
+	err := c.cc.Invoke(ctx, "/sdk.spark.v1.ManagerService/SetOutputs", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *managerServiceClient) SetJobStatus(ctx context.Context, in *SetJobStatusRequest, opts ...grpc.CallOption) (*SetJobStatusResponse, error) {
-	out := new(SetJobStatusResponse)
-	err := c.cc.Invoke(ctx, "/sdk.spark.v1.ManagerService/SetJobStatus", in, out, opts...)
+func (c *managerServiceClient) SyncOutputs(ctx context.Context, in *SyncOutputsRequest, opts ...grpc.CallOption) (*Void, error) {
+	out := new(Void)
+	err := c.cc.Invoke(ctx, "/sdk.spark.v1.ManagerService/SyncOutputs", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *managerServiceClient) RegisterHeartbeat(ctx context.Context, in *RegisterHeartbeatRequest, opts ...grpc.CallOption) (*RegisterHeartbeatResponse, error) {
-	out := new(RegisterHeartbeatResponse)
-	err := c.cc.Invoke(ctx, "/sdk.spark.v1.ManagerService/RegisterHeartbeat", in, out, opts...)
+func (c *managerServiceClient) JobStarting(ctx context.Context, in *JobStartingRequest, opts ...grpc.CallOption) (*Void, error) {
+	out := new(Void)
+	err := c.cc.Invoke(ctx, "/sdk.spark.v1.ManagerService/JobStarting", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *managerServiceClient) FinishJob(ctx context.Context, in *FinishJobRequest, opts ...grpc.CallOption) (*Void, error) {
+	out := new(Void)
+	err := c.cc.Invoke(ctx, "/sdk.spark.v1.ManagerService/FinishJob", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -197,13 +207,14 @@ func (c *managerServiceClient) RegisterHeartbeat(ctx context.Context, in *Regist
 // for forward compatibility
 type ManagerServiceServer interface {
 	GetStageStatus(context.Context, *GetStageStatusRequest) (*GetStageStatusResponse, error)
-	SetStageStatus(context.Context, *SetStageStatusRequest) (*SetStageStatusResponse, error)
+	SetStageStatus(context.Context, *SetStageStatusRequest) (*Void, error)
 	GetStageResult(context.Context, *GetStageResultRequest) (*GetStageResultResponse, error)
-	SetStageResult(context.Context, *SetStageResultRequest) (*SetStageResultResponse, error)
-	GetVariables(context.Context, *GetVariablesRequest) (*GetVariablesResponse, error)
-	SetVariables(context.Context, *SetVariablesRequest) (*SetVariablesResponse, error)
-	SetJobStatus(context.Context, *SetJobStatusRequest) (*SetJobStatusResponse, error)
-	RegisterHeartbeat(context.Context, *RegisterHeartbeatRequest) (*RegisterHeartbeatResponse, error)
+	SetStageResult(context.Context, *SetStageResultRequest) (*Void, error)
+	GetInputs(context.Context, *GetInputsRequest) (*GetInputsResponse, error)
+	SetOutputs(context.Context, *SetOutputsRequest) (*Void, error)
+	SyncOutputs(context.Context, *SyncOutputsRequest) (*Void, error)
+	JobStarting(context.Context, *JobStartingRequest) (*Void, error)
+	FinishJob(context.Context, *FinishJobRequest) (*Void, error)
 }
 
 // UnimplementedManagerServiceServer should be embedded to have forward compatible implementations.
@@ -213,26 +224,29 @@ type UnimplementedManagerServiceServer struct {
 func (UnimplementedManagerServiceServer) GetStageStatus(context.Context, *GetStageStatusRequest) (*GetStageStatusResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetStageStatus not implemented")
 }
-func (UnimplementedManagerServiceServer) SetStageStatus(context.Context, *SetStageStatusRequest) (*SetStageStatusResponse, error) {
+func (UnimplementedManagerServiceServer) SetStageStatus(context.Context, *SetStageStatusRequest) (*Void, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SetStageStatus not implemented")
 }
 func (UnimplementedManagerServiceServer) GetStageResult(context.Context, *GetStageResultRequest) (*GetStageResultResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetStageResult not implemented")
 }
-func (UnimplementedManagerServiceServer) SetStageResult(context.Context, *SetStageResultRequest) (*SetStageResultResponse, error) {
+func (UnimplementedManagerServiceServer) SetStageResult(context.Context, *SetStageResultRequest) (*Void, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SetStageResult not implemented")
 }
-func (UnimplementedManagerServiceServer) GetVariables(context.Context, *GetVariablesRequest) (*GetVariablesResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetVariables not implemented")
+func (UnimplementedManagerServiceServer) GetInputs(context.Context, *GetInputsRequest) (*GetInputsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetInputs not implemented")
 }
-func (UnimplementedManagerServiceServer) SetVariables(context.Context, *SetVariablesRequest) (*SetVariablesResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SetVariables not implemented")
+func (UnimplementedManagerServiceServer) SetOutputs(context.Context, *SetOutputsRequest) (*Void, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetOutputs not implemented")
 }
-func (UnimplementedManagerServiceServer) SetJobStatus(context.Context, *SetJobStatusRequest) (*SetJobStatusResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SetJobStatus not implemented")
+func (UnimplementedManagerServiceServer) SyncOutputs(context.Context, *SyncOutputsRequest) (*Void, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SyncOutputs not implemented")
 }
-func (UnimplementedManagerServiceServer) RegisterHeartbeat(context.Context, *RegisterHeartbeatRequest) (*RegisterHeartbeatResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method RegisterHeartbeat not implemented")
+func (UnimplementedManagerServiceServer) JobStarting(context.Context, *JobStartingRequest) (*Void, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method JobStarting not implemented")
+}
+func (UnimplementedManagerServiceServer) FinishJob(context.Context, *FinishJobRequest) (*Void, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method FinishJob not implemented")
 }
 
 // UnsafeManagerServiceServer may be embedded to opt out of forward compatibility for this service.
@@ -318,74 +332,92 @@ func _ManagerService_SetStageResult_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ManagerService_GetVariables_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetVariablesRequest)
+func _ManagerService_GetInputs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetInputsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ManagerServiceServer).GetVariables(ctx, in)
+		return srv.(ManagerServiceServer).GetInputs(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/sdk.spark.v1.ManagerService/GetVariables",
+		FullMethod: "/sdk.spark.v1.ManagerService/GetInputs",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ManagerServiceServer).GetVariables(ctx, req.(*GetVariablesRequest))
+		return srv.(ManagerServiceServer).GetInputs(ctx, req.(*GetInputsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ManagerService_SetVariables_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SetVariablesRequest)
+func _ManagerService_SetOutputs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetOutputsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ManagerServiceServer).SetVariables(ctx, in)
+		return srv.(ManagerServiceServer).SetOutputs(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/sdk.spark.v1.ManagerService/SetVariables",
+		FullMethod: "/sdk.spark.v1.ManagerService/SetOutputs",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ManagerServiceServer).SetVariables(ctx, req.(*SetVariablesRequest))
+		return srv.(ManagerServiceServer).SetOutputs(ctx, req.(*SetOutputsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ManagerService_SetJobStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SetJobStatusRequest)
+func _ManagerService_SyncOutputs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SyncOutputsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ManagerServiceServer).SetJobStatus(ctx, in)
+		return srv.(ManagerServiceServer).SyncOutputs(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/sdk.spark.v1.ManagerService/SetJobStatus",
+		FullMethod: "/sdk.spark.v1.ManagerService/SyncOutputs",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ManagerServiceServer).SetJobStatus(ctx, req.(*SetJobStatusRequest))
+		return srv.(ManagerServiceServer).SyncOutputs(ctx, req.(*SyncOutputsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ManagerService_RegisterHeartbeat_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(RegisterHeartbeatRequest)
+func _ManagerService_JobStarting_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(JobStartingRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ManagerServiceServer).RegisterHeartbeat(ctx, in)
+		return srv.(ManagerServiceServer).JobStarting(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/sdk.spark.v1.ManagerService/RegisterHeartbeat",
+		FullMethod: "/sdk.spark.v1.ManagerService/JobStarting",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ManagerServiceServer).RegisterHeartbeat(ctx, req.(*RegisterHeartbeatRequest))
+		return srv.(ManagerServiceServer).JobStarting(ctx, req.(*JobStartingRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ManagerService_FinishJob_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(FinishJobRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ManagerServiceServer).FinishJob(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sdk.spark.v1.ManagerService/FinishJob",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ManagerServiceServer).FinishJob(ctx, req.(*FinishJobRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -414,20 +446,24 @@ var ManagerService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _ManagerService_SetStageResult_Handler,
 		},
 		{
-			MethodName: "GetVariables",
-			Handler:    _ManagerService_GetVariables_Handler,
+			MethodName: "GetInputs",
+			Handler:    _ManagerService_GetInputs_Handler,
 		},
 		{
-			MethodName: "SetVariables",
-			Handler:    _ManagerService_SetVariables_Handler,
+			MethodName: "SetOutputs",
+			Handler:    _ManagerService_SetOutputs_Handler,
 		},
 		{
-			MethodName: "SetJobStatus",
-			Handler:    _ManagerService_SetJobStatus_Handler,
+			MethodName: "SyncOutputs",
+			Handler:    _ManagerService_SyncOutputs_Handler,
 		},
 		{
-			MethodName: "RegisterHeartbeat",
-			Handler:    _ManagerService_RegisterHeartbeat_Handler,
+			MethodName: "JobStarting",
+			Handler:    _ManagerService_JobStarting_Handler,
+		},
+		{
+			MethodName: "FinishJob",
+			Handler:    _ManagerService_FinishJob_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -18,7 +18,7 @@ func NewInMemoryIOHandler(t *testing.T) TestIOHandler {
 
 func (i *inMemoryIOHandler) Inputs(jobKey string, names ...string) Inputs {
 	var (
-		vars []*sparkv1.Variable
+		vars = map[string]*sparkv1.Variable{}
 		err  error
 	)
 	for _, n := range names {
@@ -26,13 +26,13 @@ func (i *inMemoryIOHandler) Inputs(jobKey string, names ...string) Inputs {
 		if v, ok := i.variables[key]; ok {
 			var va *sparkv1.Variable
 			va, err = newVariable(v.Name, v.MimeType, v.Value)
-			vars = append(vars, va)
+			vars[v.Name] = va
 		}
 	}
 	if len(vars) == 0 {
 		i.t.Fatal("no variables found for the params: ")
 	}
-	return newInputs(err, vars...)
+	return newInputs(err, vars)
 }
 
 func (i *inMemoryIOHandler) Input(jobKey, name string) Input {

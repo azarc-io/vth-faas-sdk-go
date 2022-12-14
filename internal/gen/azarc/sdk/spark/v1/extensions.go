@@ -2,85 +2,48 @@ package sparkv1
 
 import (
 	"encoding/json"
-	"google.golang.org/protobuf/types/known/structpb"
+	"github.com/azarc-io/vth-faas-sdk-go/internal/common"
+	jsoniter "github.com/json-iterator/go"
 )
 
-const (
-	NoMimeType   = ""
-	MimeTypeJSON = "application/json"
-)
+// TODO get rid of this whole extension in the future
+
+var json2 = jsoniter.ConfigFastest
 
 /************************************************************************/
 // MARSHALLING
 /************************************************************************/
 
 type serdes struct {
-	Unmarshal func(value *structpb.Value, a any) error
-	Marshal   func(a any) (*structpb.Value, error)
+	Unmarshal func(value []byte, a any) error
+	Marshal   func(a any) ([]byte, error)
 }
 
 var SerdesMap = map[string]serdes{
-	MimeTypeJSON: {
-		Unmarshal: func(value *structpb.Value, a any) error {
-			data, err := value.MarshalJSON()
-			if err != nil {
-				return err
-			}
-			return json.Unmarshal(data, a)
+	common.MimeTypeJSON: {
+		Unmarshal: func(value []byte, a any) error {
+			return json2.Unmarshal(value, a)
 		},
-		Marshal: func(a any) (*structpb.Value, error) {
-			value, err := structpb.NewValue(a)
+		Marshal: func(a any) ([]byte, error) {
+			b, err := json2.Marshal(a)
 			if err != nil {
-				b, err := json.Marshal(a)
-				if err != nil {
-					return nil, err
-				}
-				v := map[string]any{}
-				err = json.Unmarshal(b, &v)
-				if err != nil {
-					return nil, err
-				}
-				return structpb.NewValue(v)
+				return nil, err
 			}
-			return value, nil
+			return b, nil
 		},
 	},
-	NoMimeType: {
-		Unmarshal: func(value *structpb.Value, a any) error {
-			data, err := value.MarshalJSON()
-			if err != nil {
-				return err
-			}
-			return json.Unmarshal(data, a)
+	common.NoMimeType: {
+		Unmarshal: func(value []byte, a any) error {
+			return json2.Unmarshal(value, a)
 		},
-		Marshal: func(a any) (*structpb.Value, error) {
-			value, err := structpb.NewValue(a)
+		Marshal: func(a any) ([]byte, error) {
+			b, err := json2.Marshal(a)
 			if err != nil {
-				b, err := json.Marshal(a)
-				if err != nil {
-					return nil, err
-				}
-				v := map[string]any{}
-				err = json.Unmarshal(b, &v)
-				if err != nil {
-					return nil, err
-				}
-				return structpb.NewValue(v)
+				return nil, err
 			}
-			return value, nil
+			return b, nil
 		},
 	},
-}
-
-func GetRawFromPb(data *structpb.Value) ([]byte, error) {
-	switch data.Kind.(type) {
-	case *structpb.Value_NullValue:
-		return nil, nil
-	case *structpb.Value_StringValue:
-		return []byte(data.GetStringValue()), nil
-	}
-
-	return data.MarshalJSON()
 }
 
 /************************************************************************/
@@ -88,21 +51,56 @@ func GetRawFromPb(data *structpb.Value) ([]byte, error) {
 /************************************************************************/
 
 func (x *Variable) Raw() ([]byte, error) {
-	return x.Value.MarshalJSON()
+	return x.Data, nil
 }
 
 func (x *Variable) Bind(a any) error {
-	return SerdesMap[x.MimeType].Unmarshal(x.Value, a)
+	return SerdesMap[x.MimeType].Unmarshal(x.Data, a)
 }
 
 /************************************************************************/
 // STAGE RESULT EXTENSIONS
 /************************************************************************/
 
-func (x *StageResult) Raw() ([]byte, error) {
-	return x.Data.MarshalJSON()
+func (x *GetStageResultResponse) Raw() ([]byte, error) {
+	return x.Data, nil
 }
 
-func (x *StageResult) Bind(a any) error {
-	return SerdesMap[MimeTypeJSON].Unmarshal(x.Data, a)
+func (x *GetStageResultResponse) Bind(a any) error {
+	return SerdesMap[common.MimeTypeJSON].Unmarshal(x.Data, a)
+}
+
+/************************************************************************/
+// HELPERS
+/************************************************************************/
+
+func MarshalBinary(data interface{}) ([]byte, error) {
+	return json.Marshal(data)
+}
+
+func UnmarshalBinaryTo(data []byte, out interface{}, mimeType string) error {
+	if mimeType == "" {
+		return SerdesMap[common.MimeTypeJSON].Unmarshal(data, &out)
+	} else {
+		return SerdesMap[mimeType].Unmarshal(data, &out)
+	}
+}
+
+func ConvertBytes(data []byte, mimeType string) (out []byte, err error) {
+	var value interface{}
+	err = UnmarshalBinaryTo(data, &value, mimeType)
+	if err != nil {
+		return
+	}
+
+	switch v := value.(type) {
+	case int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64:
+		return data, nil
+	case string:
+		return []byte(v), nil
+	default:
+		err = UnmarshalBinaryTo(data, &out, mimeType)
+	}
+
+	return
 }

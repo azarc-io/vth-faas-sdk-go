@@ -1,0 +1,146 @@
+{
+  "disableGVMS": false,
+  "pdfs": [],
+  "autoAcceptC88Draft": true,
+  "docs": [
+    {
+      "replaceUUID": "00000000-0000-0000-0000-000000000003",
+      "docType": "SAD-V2",
+      "data": {
+        "parties": [
+          {
+            "actors": [
+              "importer"
+            ],
+            "tid": "GB021111237000",
+            "partyInfo": {
+              "city": "Nieuwdorp",
+              "countryCode": "GB",
+              "name": "MSP Uienhandel B.V.",
+              "postalCode": "4455 TL",
+              "street": "Hertenweg",
+              "streetNr": "34"
+            }
+          },
+          {
+            "actors": [
+              "exporter"
+            ],
+            "tid": "GB021111237000",
+            "partyInfo": {
+              "city": "Nieuwdorp",
+              "countryCode": "NL",
+              "name": "MSP Uienhandel B.V.",
+              "postalCode": "4455 TL",
+              "street": "Hertenweg",
+              "streetNr": "34"
+            }
+          }
+        ],
+        "customsDeclaration": {
+          "clientReference": "Test09",
+          "previousDocument": {
+            "documentClass": "Z",
+            "documentType": "380",
+            "documentReferenceNr": "0054037-0054047"
+          }
+        },
+        "goods": {
+          "goodItems": [
+            {
+              "identifier": "00000000-0000-0000-0010-000000000098",
+              "goodsDescription": "Cucumbers",
+              "commodityCode": "0707000599",
+              "countryOfOrigin": "NL",
+              "netMass": 1000,
+              "grossMass": 1100,
+              "measureType": "kilogram",
+              "preference": "300",
+              "itemPrice": 1000,
+              "package": {
+                "packageMarks": "Pallets",
+                "packageCount": 10,
+                "packageKind": "TB",
+                "containerNr": "84-BFL-4 MV12",
+                "supplementaryUnits": []
+              },
+              "additionalInformationItems": [
+                {
+                  "additionalInformationCode": "9001",
+                  "additionalInformationStatus": "JP",
+                  "additionalInformationReference": "0054037-0054047",
+                  "additionalInformationReason": ""
+                },
+                {
+                  "additionalInformationCode": "Y929",
+                  "additionalInformationStatus": "JP",
+                  "additionalInformationReference": "0054037-0054047",
+                  "additionalInformationReason": "non organic goods"
+                }
+              ],
+              "additionalDocuments": []
+            }
+          ],
+          "totalNrOfPackages": 10
+        },
+        "invoice": {
+          "invoiceAmount": 1000,
+          "invoiceCurrency": "GBP"
+        },
+        "payment": {
+          "paymentMethod": "deferment",
+          "accountReference": "100ADE00",
+          "payingActor": "seller"
+        },
+        "valuation": {
+          "incoTerm": "dap",
+          "transactionNature": "transfer-of-ownership-demo-trial",
+          "fiscalRepresentationActor": "buyer"
+        },
+        "freight": {
+          "border": {
+            "value": {
+              "currency": "EUR",
+              "amount": 500
+            }
+          },
+          "inland": {
+            "value": {
+              "currency": "GBP",
+              "amount": 500
+            }
+          }
+        },
+        "insurance": {
+          "value": {
+            "currency": "GBP",
+            "amount": 0
+          }
+        },
+        "transport": {
+          "inland": {
+            "modeOfTransport": "road",
+            "transportNationality": "NL",
+            "transportIdentity": "ABC Logistics",
+            "identificationNo": "BG 123 AL",
+            "transportMeansType": "vehicle-registration-number"
+          },
+          "border": {
+            "modeOfTransport": "roll-on-roll-off",
+            "nationalityOfTransport": "GB",
+            "transportIdentity": "Irish Ferries",
+            "carrierSCAC": "EUCU",
+            "identificationNo": "12345",
+            "transportMeansType": "imo-ship-id-number",
+            "destinationPortCode": "GBDOV",
+            "estimatedArrivalDatetime": "2022-12-10T13:55:00Z"
+          },
+          "export": {
+            "countryCode": "NL",
+            "locationName": "warehouse/city name/port name"
+          }
+        }
+      }
+    }
+  ]
+}

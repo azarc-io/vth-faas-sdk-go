@@ -2,8 +2,8 @@ package spark_v1
 
 import (
 	"fmt"
+	"github.com/azarc-io/vth-faas-sdk-go/internal/common"
 	sparkv1 "github.com/azarc-io/vth-faas-sdk-go/internal/gen/azarc/sdk/spark/v1"
-	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -13,7 +13,6 @@ type InMemoryStageProgressHandler struct {
 	t                  *testing.T
 	stages             map[string]*sparkv1.SetStageStatusRequest
 	results            map[string]*sparkv1.SetStageResultRequest
-	jobs               map[string]*sparkv1.SetJobStatusRequest
 	behaviourSet       map[string]StageBehaviourParams
 	behaviourSetResult map[string]ResultBehaviourParams
 }
@@ -21,19 +20,8 @@ type InMemoryStageProgressHandler struct {
 func NewInMemoryStageProgressHandler(t *testing.T, seeds ...any) TestStageProgressHandler {
 	handler := InMemoryStageProgressHandler{t,
 		map[string]*sparkv1.SetStageStatusRequest{}, map[string]*sparkv1.SetStageResultRequest{},
-		map[string]*sparkv1.SetJobStatusRequest{}, map[string]StageBehaviourParams{},
-		map[string]ResultBehaviourParams{}}
-	for _, seed := range seeds {
-		switch seed := seed.(type) {
-		case *sparkv1.SetStageStatusRequest:
-			handler.stages[handler.key(seed.JobKey, seed.Name)] = seed
-		case *sparkv1.SetStageResultRequest:
-			handler.results[handler.key(seed.JobKey, seed.Name)] = seed
-		default:
-			handler.t.Fatalf("invalid seed type. accepted values are: *sdk_v1.SetStageStatusRequest, "+
-				"*sdk_v1.SetStageResultRequest, but got: %s", reflect.TypeOf(seed).String())
-		}
-	}
+		map[string]StageBehaviourParams{}, map[string]ResultBehaviourParams{}}
+
 	return &handler
 }
 
@@ -51,13 +39,15 @@ func (i *InMemoryStageProgressHandler) Set(stageStatus *sparkv1.SetStageStatusRe
 			return bp.err
 		}
 	}
-	i.stages[i.key(stageStatus.JobKey, stageStatus.Name)] = stageStatus
+	i.stages[i.key(stageStatus.Key, stageStatus.Name)] = stageStatus
 	return nil
 }
 
 func (i *InMemoryStageProgressHandler) GetResult(jobKey, name string) Bindable {
 	if variable, ok := i.results[i.key(jobKey, name)]; ok {
-		return newResult(nil, variable.Result)
+		return newResult(nil, &sparkv1.GetStageResultResponse{
+			Data: variable.Data,
+		})
 	}
 	i.t.Fatalf("stage result not found for params >> jobKey: %s, stageName: %s", jobKey, name)
 	return nil
@@ -65,16 +55,11 @@ func (i *InMemoryStageProgressHandler) GetResult(jobKey, name string) Bindable {
 
 func (i *InMemoryStageProgressHandler) SetResult(result *sparkv1.SetStageResultRequest) error {
 	if br, ok := i.behaviourSetResult[result.Name]; ok {
-		if br.jobKey == result.GetJobKey() && br.name == result.Name && br.err != nil {
+		if br.jobKey == result.GetKey() && br.name == result.Name && br.err != nil {
 			return br.err
 		}
 	}
-	i.results[i.key(result.JobKey, result.Name)] = result
-	return nil
-}
-
-func (i *InMemoryStageProgressHandler) SetJobStatus(jobStatus *sparkv1.SetJobStatusRequest) error {
-	i.jobs[jobStatus.Key] = jobStatus
+	i.results[i.key(result.GetKey(), result.Name)] = result
 	return nil
 }
 
@@ -87,27 +72,23 @@ func (i *InMemoryStageProgressHandler) ResetBehaviour() {
 }
 
 func (i *InMemoryStageProgressHandler) AssertStageCompleted(jobKey, stageName string) {
-	i.assertStageStatus(jobKey, stageName, sparkv1.StageStatus_STAGE_STATUS_COMPLETED)
+	i.assertStageStatus(jobKey, stageName, sparkv1.StageStatus_STAGE_COMPLETED)
 }
 
 func (i *InMemoryStageProgressHandler) AssertStageStarted(jobKey, stageName string) {
-	i.assertStageStatus(jobKey, stageName, sparkv1.StageStatus_STAGE_STATUS_STARTED)
+	i.assertStageStatus(jobKey, stageName, sparkv1.StageStatus_STAGE_STARTED)
 }
 
 func (i *InMemoryStageProgressHandler) AssertStageSkipped(jobKey, stageName string) {
-	i.assertStageStatus(jobKey, stageName, sparkv1.StageStatus_STAGE_STATUS_SKIPPED)
+	i.assertStageStatus(jobKey, stageName, sparkv1.StageStatus_STAGE_SKIPPED)
 }
 
 func (i *InMemoryStageProgressHandler) AssertStageCancelled(jobKey, stageName string) {
-	i.assertStageStatus(jobKey, stageName, sparkv1.StageStatus_STAGE_STATUS_CANCELLED)
+	i.assertStageStatus(jobKey, stageName, sparkv1.StageStatus_STAGE_CANCELED)
 }
 
 func (i *InMemoryStageProgressHandler) AssertStageFailed(jobKey, stageName string) {
-	i.assertStageStatus(jobKey, stageName, sparkv1.StageStatus_STAGE_STATUS_FAILED)
-}
-
-func (i *InMemoryStageProgressHandler) AssertStageUnspecified(jobKey, stageName string) {
-	i.assertStageStatus(jobKey, stageName, sparkv1.StageStatus_STAGE_STATUS_PENDING_UNSPECIFIED)
+	i.assertStageStatus(jobKey, stageName, sparkv1.StageStatus_STAGE_FAILED)
 }
 
 func (i *InMemoryStageProgressHandler) AssertStageResult(jobKey, stageName string, expectedStageResult any) {
@@ -117,17 +98,12 @@ func (i *InMemoryStageProgressHandler) AssertStageResult(jobKey, stageName strin
 		i.t.Error(err)
 		return
 	}
-	req, err := newSetStageResultReq(jobKey, MimeTypeJSON, expectedStageResult)
+	req, err := newSetStageResultReq(jobKey, common.MimeTypeJSON, expectedStageResult)
 	if err != nil {
 		i.t.Error(err)
 		return
 	}
-	reqB, err := req.Result.Raw()
-	if err != nil {
-		i.t.Error(err)
-		return
-	}
-	assert.Equal(i.t, reqB, resB)
+	assert.Equal(i.t, req.Data, resB)
 }
 
 func (i *InMemoryStageProgressHandler) key(jobKey, name string) string {
