@@ -13,13 +13,14 @@ type InMemoryStageProgressHandler struct {
 	t                  *testing.T
 	stages             map[string]*sparkv1.SetStageStatusRequest
 	results            map[string]*sparkv1.SetStageResultRequest
+	resultOrder        map[string][]string
 	behaviourSet       map[string]StageBehaviourParams
 	behaviourSetResult map[string]ResultBehaviourParams
 }
 
 func NewInMemoryStageProgressHandler(t *testing.T, seeds ...any) TestStageProgressHandler {
 	handler := InMemoryStageProgressHandler{t,
-		map[string]*sparkv1.SetStageStatusRequest{}, map[string]*sparkv1.SetStageResultRequest{},
+		map[string]*sparkv1.SetStageStatusRequest{}, map[string]*sparkv1.SetStageResultRequest{}, make(map[string][]string),
 		map[string]StageBehaviourParams{}, map[string]ResultBehaviourParams{}}
 
 	return &handler
@@ -40,6 +41,10 @@ func (i *InMemoryStageProgressHandler) Set(stageStatus *sparkv1.SetStageStatusRe
 		}
 	}
 	i.stages[i.key(stageStatus.Key, stageStatus.Name)] = stageStatus
+
+	if stageStatus.Status == sparkv1.StageStatus_STAGE_STARTED {
+		i.resultOrder[stageStatus.Key] = append(i.resultOrder[stageStatus.Key], stageStatus.Name)
+	}
 	return nil
 }
 
@@ -104,6 +109,21 @@ func (i *InMemoryStageProgressHandler) AssertStageResult(jobKey, stageName strin
 		return
 	}
 	assert.Equal(i.t, req.Data, resB)
+}
+
+func (i *InMemoryStageProgressHandler) AssertStageOrder(jobKey string, stageNames ...string) {
+	sns := i.resultOrder[jobKey]
+
+	if len(stageNames) > len(sns) {
+		i.t.Fatalf("more stage names provided than were executed")
+		return
+	}
+
+	actual := make([]string, len(stageNames))
+	for ind := range stageNames {
+		actual[ind] = sns[ind]
+	}
+	assert.Equal(i.t, stageNames, actual, fmt.Sprintf("actual stages: %v", sns))
 }
 
 func (i *InMemoryStageProgressHandler) key(jobKey, name string) string {

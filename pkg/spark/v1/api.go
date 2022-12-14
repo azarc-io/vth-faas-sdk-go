@@ -124,6 +124,7 @@ type (
 		AddBehaviour() *Behaviour
 		ResetBehaviour()
 		AssertStageResult(jobKey, stageName string, expectedStageResult any)
+		AssertStageOrder(jobKey string, stageNames ...string)
 	}
 )
 
