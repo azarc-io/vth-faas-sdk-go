@@ -136,8 +136,8 @@ func (w *sparkWorker) validate(report ChainReport) error {
 	return nil
 }
 
-func (w *sparkWorker) loadConfiguration() {
-	c, err := loadSparkConfig()
+func (w *sparkWorker) loadConfiguration(opts *sparkOpts) {
+	c, err := loadSparkConfig(opts)
 	if err != nil {
 		panic(err)
 	}
@@ -184,7 +184,7 @@ func NewSparkWorker(ctx context.Context, spark Spark, options ...Option) (Worker
 	}
 
 	// load the configuration if available
-	jw.loadConfiguration()
+	jw.loadConfiguration(jw.opts)
 
 	// build the chain
 	builder := newBuilder()
