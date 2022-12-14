@@ -120,6 +120,21 @@ func (i *InMemoryStageProgressHandler) AssertStageOrder(jobKey string, stageName
 	}
 
 	actual := make([]string, len(stageNames))
+	for ind, _ := range stageNames {
+		actual[ind] = sns[ind]
+	}
+	assert.Equal(i.t, stageNames, actual, fmt.Sprintf("actual stages: %v", sns))
+}
+
+func (i *InMemoryStageProgressHandler) AssertStageOrder(jobKey string, stageNames ...string) {
+	sns := i.resultOrder[jobKey]
+
+	if len(stageNames) > len(sns) {
+		i.t.Fatalf("more stage names provided than were executed")
+		return
+	}
+
+	actual := make([]string, len(stageNames))
 	for ind := range stageNames {
 		actual[ind] = sns[ind]
 	}
