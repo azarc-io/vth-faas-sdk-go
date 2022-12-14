@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"gopkg.in/yaml.v3"
 	"os"
+	"path"
 	"strings"
 	"time"
 
@@ -67,7 +68,7 @@ func (m *config) healthBindTo() string {
 	return fmt.Sprintf("%s:%d", m.Config.Health.Bind, m.Config.Health.Port)
 }
 
-func loadSparkConfig() (*config, error) {
+func loadSparkConfig(opts *sparkOpts) (*config, error) {
 	config := &config{}
 
 	if os.Getenv("SPARK_FILE_PATH") != "" {
@@ -89,8 +90,9 @@ func loadSparkConfig() (*config, error) {
 	}
 
 	// check for a yaml config
-	if _, err := os.Stat("spark.yaml"); err == nil {
-		b, err := os.ReadFile("spark.yaml")
+	sparkPath := path.Join(opts.configBasePath, "spark.yaml")
+	if _, err := os.Stat(sparkPath); err == nil {
+		b, err := os.ReadFile(sparkPath)
 		if err != nil {
 			return nil, err
 		}
@@ -119,15 +121,11 @@ type bindableConfig struct {
 func newBindableConfig(opts *sparkOpts) BindableConfig {
 	c := &bindableConfig{opts: opts}
 
-	if opts.config != nil {
-		return c
-	}
-
 	var err error
 
 	// optional config path environment
-	yamlFilePath := "config.yaml"
-	jsonFilePath := "config.json"
+	yamlFilePath := path.Join(opts.configBasePath, "config.yaml")
+	jsonFilePath := path.Join(opts.configBasePath, "config.json")
 
 	if os.Getenv("CONFIG_SECRET") != "" {
 		c.opts.configType = ConfigTypeJson
@@ -137,6 +135,8 @@ func newBindableConfig(opts *sparkOpts) BindableConfig {
 		if c.b, err = os.ReadFile(c.filePath); err != nil {
 			panic(err)
 		}
+	} else if opts.config != nil {
+		return c
 	} else if _, err = os.Stat(yamlFilePath); err == nil {
 		c.filePath = yamlFilePath
 		if c.b, err = os.ReadFile(yamlFilePath); err != nil {

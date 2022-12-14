@@ -63,6 +63,7 @@ type sparkOpts struct {
 	delegateComplete     DelegateCompleteDefinitionFn
 	config               []byte
 	configType           ConfigType
+	configBasePath       string
 }
 
 type Option = func(je *sparkOpts) *sparkOpts
@@ -70,6 +71,14 @@ type Option = func(je *sparkOpts) *sparkOpts
 func WithConfiguration(b []byte, t ConfigType) Option {
 	return func(jw *sparkOpts) *sparkOpts {
 		jw.config = b
+		jw.configType = t
+		return jw
+	}
+}
+
+func WithConfigurationBasePath(path string, t ConfigType) Option {
+	return func(jw *sparkOpts) *sparkOpts {
+		jw.configBasePath = path
 		jw.configType = t
 		return jw
 	}
