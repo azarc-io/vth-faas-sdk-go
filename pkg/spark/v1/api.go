@@ -99,6 +99,7 @@ type (
 	TestIOHandler interface {
 		IOHandler
 		SetVar(jobKey string, v *Var)
+		GetVar(jobKey, varName string) any
 	}
 )
 
