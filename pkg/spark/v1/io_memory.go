@@ -51,6 +51,10 @@ func (i *inMemoryIOHandler) SetVar(jobKey string, v *Var) {
 	i.variables[i.key(jobKey, v.Name)] = v
 }
 
+func (i *inMemoryIOHandler) GetVar(jobKey, varName string) any {
+	return i.variables[i.key(jobKey, varName)].Value
+}
+
 func (i *inMemoryIOHandler) key(jobKey, name string) string {
 	return fmt.Sprintf("%s_%s", jobKey, name)
 }
