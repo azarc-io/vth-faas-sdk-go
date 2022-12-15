@@ -87,7 +87,8 @@ func newInput(variable *sparkv1.Variable, err error) *input {
 }
 
 func (i *input) String() string {
-	return string(i.variable.Data)
+	b, _ := i.Raw()
+	return string(b)
 }
 
 func (i *input) Raw() ([]byte, error) {
@@ -172,5 +173,6 @@ func (r *result) Bind(a interface{}) error {
 }
 
 func (r *result) String() string {
-	return string(r.result.GetData())
+	b, _ := r.Raw()
+	return string(b)
 }
