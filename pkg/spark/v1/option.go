@@ -76,10 +76,9 @@ func WithConfiguration(b []byte, t ConfigType) Option {
 	}
 }
 
-func WithConfigurationBasePath(path string, t ConfigType) Option {
+func WithConfigurationBasePath(path string) Option {
 	return func(jw *sparkOpts) *sparkOpts {
 		jw.configBasePath = path
-		jw.configType = t
 		return jw
 	}
 }

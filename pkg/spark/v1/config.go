@@ -7,6 +7,7 @@ import (
 	"gopkg.in/yaml.v3"
 	"os"
 	"path"
+	"reflect"
 	"strings"
 	"time"
 
@@ -157,19 +158,23 @@ func (r *bindableConfig) Raw() ([]byte, error) {
 }
 
 func (r *bindableConfig) Bind(target any) error {
+	if reflect.ValueOf(target).Kind() != reflect.Ptr {
+		return fmt.Errorf("expected bind parameter to be ptr; is %s", reflect.ValueOf(target).Kind().String())
+	}
+
 	if r.opts.config != nil {
 		switch r.opts.configType {
 		case ConfigTypeJson:
-			return json.Unmarshal(r.opts.config, &target)
+			return json.Unmarshal(r.opts.config, target)
 		case ConfigTypeYaml:
-			return yaml.Unmarshal(r.opts.config, &target)
+			return yaml.Unmarshal(r.opts.config, target)
 		}
 	}
 
 	if strings.HasSuffix(r.filePath, ".yaml") {
-		return yaml.Unmarshal(r.b, &target)
+		return yaml.Unmarshal(r.b, target)
 	} else if strings.HasSuffix(r.filePath, ".json") {
-		return json.Unmarshal(r.b, &target)
+		return json.Unmarshal(r.b, target)
 	}
 
 	return fmt.Errorf("can not load config, unsupported extension: %s", r.filePath)
