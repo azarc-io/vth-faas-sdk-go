@@ -242,7 +242,7 @@ type (
 	Worker interface {
 		Execute(ctx Context) StageError
 		Run()
-		LocalContext(jobKey, correlationID, transactionId string) Context
+		LocalContext(jobKey, correlationID, transactionId string) SparkContext
 	}
 )
 

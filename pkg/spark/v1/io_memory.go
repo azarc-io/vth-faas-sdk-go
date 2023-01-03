@@ -47,6 +47,10 @@ func (i *inMemoryIOHandler) Output(ctx SparkContext, variables ...*Var) error {
 	return nil
 }
 
+func (i *inMemoryIOHandler) GetVar(ctx SparkContext, varName string) any {
+	return i.variables[i.key(ctx, varName)].Value
+}
+
 func (i *inMemoryIOHandler) SetVar(ctx SparkContext, v *Var) {
 	i.variables[i.key(ctx, v.Name)] = v
 }
