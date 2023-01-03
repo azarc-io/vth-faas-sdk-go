@@ -91,15 +91,15 @@ type (
 
 type (
 	IOHandler interface {
-		Inputs(jobKey string, names ...string) Inputs
-		Input(jobKey, name string) Input
-		Output(jobKey string, variables ...*Var) error
+		Inputs(ctx SparkContext, names ...string) Inputs
+		Input(ctx SparkContext, name string) Input
+		Output(ctx SparkContext, variables ...*Var) error
 	}
 
 	TestIOHandler interface {
 		IOHandler
-		SetVar(jobKey string, v *Var)
-		GetVar(jobKey, varName string) any
+		SetVar(ctx SparkContext, v *Var)
+		GetVar(ctx SparkContext, varName string) any
 	}
 )
 
@@ -109,23 +109,26 @@ type (
 
 type (
 	StageProgressHandler interface {
-		Get(jobKey, name string) (*sparkv1.StageStatus, error)
-		Set(stageStatus *sparkv1.SetStageStatusRequest) error
-		GetResult(jobKey, name string) Bindable
-		SetResult(resultResult *sparkv1.SetStageResultRequest) error
+		Get(ctx SparkContext, name string) (*sparkv1.StageStatus, error)
+		Set(ctx SparkContext, stageStatus *sparkv1.SetStageStatusRequest) error
+		GetResult(ctx SparkContext, name string) Bindable
+		SetResult(ctx SparkContext, resultResult *sparkv1.SetStageResultRequest) error
+		JobStarting(result *sparkv1.JobStartingRequest) error
+		FinishJob(ctx SparkContext, req *sparkv1.FinishJobRequest) error
 	}
 
 	TestStageProgressHandler interface {
 		StageProgressHandler
-		AssertStageCompleted(jobKey, stageName string)
-		AssertStageStarted(jobKey, stageName string)
-		AssertStageSkipped(jobKey, stageName string)
-		AssertStageCancelled(jobKey, stageName string)
-		AssertStageFailed(jobKey, stageName string)
+		AssertStageCompleted(ctx SparkContext, stageName string)
+		AssertStageStarted(ctx SparkContext, stageName string)
+		AssertStageSkipped(ctx SparkContext, stageName string)
+		AssertStageCancelled(ctx SparkContext, stageName string)
+		AssertStageFailed(ctx SparkContext, stageName string)
 		AddBehaviour() *Behaviour
 		ResetBehaviour()
-		AssertStageResult(jobKey, stageName string, expectedStageResult any)
-		AssertStageOrder(jobKey string, stageNames ...string)
+		AssertStageResult(ctx SparkContext, stageName string, expectedStageResult any)
+		AssertStageOrder(ctx SparkContext, stageNames ...string)
+		AssertJobFinished(value bool)
 	}
 )
 
@@ -169,6 +172,7 @@ type (
 		CorrelationID() string
 		TransactionID() string
 		LastActiveStage() *sparkv1.LastActiveStage
+		RequestMetadata() map[string]string
 	}
 
 	InitContext interface {
@@ -184,6 +188,7 @@ type (
 		WithoutLastActiveStage() SparkContext
 		delegateStage() DelegateStageDefinitionFn
 		delegateComplete() DelegateCompleteDefinitionFn
+		RequestMetadata() map[string]string
 	}
 
 	StageContext interface {
@@ -264,7 +269,7 @@ type (
 		StageName() string
 		StageProgressHandler() StageProgressHandler
 		IOHandler() IOHandler
-		Context() Context
+		Context() SparkContext
 	}
 
 	StageDefinitionFn    = func(ctx StageContext) (any, StageError)

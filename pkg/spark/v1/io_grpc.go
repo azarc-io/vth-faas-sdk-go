@@ -13,8 +13,9 @@ func newGrpcIOHandler(client sparkv1.ManagerServiceClient) IOHandler {
 	return variableHandler{client}
 }
 
-func (g variableHandler) Inputs(jobKey string, names ...string) Inputs {
-	variables, err := g.client.GetInputs(context.Background(), newGetVariablesRequest(jobKey, names...))
+func (g variableHandler) Inputs(ctx SparkContext, names ...string) Inputs {
+	request := newGetVariablesRequest(ctx, names...)
+	variables, err := g.client.GetInputs(context.Background(), request)
 	if err != nil {
 		return newInputs(err, nil)
 	}
@@ -22,12 +23,12 @@ func (g variableHandler) Inputs(jobKey string, names ...string) Inputs {
 	return newInputs(err, variables.Variables)
 }
 
-func (g variableHandler) Input(jobKey, name string) Input {
-	return g.Inputs(jobKey, name).Get(name)
+func (g variableHandler) Input(ctx SparkContext, name string) Input {
+	return g.Inputs(ctx, name).Get(name)
 }
 
-func (g variableHandler) Output(jobKey string, variables ...*Var) error {
-	request, err := newSetVariablesRequest(jobKey, variables...)
+func (g variableHandler) Output(ctx SparkContext, variables ...*Var) error {
+	request, err := newSetVariablesRequest(ctx, variables...)
 	if err != nil {
 		return err
 	}

@@ -19,6 +19,13 @@ type jobContext struct {
 	delegateCompleteHandler DelegateCompleteDefinitionFn
 }
 
+func (j *jobContext) RequestMetadata() map[string]string {
+	if j.metadata != nil {
+		return j.metadata.perRequestMetadata
+	}
+	return map[string]string{}
+}
+
 func (j *jobContext) IOHandler() IOHandler {
 	return j.variableHandler
 }
@@ -69,11 +76,12 @@ func (j *jobContext) delegateComplete() DelegateCompleteDefinitionFn {
 
 func NewJobContext(metadata Context, opts *sparkOpts) SparkContext {
 	m := sparkMetadata{
-		ctx:             metadata.Ctx(),
-		jobKey:          metadata.JobKey(),
-		correlationID:   metadata.CorrelationID(),
-		transactionID:   metadata.TransactionID(),
-		lastActiveStage: metadata.LastActiveStage(),
+		ctx:                metadata.Ctx(),
+		jobKey:             metadata.JobKey(),
+		correlationID:      metadata.CorrelationID(),
+		transactionID:      metadata.TransactionID(),
+		lastActiveStage:    metadata.LastActiveStage(),
+		perRequestMetadata: metadata.RequestMetadata(),
 	}
 	return &jobContext{
 		metadata:                &m,
@@ -89,12 +97,19 @@ func NewJobContext(metadata Context, opts *sparkOpts) SparkContext {
 // METADATA
 /************************************************************************/
 
+type SparkMetadataOption func(sm *sparkMetadata)
+
 type sparkMetadata struct {
-	ctx             context.Context
-	jobKey          string
-	correlationID   string
-	transactionID   string
-	lastActiveStage *sparkv1.LastActiveStage
+	ctx                context.Context
+	jobKey             string
+	correlationID      string
+	transactionID      string
+	lastActiveStage    *sparkv1.LastActiveStage
+	perRequestMetadata map[string]string
+}
+
+func (j *sparkMetadata) RequestMetadata() map[string]string {
+	return j.perRequestMetadata
 }
 
 func (j *sparkMetadata) JobKey() string {
@@ -117,14 +132,26 @@ func (j *sparkMetadata) LastActiveStage() *sparkv1.LastActiveStage {
 	return j.lastActiveStage
 }
 
-func NewSparkMetadata(ctx context.Context, jobKey, correlationID, transactionID string, lastActiveStage *sparkv1.LastActiveStage) Context {
-	return &sparkMetadata{
+func WithPerRequestMetadata(md map[string]string) SparkMetadataOption {
+	return func(sm *sparkMetadata) {
+		sm.perRequestMetadata = md
+	}
+}
+
+func NewSparkMetadata(ctx context.Context, jobKey, correlationID, transactionID string, las *sparkv1.LastActiveStage, opts ...SparkMetadataOption) Context {
+	sm := &sparkMetadata{
 		ctx:             ctx,
 		jobKey:          jobKey,
 		correlationID:   correlationID,
 		transactionID:   transactionID,
-		lastActiveStage: lastActiveStage,
+		lastActiveStage: las,
 	}
+
+	for _, opt := range opts {
+		opt(sm)
+	}
+
+	return sm
 }
 
 func NewSparkMetadataFromGrpcRequest(ctx context.Context, req *sparkv1.ExecuteJobRequest) sparkMetadata {
@@ -156,19 +183,19 @@ func NewStageContext(ctx SparkContext, name string) StageContext {
 }
 
 func (sc stageContext) Inputs(names ...string) Inputs {
-	return sc.jobContext.IOHandler().Inputs(sc.JobKey(), names...)
+	return sc.jobContext.IOHandler().Inputs(sc.jobContext, names...)
 }
 
 func (sc stageContext) Input(name string) Input {
-	return sc.jobContext.IOHandler().Input(sc.JobKey(), name)
+	return sc.jobContext.IOHandler().Input(sc.jobContext, name)
 }
 
 func (sc stageContext) StageResult(name string) Bindable {
-	return sc.jobContext.StageProgressHandler().GetResult(sc.JobKey(), name)
+	return sc.jobContext.StageProgressHandler().GetResult(sc.jobContext, name)
 }
 
 func (sc stageContext) Output(variables ...*Var) error {
-	return sc.jobContext.IOHandler().Output(sc.JobKey(), variables...)
+	return sc.jobContext.IOHandler().Output(sc.jobContext, variables...)
 }
 
 func (sc stageContext) Name() string {

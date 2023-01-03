@@ -18,6 +18,7 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type DeploymentAdapterServiceClient interface {
+	GetService(ctx context.Context, in *GetServiceRequest, opts ...grpc.CallOption) (*GetServiceResponse, error)
 	CreateNamespace(ctx context.Context, in *CreateNamespaceRequest, opts ...grpc.CallOption) (*CreateNamespaceResponse, error)
 	GetSparks(ctx context.Context, in *GetFunctionsRequest, opts ...grpc.CallOption) (*GetFunctionsResponse, error)
 	GetPods(ctx context.Context, in *GetPodsRequest, opts ...grpc.CallOption) (*GetPodsResponse, error)
@@ -38,6 +39,15 @@ type deploymentAdapterServiceClient struct {
 
 func NewDeploymentAdapterServiceClient(cc grpc.ClientConnInterface) DeploymentAdapterServiceClient {
 	return &deploymentAdapterServiceClient{cc}
+}
+
+func (c *deploymentAdapterServiceClient) GetService(ctx context.Context, in *GetServiceRequest, opts ...grpc.CallOption) (*GetServiceResponse, error) {
+	out := new(GetServiceResponse)
+	err := c.cc.Invoke(ctx, "/sdk.spi.v1.DeploymentAdapterService/GetService", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *deploymentAdapterServiceClient) CreateNamespace(ctx context.Context, in *CreateNamespaceRequest, opts ...grpc.CallOption) (*CreateNamespaceResponse, error) {
@@ -175,6 +185,7 @@ func (x *deploymentAdapterServiceCreateEventStreamClient) Recv() (*StreamEvent, 
 // All implementations should embed UnimplementedDeploymentAdapterServiceServer
 // for forward compatibility
 type DeploymentAdapterServiceServer interface {
+	GetService(context.Context, *GetServiceRequest) (*GetServiceResponse, error)
 	CreateNamespace(context.Context, *CreateNamespaceRequest) (*CreateNamespaceResponse, error)
 	GetSparks(context.Context, *GetFunctionsRequest) (*GetFunctionsResponse, error)
 	GetPods(context.Context, *GetPodsRequest) (*GetPodsResponse, error)
@@ -193,6 +204,9 @@ type DeploymentAdapterServiceServer interface {
 type UnimplementedDeploymentAdapterServiceServer struct {
 }
 
+func (UnimplementedDeploymentAdapterServiceServer) GetService(context.Context, *GetServiceRequest) (*GetServiceResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetService not implemented")
+}
 func (UnimplementedDeploymentAdapterServiceServer) CreateNamespace(context.Context, *CreateNamespaceRequest) (*CreateNamespaceResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateNamespace not implemented")
 }
@@ -239,6 +253,24 @@ type UnsafeDeploymentAdapterServiceServer interface {
 
 func RegisterDeploymentAdapterServiceServer(s grpc.ServiceRegistrar, srv DeploymentAdapterServiceServer) {
 	s.RegisterService(&DeploymentAdapterService_ServiceDesc, srv)
+}
+
+func _DeploymentAdapterService_GetService_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetServiceRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DeploymentAdapterServiceServer).GetService(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/sdk.spi.v1.DeploymentAdapterService/GetService",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DeploymentAdapterServiceServer).GetService(ctx, req.(*GetServiceRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _DeploymentAdapterService_CreateNamespace_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -467,6 +499,10 @@ var DeploymentAdapterService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "sdk.spi.v1.DeploymentAdapterService",
 	HandlerType: (*DeploymentAdapterServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "GetService",
+			Handler:    _DeploymentAdapterService_GetService_Handler,
+		},
 		{
 			MethodName: "CreateNamespace",
 			Handler:    _DeploymentAdapterService_CreateNamespace_Handler,

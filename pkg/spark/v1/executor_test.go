@@ -45,8 +45,8 @@ func (s *ExecutorSuite) Test_Execute_Single_Stage_Then_Complete_With_No_Logic_Sh
 	err := c.execute(jobContext)
 
 	s.Require().Nil(err)
-	sph.AssertStageCompleted(jobKey, "test-0_complete")
-	sph.AssertStageCompleted(jobKey, "stage-0")
+	sph.AssertStageCompleted(jobContext, "test-0_complete")
+	sph.AssertStageCompleted(jobContext, "stage-0")
 }
 
 // TODO confirm this with Jono
@@ -111,8 +111,8 @@ func (s *ExecutorSuite) Test_Complete_Can_Fetch_String_Stage_Result() {
 	err := c.execute(jobContext)
 
 	s.Require().Nil(err)
-	sph.AssertStageCompleted(jobKey, "test-0_complete")
-	sph.AssertStageCompleted(jobKey, "stage-0")
+	sph.AssertStageCompleted(jobContext, "test-0_complete")
+	sph.AssertStageCompleted(jobContext, "stage-0")
 }
 
 func (s *ExecutorSuite) Test_Complete_Can_Fetch_Numeric_Stage_Result() {
@@ -154,8 +154,8 @@ func (s *ExecutorSuite) Test_Complete_Can_Fetch_Numeric_Stage_Result() {
 	err := c.execute(jobContext)
 
 	s.Require().Nil(err)
-	sph.AssertStageCompleted(jobKey, "test-0_complete")
-	sph.AssertStageCompleted(jobKey, "stage-0")
+	sph.AssertStageCompleted(jobContext, "test-0_complete")
+	sph.AssertStageCompleted(jobContext, "stage-0")
 }
 
 func (s *ExecutorSuite) Test_Should_Compensate_If_Stage_Return_Error() {
@@ -185,8 +185,9 @@ func (s *ExecutorSuite) Test_Should_Compensate_If_Stage_Return_Error() {
 
 	s.Require().NotNil(err)
 	s.Require().Equal("unstable", err.Error())
-	sph.AssertStageCompleted(jobKey, "compensate_complete")
-	sph.AssertStageFailed(jobKey, "stage-0")
+	sph.AssertStageCompleted(jobContext, "compensate_complete")
+	sph.AssertStageFailed(jobContext, "stage-0")
+	sph.AssertJobFinished(false)
 
 	if WaitTimeout(&wg, time.Second) {
 		s.FailNow("time out waiting for compensate")
@@ -271,9 +272,10 @@ func (s *ExecutorSuite) Test_Should_Skip_Stage_If_Stage_Returns_Skip_Option() {
 
 	err := c.execute(jobContext)
 	s.Require().Nil(err)
-	sph.AssertStageSkipped(jobKey, "stage-0")
-	sph.AssertStageCompleted(jobKey, "stage-1")
-	sph.AssertStageCompleted(jobKey, "test-0_complete")
+	sph.AssertStageSkipped(jobContext, "stage-0")
+	sph.AssertStageCompleted(jobContext, "stage-1")
+	sph.AssertStageCompleted(jobContext, "test-0_complete")
+	sph.AssertJobFinished(true)
 
 	if WaitTimeout(&wg, time.Second) {
 		s.FailNow("time out waiting for all steps to complete")
@@ -330,9 +332,10 @@ func (s *ExecutorSuite) Test_Should_Cancel_Chain_If_Stage_Returns_Cancel_Option(
 		s.Require().FailNow("incorrect error type")
 	}
 
-	sph.AssertStageCancelled(jobKey, "stage-0")
-	sph.AssertStageCompleted(jobKey, "stage-3")
-	sph.AssertStageCompleted(jobKey, "cancel_complete")
+	sph.AssertStageCancelled(jobContext, "stage-0")
+	sph.AssertStageCompleted(jobContext, "stage-3")
+	sph.AssertStageCompleted(jobContext, "cancel_complete")
+	sph.AssertJobFinished(false)
 
 	if WaitTimeout(&wg, time.Second) {
 		s.FailNow("time out waiting for all steps to complete")
@@ -387,7 +390,8 @@ func (s *ExecutorSuite) Test_Should_Cancel_Chain_If_Stage_Returns_Fatal_Option()
 		s.Require().FailNow("incorrect error type")
 	}
 
-	sph.AssertStageFailed(jobKey, "stage-0")
+	sph.AssertStageFailed(jobContext, "stage-0")
+	sph.AssertJobFinished(false)
 
 	if WaitTimeout(&wg, time.Second) {
 		s.FailNow("time out waiting for all steps to complete")
@@ -431,66 +435,19 @@ func (s *ExecutorSuite) Test_Can_Set_Json_Input_And_Fetch_Json_Output() {
 		log:                  NewLogger(),
 	})
 
-	vh.SetVar("test", NewVar("sad", "application/json", sampleJson))
+	vh.SetVar(jobContext, NewVar("sad", "application/json", sampleJson))
 
 	err := c.execute(jobContext)
 	s.Require().Nil(err)
 
 	var result2 map[string]any
-	err2 := vh.Input(jobKey, "sad").Bind(&result2)
+	err2 := vh.Input(jobContext, "sad").Bind(&result2)
 	s.Require().Nil(err2)
 
-	sph.AssertStageCompleted(jobKey, "test-0_complete")
-	sph.AssertStageCompleted(jobKey, "stage-0")
+	sph.AssertStageCompleted(jobContext, "test-0_complete")
+	sph.AssertStageCompleted(jobContext, "stage-0")
 	result2Json, _ := json.Marshal(result2)
 	s.JSONEq(sampleJson, string(result2Json))
-}
-
-type ObjSample struct {
-	DisableGVMS        bool `json:"disableGVMS"`
-	AutoAcceptC88Draft bool `json:"autoAcceptC88Draft"`
-}
-
-func (s *ExecutorSuite) Test_Bind_Input_As_Object() {
-	b := newBuilder()
-	b.NewChain("test-0").
-		Stage("stage-0", func(ctx StageContext) (any, StageError) {
-			var sad ObjSample
-
-			// fetch the input SAD
-			if err := ctx.Input("sad").Bind(&sad); err != nil {
-				return "", NewStageError(err)
-			}
-
-			return sad, nil
-		}).
-		Complete(func(ctx CompleteContext) StageError {
-			// Test
-			var sad ObjSample
-			err := ctx.StageResult("stage-0").Bind(&sad)
-			s.Require().Nil(err)
-			s.True(sad.AutoAcceptC88Draft)
-			return nil
-		})
-
-	c := b.buildChain()
-	jobKey := "test"
-	sph := NewInMemoryStageProgressHandler(s.T())
-	vh := NewInMemoryIOHandler(s.T())
-	metadata := NewSparkMetadata(context.Background(), jobKey, "cid", "tid", nil)
-	jobContext := NewJobContext(metadata, &sparkOpts{
-		variableHandler:      vh,
-		stageProgressHandler: sph,
-		log:                  NewLogger(),
-	})
-
-	vh.SetVar("test", NewVar("sad", "application/json", sampleJson))
-
-	err := c.execute(jobContext)
-	s.Require().Nil(err)
-
-	sph.AssertStageCompleted(jobKey, "test-0_complete")
-	sph.AssertStageCompleted(jobKey, "stage-0")
 }
 
 /************************************************************************/

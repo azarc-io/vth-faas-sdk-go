@@ -20,14 +20,15 @@ func Test_Should_Say_Hello_World(t *testing.T) {
 	)
 	assert.Nil(t, err)
 
-	err = worker.Execute(worker.LocalContext("test", "cid", "tid"))
+	ctx := worker.LocalContext("test", "cid", "tid")
+	err = worker.Execute(ctx)
 	assert.Nil(t, err)
 
 	var result string
-	assert.Nil(t, io.Input("test", "message").Bind(&result))
+	assert.Nil(t, io.Input(ctx, "message").Bind(&result))
 
 	assert.Equal(t, "hello world", result)
-	sph.AssertStageCompleted("test", "stage-1")
-	sph.AssertStageCompleted("test", "stage-2")
-	sph.AssertStageCompleted("test", "chain-1_complete")
+	sph.AssertStageCompleted(ctx, "stage-1")
+	sph.AssertStageCompleted(ctx, "stage-2")
+	sph.AssertStageCompleted(ctx, "chain-1_complete")
 }

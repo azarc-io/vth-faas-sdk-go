@@ -25,7 +25,7 @@ func (s stageOptionParams) IOHandler() IOHandler {
 	return s.vh
 }
 
-func (s stageOptionParams) Context() Context {
+func (s stageOptionParams) Context() SparkContext {
 	return s.ctx
 }
 
@@ -40,7 +40,7 @@ func newStageOptionParams(ctx SparkContext, stageName string) StageOptionParams 
 
 func WithStageStatus(stageName string, status sparkv1.StageStatus) StageOption {
 	return func(sop StageOptionParams) StageError {
-		stageStatus, err := sop.StageProgressHandler().Get(sop.Context().JobKey(), stageName)
+		stageStatus, err := sop.StageProgressHandler().Get(sop.Context(), stageName)
 		if err != nil {
 			return NewStageError(err, withErrorType(sparkv1.ErrorType_ERROR_TYPE_FAILED_UNSPECIFIED))
 		}

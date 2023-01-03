@@ -3,7 +3,9 @@ package spark_v1
 import (
 	"context"
 	sparkv1 "github.com/azarc-io/vth-faas-sdk-go/internal/gen/azarc/sdk/spark/v1"
+	"github.com/rs/zerolog/log"
 	"net"
+	"os"
 	"time"
 
 	"google.golang.org/grpc"
@@ -24,14 +26,16 @@ type server struct {
 	config *config
 	worker Worker
 	svr    *grpc.Server
+	ctx    context.Context
+	client StageProgressHandler
 }
 
 /************************************************************************/
 // SERVER
 /************************************************************************/
 
-func newServer(cfg *config, worker Worker) *server {
-	return &server{config: cfg, worker: worker}
+func newServer(cfg *config, worker Worker, ctx context.Context, client StageProgressHandler) *server {
+	return &server{config: cfg, worker: worker, ctx: ctx, client: client}
 }
 
 func (s *server) start() error {
@@ -69,9 +73,27 @@ func (s *server) stop() {
 /************************************************************************/
 
 func (s *server) ExecuteJob(ctx context.Context, request *sparkv1.ExecuteJobRequest) (*sparkv1.Void, error) {
-	jobContext := NewSparkMetadata(ctx, request.Key, request.CorrelationId, request.TransactionId, nil)
+	log.Info().Msgf("execute with metadata: %v", request.RequestMetadata.Metadata)
+	jobContext := NewSparkMetadata(s.ctx, request.Key, request.CorrelationId, request.TransactionId, nil,
+		WithPerRequestMetadata(request.RequestMetadata.Metadata))
+	accepted := make(chan error)
 	go func() { // TODO goroutine pool
+		log.Info().Msgf("executing job: %s", request.Key)
+		err := s.client.JobStarting(&sparkv1.JobStartingRequest{
+			Key:       request.Key,
+			ServiceId: os.Getenv("SERVICE_ID"),
+		})
+
+		if err != nil {
+			log.Error().Err(err).Msgf("could not start job")
+			accepted <- err
+			close(accepted)
+			return
+		}
+
+		close(accepted)
+
 		_ = s.worker.Execute(jobContext)
 	}()
-	return &sparkv1.Void{}, nil
+	return &sparkv1.Void{}, <-accepted
 }

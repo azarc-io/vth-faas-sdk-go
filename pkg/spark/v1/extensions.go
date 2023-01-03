@@ -4,20 +4,27 @@ import (
 	"fmt"
 	"github.com/azarc-io/vth-faas-sdk-go/internal/common"
 	sparkv1 "github.com/azarc-io/vth-faas-sdk-go/internal/gen/azarc/sdk/spark/v1"
+	"os"
 )
 
 /************************************************************************/
 // FACTORIES
 /************************************************************************/
 
-func newSetStageResultReq(jobKey, name string, data interface{}) (*sparkv1.SetStageResultRequest, error) {
+func newSetStageResultReq(ctx SparkContext, name string, data interface{}) (*sparkv1.SetStageResultRequest, error) {
 	b, err := sparkv1.MarshalBinary(data)
 
-	return &sparkv1.SetStageResultRequest{
-		Key:  jobKey,
-		Name: name,
-		Data: b,
-	}, err
+	req := &sparkv1.SetStageResultRequest{
+		Key:      ctx.JobKey(),
+		Name:     name,
+		Data:     b,
+		Metadata: &sparkv1.RequestMetadata{Metadata: ctx.RequestMetadata()},
+	}
+
+	// include known env vars
+	updateMetadata(req.Metadata)
+
+	return req, err
 }
 
 func newVariable(name, mimeType string, value interface{}) (*sparkv1.Variable, error) {
@@ -39,34 +46,60 @@ func newVariable(name, mimeType string, value interface{}) (*sparkv1.Variable, e
 	}, nil
 }
 
-func newStageResultReq(jobKey, stageName string) *sparkv1.GetStageResultRequest {
-	return &sparkv1.GetStageResultRequest{
-		Name: stageName,
-		Key:  jobKey,
+func newStageResultReq(ctx SparkContext, stageName string) *sparkv1.GetStageResultRequest {
+	req := &sparkv1.GetStageResultRequest{
+		Name:     stageName,
+		Key:      ctx.JobKey(),
+		Metadata: &sparkv1.RequestMetadata{Metadata: ctx.RequestMetadata()},
 	}
+
+	// include known env vars
+	updateMetadata(req.Metadata)
+
+	return req
 }
 
-func newSetStageStatusReq(jobKey, stageName string, status sparkv1.StageStatus, err ...*sparkv1.Error) *sparkv1.SetStageStatusRequest {
+func newSetStageStatusReq(ctx SparkContext, stageName string, status sparkv1.StageStatus, err ...*sparkv1.Error) *sparkv1.SetStageStatusRequest {
 	sssr := &sparkv1.SetStageStatusRequest{
-		Name:   stageName,
-		Key:    jobKey,
-		Status: status,
+		Name:     stageName,
+		Key:      ctx.JobKey(),
+		Status:   status,
+		Metadata: &sparkv1.RequestMetadata{Metadata: ctx.RequestMetadata()},
 	}
+
+	// include known env vars
+	updateMetadata(sssr.Metadata)
+
 	if len(err) > 0 {
 		sssr.Err = err[0]
 	}
+
 	return sssr
 }
 
-func newGetVariablesRequest(jobKey string, names ...string) *sparkv1.GetInputsRequest {
+func newGetVariablesRequest(ctx SparkContext, names ...string) *sparkv1.GetInputsRequest {
 	vr := &sparkv1.GetInputsRequest{
-		Key: jobKey,
+		Key:      ctx.JobKey(),
+		Metadata: &sparkv1.RequestMetadata{Metadata: ctx.RequestMetadata()},
 	}
+	// include known env vars
+	updateMetadata(vr.Metadata)
 	vr.Names = append(vr.Names, names...)
 	return vr
 }
 
-func newSetVariablesRequest(jobKey string, variables ...*Var) (*sparkv1.SetOutputsRequest, error) {
+// updateMetadata populates request metadata with values from env vars if set
+func updateMetadata(metadata *sparkv1.RequestMetadata) {
+	if metadata.Metadata == nil {
+		metadata.Metadata = map[string]string{}
+	}
+
+	if val, ok := os.LookupEnv("TASK_ID"); ok {
+		metadata.Metadata["taskId"] = val
+	}
+}
+
+func newSetVariablesRequest(ctx SparkContext, variables ...*Var) (*sparkv1.SetOutputsRequest, error) {
 	m := map[string]*sparkv1.Variable{}
 	for _, v := range variables {
 		variable, err := newVariable(v.Name, v.MimeType, v.Value)
@@ -75,11 +108,29 @@ func newSetVariablesRequest(jobKey string, variables ...*Var) (*sparkv1.SetOutpu
 		}
 		m[v.Name] = variable
 	}
-	return &sparkv1.SetOutputsRequest{Key: jobKey, Variables: m}, nil
+	req := &sparkv1.SetOutputsRequest{
+		Key:       ctx.JobKey(),
+		Variables: m,
+		Metadata:  &sparkv1.RequestMetadata{Metadata: ctx.RequestMetadata()},
+	}
+
+	// include known env vars
+	updateMetadata(req.Metadata)
+
+	return req, nil
 }
 
-func newGetStageStatusReq(jobKey, stageName string) *sparkv1.GetStageStatusRequest {
-	return &sparkv1.GetStageStatusRequest{Key: jobKey, Name: stageName}
+func newGetStageStatusReq(ctx SparkContext, stageName string) *sparkv1.GetStageStatusRequest {
+	req := &sparkv1.GetStageStatusRequest{
+		Key:      ctx.JobKey(),
+		Name:     stageName,
+		Metadata: &sparkv1.RequestMetadata{Metadata: ctx.RequestMetadata()},
+	}
+
+	// include known env vars
+	updateMetadata(req.Metadata)
+
+	return req
 }
 
 /************************************************************************/

@@ -42,7 +42,7 @@ func (w *sparkWorker) Execute(metadata Context) StageError {
 }
 
 // LocalContext generates a context that can be used when calling Execute directly instead of through the api.
-func (w *sparkWorker) LocalContext(jobKey, correlationID, transactionId string) Context {
+func (w *sparkWorker) LocalContext(jobKey, correlationID, transactionId string) SparkContext {
 	metadata := NewSparkMetadata(w.ctx, jobKey, correlationID, transactionId, nil)
 	return NewJobContext(metadata, w.opts)
 }
@@ -113,7 +113,7 @@ func (w *sparkWorker) validate(report ChainReport) error {
 
 	if w.config.Config.Server != nil && w.config.Config.Server.Enabled {
 		w.opts.log.Info("setting up server")
-		w.server = newServer(w.config, w)
+		w.server = newServer(w.config, w, w.ctx, w.opts.stageProgressHandler)
 	}
 
 	// TODO support TLS once support for platforms other than kubernetes are added to Verathread
