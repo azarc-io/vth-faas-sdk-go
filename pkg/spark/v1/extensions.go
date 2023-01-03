@@ -2,6 +2,7 @@ package spark_v1
 
 import (
 	"fmt"
+	"github.com/azarc-io/vth-faas-sdk-go/internal/common"
 	sparkv1 "github.com/azarc-io/vth-faas-sdk-go/internal/gen/azarc/sdk/spark/v1"
 )
 
@@ -20,7 +21,15 @@ func newSetStageResultReq(jobKey, name string, data interface{}) (*sparkv1.SetSt
 }
 
 func newVariable(name, mimeType string, value interface{}) (*sparkv1.Variable, error) {
-	pbValue, err := sparkv1.MarshalBinary(value)
+	var pbValue []byte
+	var err error
+
+	switch v := value.(type) {
+	case string:
+		pbValue = []byte(v)
+	default:
+		pbValue, err = sparkv1.MarshalBinary(v)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("error creating variable named '%s': %w", name, err)
 	}
@@ -104,7 +113,7 @@ func (i *input) Bind(a interface{}) error {
 		return i.err
 	}
 
-	if err := sparkv1.UnmarshalBinaryTo(i.variable.Data, a, ""); err != nil {
+	if err := sparkv1.UnmarshalBinaryTo(i.variable.Data, a, i.variable.MimeType); err != nil {
 		return err
 	}
 
@@ -161,7 +170,7 @@ func (r *result) Raw() ([]byte, error) {
 		return nil, r.err
 	}
 
-	return sparkv1.ConvertBytes(r.result.Data, "")
+	return sparkv1.ConvertBytes(r.result.Data, common.MimeTypeJSON)
 }
 
 func (r *result) Bind(a interface{}) error {
@@ -169,7 +178,7 @@ func (r *result) Bind(a interface{}) error {
 		return r.err
 	}
 
-	return sparkv1.UnmarshalBinaryTo(r.result.Data, a, "")
+	return sparkv1.UnmarshalBinaryTo(r.result.Data, a, common.MimeTypeJSON)
 }
 
 func (r *result) String() string {

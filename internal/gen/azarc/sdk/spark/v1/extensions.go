@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/azarc-io/vth-faas-sdk-go/internal/common"
 	jsoniter "github.com/json-iterator/go"
+	"reflect"
 )
 
 // TODO get rid of this whole extension in the future
@@ -79,10 +80,13 @@ func MarshalBinary(data interface{}) ([]byte, error) {
 }
 
 func UnmarshalBinaryTo(data []byte, out interface{}, mimeType string) error {
-	if mimeType == "" {
-		return SerdesMap[common.MimeTypeJSON].Unmarshal(data, &out)
-	} else {
+	switch mimeType {
+	case common.MimeTypeJSON:
 		return SerdesMap[mimeType].Unmarshal(data, &out)
+	default:
+		v := reflect.ValueOf(out).Elem()
+		v.SetString(string(data))
+		return nil
 	}
 }
 

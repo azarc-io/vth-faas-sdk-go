@@ -3,6 +3,7 @@ package spark_v1
 import (
 	"context"
 	_ "embed"
+	"encoding/json"
 	"errors"
 	sparkv1 "github.com/azarc-io/vth-faas-sdk-go/internal/gen/azarc/sdk/spark/v1"
 	"github.com/stretchr/testify/suite"
@@ -401,26 +402,21 @@ func (s *ExecutorSuite) Test_Can_Set_Json_Input_And_Fetch_Json_Output() {
 	b := newBuilder()
 	b.NewChain("test-0").
 		Stage("stage-0", func(ctx StageContext) (any, StageError) {
-			var sadString string
+			var sad map[string]any
 
 			// fetch the input SAD
-			if err := ctx.Input("sad").Bind(&sadString); err != nil {
+			if err := ctx.Input("sad").Bind(&sad); err != nil {
 				return "", NewStageError(err)
 			}
 
-			return sadString, nil
+			return sad, nil
 		}).
 		Complete(func(ctx CompleteContext) StageError {
-			// Test Raw
-			raw, err := ctx.StageResult("stage-0").Raw()
+			// Test
+			var sad map[string]any
+			err := ctx.StageResult("stage-0").Bind(&sad)
 			s.Require().Nil(err)
-			s.Equal(sampleJson, string(raw))
-
-			// Test Bind
-			var res string
-			err = ctx.StageResult("stage-0").Bind(&res)
-			s.Require().Nil(err)
-			s.Equal(sampleJson, res)
+			s.Equal(true, sad["autoAcceptC88Draft"])
 			return nil
 		})
 
@@ -440,17 +436,61 @@ func (s *ExecutorSuite) Test_Can_Set_Json_Input_And_Fetch_Json_Output() {
 	err := c.execute(jobContext)
 	s.Require().Nil(err)
 
-	result, err2 := vh.Input(jobKey, "sad").Raw()
-	s.Require().Nil(err2)
-
-	var result2 string
-	err2 = vh.Input(jobKey, "sad").Bind(&result2)
+	var result2 map[string]any
+	err2 := vh.Input(jobKey, "sad").Bind(&result2)
 	s.Require().Nil(err2)
 
 	sph.AssertStageCompleted(jobKey, "test-0_complete")
 	sph.AssertStageCompleted(jobKey, "stage-0")
-	s.Equal(sampleJson, string(result))
-	s.Equal(sampleJson, result2)
+	result2Json, _ := json.Marshal(result2)
+	s.JSONEq(sampleJson, string(result2Json))
+}
+
+type ObjSample struct {
+	DisableGVMS        bool `json:"disableGVMS"`
+	AutoAcceptC88Draft bool `json:"autoAcceptC88Draft"`
+}
+
+func (s *ExecutorSuite) Test_Bind_Input_As_Object() {
+	b := newBuilder()
+	b.NewChain("test-0").
+		Stage("stage-0", func(ctx StageContext) (any, StageError) {
+			var sad ObjSample
+
+			// fetch the input SAD
+			if err := ctx.Input("sad").Bind(&sad); err != nil {
+				return "", NewStageError(err)
+			}
+
+			return sad, nil
+		}).
+		Complete(func(ctx CompleteContext) StageError {
+			// Test
+			var sad ObjSample
+			err := ctx.StageResult("stage-0").Bind(&sad)
+			s.Require().Nil(err)
+			s.True(sad.AutoAcceptC88Draft)
+			return nil
+		})
+
+	c := b.buildChain()
+	jobKey := "test"
+	sph := NewInMemoryStageProgressHandler(s.T())
+	vh := NewInMemoryIOHandler(s.T())
+	metadata := NewSparkMetadata(context.Background(), jobKey, "cid", "tid", nil)
+	jobContext := NewJobContext(metadata, &sparkOpts{
+		variableHandler:      vh,
+		stageProgressHandler: sph,
+		log:                  NewLogger(),
+	})
+
+	vh.SetVar("test", NewVar("sad", "application/json", sampleJson))
+
+	err := c.execute(jobContext)
+	s.Require().Nil(err)
+
+	sph.AssertStageCompleted(jobKey, "test-0_complete")
+	sph.AssertStageCompleted(jobKey, "stage-0")
 }
 
 /************************************************************************/
