@@ -2,16 +2,18 @@ package spark
 
 import (
 	"fmt"
+
 	sparkv1 "github.com/azarc-io/vth-faas-sdk-go/pkg/spark/v1"
-	"github.com/rs/zerolog/log"
 )
 
 type Config struct {
-	Foo string `json:"foo"`
+	Retry *sparkv1.RetryConfig `json:"retry"`
 }
 
 type Spark struct {
-	cfg *Config
+	cfg            *Config
+	totalFailures  int
+	currentFailure int
 }
 
 func (s *Spark) Init(ctx sparkv1.InitContext) error {
@@ -19,7 +21,6 @@ func (s *Spark) Init(ctx sparkv1.InitContext) error {
 	if err := ctx.Config().Bind(s.cfg); err != nil {
 		return err
 	}
-	log.Info().Fields(s.cfg).Msgf("config fields: ")
 	return nil
 }
 
@@ -30,40 +31,30 @@ func (s *Spark) Stop() {
 func (s *Spark) BuildChain(b sparkv1.Builder) sparkv1.Chain {
 	return b.NewChain("chain-1").
 		Stage("stage-1", func(_ sparkv1.StageContext) (any, sparkv1.StageError) {
-			return "hello", nil
-		}).
-		Stage("stage-2", func(ctx sparkv1.StageContext) (any, sparkv1.StageError) {
-			ctx.Input("test")
-			return "world", nil
-		}).
-		Stage("stage-3", func(ctx sparkv1.StageContext) (any, sparkv1.StageError) {
-			return []byte("with bytes"), nil
-		}).
-		Stage("stage-4", func(ctx sparkv1.StageContext) (any, sparkv1.StageError) {
-			// Test config is bound
-			return s.cfg.Foo, nil
+			if s.totalFailures <= s.currentFailure {
+				// allow response to pass now
+				return fmt.Sprintf("finally I can pass after %d failures", s.currentFailure), nil
+			}
+			s.currentFailure++
+			return nil, sparkv1.NewStageError(
+				fmt.Errorf("failures %d of %d", s.currentFailure, s.totalFailures),
+				sparkv1.WithRetry(s.cfg.Retry.Times, s.cfg.Retry.BackoffMultiplier, s.cfg.Retry.FirstBackoffWait),
+			)
 		}).
 		Complete(func(ctx sparkv1.CompleteContext) sparkv1.StageError {
 			var (
-				stg1Res, stg2Res string
-				stg3Res          []byte
-				err              error
+				stg1Res string
+				err     error
 			)
 
 			// get the result of the 3 stages
 			if err = ctx.StageResult("stage-1").Bind(&stg1Res); err != nil {
 				return sparkv1.NewStageError(err)
 			}
-			if err = ctx.StageResult("stage-2").Bind(&stg2Res); err != nil {
-				return sparkv1.NewStageError(err)
-			}
-			if err = ctx.StageResult("stage-3").Bind(&stg3Res); err != nil {
-				return sparkv1.NewStageError(err)
-			}
 
 			// write the output of the spark
 			if err = ctx.Output(
-				sparkv1.NewVar("message", "application/text", fmt.Sprintf("%s %s %s", stg1Res, stg2Res, string(stg3Res))),
+				sparkv1.NewVar("message", "application/text", stg1Res),
 			); err != nil {
 				return sparkv1.NewStageError(err)
 			}
@@ -74,6 +65,6 @@ func (s *Spark) BuildChain(b sparkv1.Builder) sparkv1.Chain {
 
 // NewSpark creates a Spark
 // shutdown is a reference to the context cancel function, it can be used to gracefully stop the worker if needed
-func NewSpark() sparkv1.Spark {
-	return &Spark{}
+func NewSpark(totalFailures int) sparkv1.Spark {
+	return &Spark{totalFailures: totalFailures}
 }

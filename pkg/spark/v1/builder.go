@@ -1,4 +1,4 @@
-package spark_v1
+package sparkv1
 
 import "fmt"
 
@@ -12,63 +12,63 @@ type chainBuilder struct {
 	prev     *chainNode
 }
 
-// chainNode wraps the chain and the node for easier access to both
+// chainNode wraps the SparkChain and the Node for easier access to both
 type chainNode struct {
-	// BuilderChain This is the builder that was used to build this chain, this enables
-	// the builder to return the node as a child of a stage or as the root of the chain
+	// BuilderChain This is the builder that was used to build this SparkChain, this enables
+	// the builder to return the node as a child of a Stage or as the root of the SparkChain
 	BuilderChain
-	// node holds the node information until the chain is built
-	node *node
+	// node holds the node information until the SparkChain is built
+	node *Node
 }
 
 /************************************************************************/
 // BUILDER API
 /************************************************************************/
 
-// Stage adds a stage to the current chain node, this could be at any depth of the chain
+// Stage adds a Stage to the current SparkChain Node, this could be at any depth of the SparkChain
 func (c *chainBuilder) Stage(name string, stageDefinitionFn StageDefinitionFn, options ...StageOption) ChainStageAny {
-	s := &stage{
-		node: c.current.node,
-		name: name,
+	s := &Stage{
+		Node: c.current.node,
+		Name: name,
 		cb:   stageDefinitionFn,
 		so:   options,
 	}
-	c.current.node.stages = append(c.current.node.stages, s)
+	c.current.node.Stages = append(c.current.node.Stages, s)
 	return c
 }
 
-// Compensate registers a chain node at depth-1 in the chain, compensation is always on the parent
-// so this function looks at the previous node in the chain which is always the parent
+// Compensate registers a SparkChain Node at depth-1 in the SparkChain, compensation is always on the parent
+// so this function looks at the previous Node in the SparkChain which is always the parent
 func (c *chainBuilder) Compensate(newNode Chain) ChainCancelledOrComplete {
-	n := newNode.build() // this causes the chain to move from depth to depth-1
+	n := newNode.build() // this causes the SparkChain to move from depth to depth-1
 	n.nodeType = compensateNodeType
 
 	n.appendBreadcrumb(compensateNodeType)
 
-	c.current.node.compensate = n
+	c.current.node.Compensate = n
 
 	return c
 }
 
-// Cancelled registers a chain node at depth-1 in the chain, compensation is always on the parent
-// so this function looks at the previous node in the chain which is always the parent
+// Cancelled registers a SparkChain Node at depth-1 in the SparkChain, compensation is always on the parent
+// so this function looks at the previous Node in the SparkChain which is always the parent
 func (c *chainBuilder) Cancelled(newNode Chain) ChainComplete {
-	n := newNode.build() // this causes the chain to move from depth to depth-1
+	n := newNode.build() // this causes the SparkChain to move from depth to depth-1
 	n.nodeType = cancelNodeType
 
 	n.appendBreadcrumb(cancelNodeType)
 
-	c.current.node.cancel = n
+	c.current.node.Cancel = n
 
 	return c
 }
 
-// Complete returns a finalizer that can be used to build the node chain
+// Complete returns a finalizer that can be used to build the Node SparkChain
 func (c *chainBuilder) Complete(completeDefinitionFn CompleteDefinitionFn, options ...StageOption) Chain {
-	name := fmt.Sprintf("%s_complete", c.current.node.name)
-	c.current.node.complete = &completeStage{
-		node: c.rootNode.node,
-		name: name,
+	name := fmt.Sprintf("%s_complete", c.current.node.Name)
+	c.current.node.Complete = &CompleteStage{
+		Node: c.rootNode.node,
+		Name: name,
 		cb:   completeDefinitionFn,
 		so:   options,
 	}
@@ -80,24 +80,24 @@ func (c *chainBuilder) Complete(completeDefinitionFn CompleteDefinitionFn, optio
 // HELPERS
 /************************************************************************/
 
-// createResumeOnRetryStagesMap maps stages that can be retried
-func (c *chainBuilder) createResumeOnRetryStagesMap(newChain *chain) {
-	stages, completeStages := c.getStages([]*stage{}, []*completeStage{}, newChain.rootNode)
+// createResumeOnRetryStagesMap maps Stages that can be retried
+func (c *chainBuilder) createResumeOnRetryStagesMap(newChain *SparkChain) {
+	stages, completeStages := c.getStages([]*Stage{}, []*CompleteStage{}, newChain.RootNode)
 	for _, stg := range stages {
-		newChain.stagesMap[stg.name] = stg
+		newChain.stagesMap[stg.Name] = stg
 	}
 	for _, cStg := range completeStages {
-		newChain.completeMap[cStg.name] = cStg
+		newChain.completeMap[cStg.Name] = cStg
 	}
 }
 
-// getStages returns all stages + completion stages
-func (c *chainBuilder) getStages(stages []*stage, completeStages []*completeStage, nodes ...*node) ([]*stage, []*completeStage) {
-	var nextNodes []*node
+// getStages returns all Stages + completion Stages
+func (c *chainBuilder) getStages(stages []*Stage, completeStages []*CompleteStage, nodes ...*Node) ([]*Stage, []*CompleteStage) {
+	var nextNodes []*Node
 	for _, n := range nodes {
-		completeStages = appendIfNotNil(completeStages, n.complete)
-		stages = appendIfNotNil(stages, n.stages...)
-		nextNodes = appendIfNotNil(nextNodes, n.compensate, n.cancel)
+		completeStages = appendIfNotNil(completeStages, n.Complete)
+		stages = appendIfNotNil(stages, n.Stages...)
+		nextNodes = appendIfNotNil(nextNodes, n.Compensate, n.Cancel)
 	}
 	return stages, completeStages
 }
@@ -106,32 +106,32 @@ func (c *chainBuilder) getStages(stages []*stage, completeStages []*completeStag
 // FINALIZERS
 /************************************************************************/
 
-// buildChain creates a chain that can be executed
-// - Maps the chain
+// buildChain creates a SparkChain that can be executed
+// - Maps the SparkChain
 // - Decorates it with breadcrumbs
-func (c *chainBuilder) buildChain() *chain {
-	newChain := &chain{
-		rootNode:    c.rootNode.node,
-		stagesMap:   map[string]*stage{},
-		completeMap: map[string]*completeStage{},
+func (c *chainBuilder) BuildChain() *SparkChain {
+	newChain := &SparkChain{
+		RootNode:    c.rootNode.node,
+		stagesMap:   map[string]*Stage{},
+		completeMap: map[string]*CompleteStage{},
 	}
 	c.createResumeOnRetryStagesMap(newChain)
-	addBreadcrumb(newChain.rootNode)
+	addBreadcrumb(newChain.RootNode)
 	return newChain
 }
 
-// Build iterates over the entire chain and performs the following operations
-// - Decorate the chain node with breadcrumbs
-// - Move the pointer back up the chain (depth-1)
-func (c *chainBuilder) build() *node {
+// Build iterates over the entire SparkChain and performs the following operations
+// - Decorate the SparkChain Node with breadcrumbs
+// - Move the pointer back up the SparkChain (depth-1)
+func (c *chainBuilder) build() *Node {
 	ret := c.current
 
 	addBreadcrumb(c.rootNode.node)
 
-	// this is a finalizer so switch current back to previous node in order to push the pointer back up the tree
+	// this is a finalizer so switch current back to previous Node in order to push the pointer back up the tree
 	if c.prev != nil {
 		c.current = c.prev // move the pointer up one
-		c.prev = nil       // clear previous because it should only be set when the depth of the chain changes
+		c.prev = nil       // clear previous because it should only be set when the depth of the SparkChain changes
 	}
 
 	return ret.node
@@ -141,20 +141,20 @@ func (c *chainBuilder) build() *node {
 // FACTORIES
 /************************************************************************/
 
-// NewChain creates a new chain with the following rules
-// - if this is the first chain the builder sees then it's marked as the root chain
-// - if a root chain already exists then the new chain is returned but not stored because it will be a
-// compensation or a cancellation chain
+// NewChain creates a new SparkChain with the following rules
+// - if this is the first SparkChain the builder sees then it's marked as the root SparkChain
+// - if a root SparkChain already exists then the new SparkChain is returned but not stored because it will be a
+// compensation or a cancellation SparkChain
 func (c *chainBuilder) NewChain(name string) BuilderChain {
 	n := &chainNode{
 		BuilderChain: c,
-		node: &node{
-			name: name,
+		node: &Node{
+			Name: name,
 		},
 	}
 
-	// The first time NewChain is called will store the chainNode as the root node
-	// any future chains that are created are children of the root node as such
+	// The first time NewChain is called will store the chainNode as the root Node
+	// any future chains that are created are children of the root Node as such
 	// simply return the chainNode
 	if c.rootNode == nil {
 		n.node.nodeType = rootNodeType
@@ -162,14 +162,14 @@ func (c *chainBuilder) NewChain(name string) BuilderChain {
 		n.node.appendBreadcrumb(rootNodeType)
 	}
 
-	// this holds the next and previous chain that is being built, it could be the root or a nested chain
+	// this holds the next and previous SparkChain that is being built, it could be the root or a nested SparkChain
 	c.prev = c.current
 	c.current = n
 
 	return n
 }
 
-// newBuilder main entry point to the builder
-func newBuilder() Builder {
+// NewBuilder main entry point to the builder
+func NewBuilder() Builder {
 	return &chainBuilder{}
 }

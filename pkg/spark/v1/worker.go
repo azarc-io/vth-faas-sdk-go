@@ -1,11 +1,8 @@
-package spark_v1
+package sparkv1
 
 import (
 	"context"
-	sparkv1 "github.com/azarc-io/vth-faas-sdk-go/internal/gen/azarc/sdk/spark/v1"
-	"github.com/azarc-io/vth-faas-sdk-go/internal/healthz"
-	"github.com/azarc-io/vth-faas-sdk-go/internal/signals"
-	"net/http"
+	"github.com/rs/zerolog/log"
 	"sync"
 	"time"
 )
@@ -15,13 +12,12 @@ import (
 /************************************************************************/
 
 type sparkWorker struct {
-	config    *config
-	chain     *chain
+	config    *Config
+	chain     *SparkChain
 	ctx       context.Context
-	opts      *sparkOpts
-	server    *server
+	opts      *SparkOpts
+	plugin    *sparkPlugin
 	createdAt time.Time
-	health    *healthz.Checker
 	spark     Spark
 	initOnce  sync.Once
 	cancel    context.CancelFunc
@@ -31,48 +27,23 @@ type sparkWorker struct {
 // Worker IMPLEMENTATION
 /************************************************************************/
 
-// Execute execute a single job
-// TODO this should not be exposed once all Azarc projects have been consolidated into Verathread
-func (w *sparkWorker) Execute(metadata Context) StageError {
-	// init the spark
-	w.initIfRequired()
-
-	jobContext := NewJobContext(metadata, w.opts)
-	return w.chain.execute(jobContext)
-}
-
-// LocalContext generates a context that can be used when calling Execute directly instead of through the api.
-func (w *sparkWorker) LocalContext(jobKey, correlationID, transactionId string) Context {
-	metadata := NewSparkMetadata(w.ctx, jobKey, correlationID, transactionId, nil)
-	return NewJobContext(metadata, w.opts)
-}
-
 // Run runs the worker and waits for kill signals and then gracefully shuts down the worker
 func (w *sparkWorker) Run() {
-	// signal ch
-	s := signals.SetupSignalHandler()
-
-	// start server
-	w.startServer()
-
 	// init the spark
 	w.initIfRequired()
 
-	// wait for signals
-	select {
-	case <-s:
-		w.cancel()
-	case <-w.ctx.Done():
-	}
+	// start plugin: expects plugin start to block
+	w.startPlugin()
 
 	// gracefully shutdown
-	w.opts.log.Info("gracefully shutting down spark")
-	if w.server != nil {
-		w.opts.log.Info("shutting down server")
-		w.server.stop()
-	}
-
+	w.opts.log.Info("spark: start graceful shutdown")
+	w.opts.log.Info("spark: stopping")
 	w.spark.Stop()
+	w.opts.log.Info("spark: stopped")
+
+	w.opts.log.Info("plugin: stopping")
+	w.plugin.stop()
+	w.opts.log.Info("plugin: stopped")
 }
 
 /************************************************************************/
@@ -92,51 +63,10 @@ func (w *sparkWorker) validate(report ChainReport) error {
 		return ErrChainIsNotValid
 	}
 
-	var grpcClient sparkv1.ManagerServiceClient
-	if w.opts.variableHandler == nil || w.opts.stageProgressHandler == nil {
-		var err error
-		grpcClient, err = CreateManagerServiceClient(w.config)
-		if err != nil {
-			return err
-		}
-	}
-
-	if w.opts.variableHandler == nil {
-		w.opts.log.Info("setting up grpc i/o handler")
-		w.opts.variableHandler = newGrpcIOHandler(grpcClient)
-	}
-
-	if w.opts.stageProgressHandler == nil {
-		w.opts.log.Info("setting up grpc progress handler")
-		w.opts.stageProgressHandler = newGrpcStageProgressHandler(grpcClient)
-	}
-
-	if w.config.Config.Server != nil && w.config.Config.Server.Enabled {
-		w.opts.log.Info("setting up server")
-		w.server = newServer(w.config, w)
-	}
-
-	// TODO support TLS once support for platforms other than kubernetes are added to Verathread
-	if w.config.Config.Health != nil && w.config.Config.Health.Enabled {
-		w.opts.log.Info("setting up healthz")
-		w.health = healthz.NewChecker(&healthz.Config{
-			RuntimeTTL: time.Second * 5,
-		})
-
-		go func() {
-			http.Handle("/healthz", w.health.Handler())
-
-			// nosemgrep
-			if err := http.ListenAndServe(w.config.healthBindTo(), nil); err != nil { // nosemgrep
-				panic(err)
-			}
-		}()
-	}
-
 	return nil
 }
 
-func (w *sparkWorker) loadConfiguration(opts *sparkOpts) {
+func (w *sparkWorker) loadConfiguration(opts *SparkOpts) {
 	c, err := loadSparkConfig(opts)
 	if err != nil {
 		panic(err)
@@ -144,25 +74,23 @@ func (w *sparkWorker) loadConfiguration(opts *sparkOpts) {
 	w.config = c
 }
 
-func (w *sparkWorker) startServer() {
-	if w.server != nil {
-		go func() {
-			if err := w.server.start(); err != nil {
-				panic(err)
-			}
-		}()
-		w.opts.log.Info("spark worker started in %v, listening on: %s", time.Since(w.createdAt), w.config.serverAddress())
-	} else {
-		w.opts.log.Info("spark worker started in %v", time.Since(w.createdAt))
+func (w *sparkWorker) startPlugin() {
+	w.opts.log.Info("plugin: startup plugin: %+v", w.config)
+	if err := w.plugin.start(); err != nil {
+		panic(err)
 	}
 }
 
 func (w *sparkWorker) initIfRequired() {
 	w.initOnce.Do(func() {
-		err := w.spark.Init(newInitContext(w.opts))
+		err := w.spark.Init(NewInitContext(w.opts))
 		if err != nil {
 			panic(err)
 		}
+
+		// register this runner as worker in temporal
+		//tc := w.config.Config.Temporal
+		log.Info().Msgf("config: %+v", w.config)
 	})
 }
 
@@ -175,7 +103,7 @@ func NewSparkWorker(ctx context.Context, spark Spark, options ...Option) (Worker
 	var jw = &sparkWorker{
 		ctx:       wrappedCtx,
 		cancel:    cancel,
-		opts:      &sparkOpts{},
+		opts:      &SparkOpts{},
 		createdAt: time.Now(),
 		spark:     spark,
 	}
@@ -186,12 +114,12 @@ func NewSparkWorker(ctx context.Context, spark Spark, options ...Option) (Worker
 	// load the configuration if available
 	jw.loadConfiguration(jw.opts)
 
-	// build the chain
-	builder := newBuilder()
+	// build the SparkChain
+	builder := NewBuilder()
 	spark.BuildChain(builder)
-	chain := builder.buildChain()
+	chain := builder.BuildChain()
 
-	// validate the chain
+	// validate the SparkChain
 	report := generateReportForChain(chain)
 
 	jw.chain = chain
@@ -199,6 +127,9 @@ func NewSparkWorker(ctx context.Context, spark Spark, options ...Option) (Worker
 	if err := jw.validate(report); err != nil {
 		return nil, err
 	}
+
+	jw.opts.log.Info("setting up plugin")
+	jw.plugin = newSparkPlugin(ctx, jw.config, chain)
 
 	return jw, nil
 }

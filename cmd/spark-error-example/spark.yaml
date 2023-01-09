@@ -1,11 +1,11 @@
 # Displayed in the UI and Marketplace
-label: Simple Example
+label: Error Example
 # Displayed in the UI and Marketplace
-description: A basic example that executes 2 stages to create both a hello and world strings and then combines them on completion
+description: A example which handles errors
 # Input mappings (for a more complete example see the advanced example)
 # these will be displayed to the user in the Verathread UI and will allow the user to map data from the blackboard
 # to these inputs
-inputs: { }
+inputs: {}
 # Output mappings (for a more complete example see the advanced example)
 # these will be displayed to the user in the Verathread UI and will allow the user to map your outputs
 # to the blackboard
@@ -16,8 +16,9 @@ config:
   # changed by the user through the Verathread UI
   schema: ""
   # ID of this spark instance
-  id: spark-simple-example_12345
-  name: spark-simple-example
+  id: spark-error-example
+  name: spark-error-example
+
   # Options below are only for local development, they will differ when deployed through Verathread
   health: # the health port, enabled when deployed by verathread to monitor the health of the spark
     enabled: true

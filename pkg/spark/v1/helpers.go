@@ -1,4 +1,4 @@
-package spark_v1
+package sparkv1
 
 import (
 	"errors"
@@ -9,7 +9,7 @@ var CompleteSuccess = func(ctx CompleteContext) StageError {
 }
 
 var CompleteError = func(ctx CompleteContext) StageError {
-	return NewStageError(errors.New("complete failed"))
+	return NewStageError(errors.New("Complete failed"))
 }
 
 func appendIfNotNil[T any](array []*T, items ...*T) []*T {
@@ -21,12 +21,12 @@ func appendIfNotNil[T any](array []*T, items ...*T) []*T {
 	return array
 }
 
-func addBreadcrumb(nodes ...*node) {
-	var nextNodes []*node
+func addBreadcrumb(nodes ...*Node) {
+	var nextNodes []*Node
 	for _, n := range nodes {
-		n.cancel.appendBreadcrumb(cancelNodeType, n.breadcrumb)
-		n.compensate.appendBreadcrumb(compensateNodeType, n.breadcrumb)
-		nextNodes = appendIfNotNil(nextNodes, n.compensate, n.cancel)
+		n.Cancel.appendBreadcrumb(cancelNodeType, n.breadcrumb)
+		n.Compensate.appendBreadcrumb(compensateNodeType, n.breadcrumb)
+		nextNodes = appendIfNotNil(nextNodes, n.Compensate, n.Cancel)
 	}
 	if len(nextNodes) > 0 {
 		addBreadcrumb(nextNodes...)

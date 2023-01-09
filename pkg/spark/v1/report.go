@@ -1,4 +1,4 @@
-package spark_v1
+package sparkv1
 
 import "fmt"
 
@@ -13,7 +13,7 @@ type (
 		Name          string
 		CanCompensate bool
 		CanCancel     bool
-		node          *node
+		node          *Node
 	}
 
 	ChainReportStage struct {
@@ -22,60 +22,60 @@ type (
 	}
 )
 
-// generateReportForChain generates a map of what the chain looks like
-func generateReportForChain(n *chain) ChainReport {
+// generateReportForChain generates a map of what the SparkChain looks like
+func generateReportForChain(n *SparkChain) ChainReport {
 	r := ChainReport{
 		StageMap: map[string]ChainReportStage{},
 		NodeMap:  map[string]ChainReportNode{},
 	}
 
-	generateReportForChainRecursively(&r, n.rootNode)
+	generateReportForChainRecursively(&r, n.RootNode)
 
 	return r
 }
 
-func generateReportForChainRecursively(r *ChainReport, n *node) {
-	// must not have an empty name
-	if n.name == "" {
-		r.Errors = append(r.Errors, fmt.Errorf("chain name can not be empty [at]: %s", n.breadcrumb))
+func generateReportForChainRecursively(r *ChainReport, n *Node) {
+	// must not have an empty Name
+	if n.Name == "" {
+		r.Errors = append(r.Errors, fmt.Errorf("SparkChain Name can not be empty [at]: %s", n.breadcrumb))
 	}
 
-	// chain node name must be unique
-	if _, ok := r.NodeMap[n.name]; ok {
-		r.Errors = append(r.Errors, fmt.Errorf("duplicate chain names are not permitted [name]: %s [at]: %s",
-			n.name, n.breadcrumb))
+	// SparkChain Node Name must be unique
+	if _, ok := r.NodeMap[n.Name]; ok {
+		r.Errors = append(r.Errors, fmt.Errorf("duplicate SparkChain names are not permitted [Name]: %s [at]: %s",
+			n.Name, n.breadcrumb))
 	} else {
-		r.NodeMap[n.name] = ChainReportNode{
-			Name:          n.name,
+		r.NodeMap[n.Name] = ChainReportNode{
+			Name:          n.Name,
 			CanCompensate: n.HasCompensationStage(),
 			CanCancel:     n.HasCancellationStage(),
 			node:          n,
 		}
 	}
 
-	// first flat map all the stages and capture validation errors
-	for _, s := range n.stages {
-		if s.name == "" {
-			r.Errors = append(r.Errors, fmt.Errorf("stage name can not be empty [at]: %s", n.breadcrumb))
+	// first flat map all the Stages and capture validation errors
+	for _, s := range n.Stages {
+		if s.Name == "" {
+			r.Errors = append(r.Errors, fmt.Errorf("Stage Name can not be empty [at]: %s", n.breadcrumb))
 			continue
 		}
 
-		if _, ok := r.StageMap[s.name]; ok {
-			r.Errors = append(r.Errors, fmt.Errorf("duplicate stage names are not permitted [chain]: %s [at]: %s",
-				s.name, n.breadcrumb))
+		if _, ok := r.StageMap[s.Name]; ok {
+			r.Errors = append(r.Errors, fmt.Errorf("duplicate Stage names are not permitted [SparkChain]: %s [at]: %s",
+				s.Name, n.breadcrumb))
 		} else {
-			r.StageMap[s.name] = ChainReportStage{
-				Name:  s.name,
+			r.StageMap[s.Name] = ChainReportStage{
+				Name:  s.Name,
 				Crumb: n.breadcrumb,
 			}
 		}
 	}
 
 	if n.HasCompensationStage() {
-		generateReportForChainRecursively(r, n.compensate)
+		generateReportForChainRecursively(r, n.Compensate)
 	}
 
 	if n.HasCancellationStage() {
-		generateReportForChainRecursively(r, n.cancel)
+		generateReportForChainRecursively(r, n.Cancel)
 	}
 }

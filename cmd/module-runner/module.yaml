@@ -1,0 +1,24 @@
+temporal:
+  address: 127.0.0.1:7233
+  namespace: default
+sparks:
+  - id: spark-simple-example_12345
+    name: spark-simple-example
+    queue_group: spark-simple_12345
+    config: |
+      {
+        "this": "foo",
+        "is": {
+           "bar": 2
+        }
+      }
+  - id: spark-complex-example_123456
+    name: spark-complex-example
+    queue_group: spark-complex-example_123456
+    config: |
+      {
+        "this": "foo",
+        "is": {
+           "bar": 6
+        }
+      }
