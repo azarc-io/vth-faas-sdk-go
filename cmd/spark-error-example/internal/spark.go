@@ -47,7 +47,7 @@ func (s *Spark) BuildChain(b sparkv1.Builder) sparkv1.Chain {
 				err     error
 			)
 
-			// get the result of the 3 stages
+			// get the result of the stages
 			if err = ctx.StageResult("stage-1").Bind(&stg1Res); err != nil {
 				return sparkv1.NewStageError(err)
 			}
@@ -64,7 +64,6 @@ func (s *Spark) BuildChain(b sparkv1.Builder) sparkv1.Chain {
 }
 
 // NewSpark creates a Spark
-// shutdown is a reference to the context cancel function, it can be used to gracefully stop the worker if needed
 func NewSpark(totalFailures int) sparkv1.Spark {
 	return &Spark{totalFailures: totalFailures}
 }

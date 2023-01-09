@@ -2,6 +2,7 @@ package sparkv1
 
 import (
 	"context"
+	"github.com/azarc-io/vth-faas-sdk-go/pkg/codec"
 	"go.temporal.io/sdk/workflow"
 )
 
@@ -21,7 +22,7 @@ type (
 	}
 
 	StageTracker interface {
-		GetStageResult(name string) (data any, mime string, err StageError)
+		GetStageResult(name string) (data any, mime codec.MimeType, err StageError)
 		AssertStageCompleted(stageName string)
 		AssertStageStarted(stageName string)
 		AssertStageSkipped(stageName string)

@@ -56,6 +56,8 @@ func (s *sparkPlugin) start() error {
 
 	// TODO Remove once this is deployed. Testing the workflow runs
 	go func() {
+		return
+
 		time.Sleep(3 * time.Second)
 		o := client.StartWorkflowOptions{
 			TaskQueue: s.config.QueueGroup,

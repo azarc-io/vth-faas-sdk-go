@@ -3,6 +3,7 @@ package module_test_runner
 import (
 	"errors"
 	"fmt"
+	"github.com/azarc-io/vth-faas-sdk-go/pkg/codec"
 	"reflect"
 	"testing"
 
@@ -28,7 +29,7 @@ type result struct {
 	stageStatus sparkv1.StageStatus
 }
 
-func (st *stageTracker) GetStageResult(name string) (data any, mime string, err sparkv1.StageError) {
+func (st *stageTracker) GetStageResult(name string) (data any, mime codec.MimeType, err sparkv1.StageError) {
 	res, ok := st.results[name]
 	if !ok {
 		return nil, "", sparkv1.NewStageError(ErrNoStageResult)
@@ -41,9 +42,9 @@ func (st *stageTracker) GetStageResult(name string) (data any, mime string, err 
 
 	switch v := raw.(type) {
 	case sparkv1.StageError:
-		return nil, "", v
+		return v, codec.MimeTypeJson.WithType("error"), nil
 	}
-	return raw, res.value.GetMimeType(), nil
+	return raw, codec.MimeType(res.value.GetMimeType()), nil
 }
 
 func (st *stageTracker) SetStageStatus(name string, status sparkv1.StageStatus) {

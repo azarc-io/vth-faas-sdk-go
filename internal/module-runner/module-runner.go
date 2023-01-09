@@ -14,8 +14,6 @@ import (
 	"time"
 )
 
-// 1. Connect to Temporal
-
 type Runner interface {
 	Stop() error
 }
