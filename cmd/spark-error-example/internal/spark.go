@@ -8,6 +8,7 @@ import (
 
 type Config struct {
 	Retry *sparkv1.RetryConfig `json:"retry"`
+	Panic bool                 `json:"panic"`
 }
 
 type Spark struct {
@@ -31,6 +32,12 @@ func (s *Spark) Stop() {
 func (s *Spark) BuildChain(b sparkv1.Builder) sparkv1.Chain {
 	return b.NewChain("chain-1").
 		Stage("stage-1", func(_ sparkv1.StageContext) (any, sparkv1.StageError) {
+			if s.cfg.Panic {
+				panic("i was forced to panic :)")
+			}
+			return nil, nil
+		}).
+		Stage("stage-2", func(_ sparkv1.StageContext) (any, sparkv1.StageError) {
 			if s.totalFailures <= s.currentFailure {
 				// allow response to pass now
 				return fmt.Sprintf("finally I can pass after %d failures", s.currentFailure), nil
@@ -48,7 +55,7 @@ func (s *Spark) BuildChain(b sparkv1.Builder) sparkv1.Chain {
 			)
 
 			// get the result of the stages
-			if err = ctx.StageResult("stage-1").Bind(&stg1Res); err != nil {
+			if err = ctx.StageResult("stage-2").Bind(&stg1Res); err != nil {
 				return sparkv1.NewStageError(err)
 			}
 

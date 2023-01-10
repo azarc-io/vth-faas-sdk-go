@@ -1,7 +1,6 @@
 package sparkv1
 
 import (
-	"encoding/json"
 	"errors"
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/codec"
 	"reflect"
@@ -106,6 +105,7 @@ type (
 		Bind(a any) error
 		GetValue() (any, error)
 		GetMimeType() string
+		String() string
 	}
 
 	BindableConfig interface {
@@ -124,8 +124,15 @@ type (
 	bindable    Value
 	BindableMap map[string]*bindable
 
-	ExecuteSparkInputs  BindableMap
-	executeSparkOutputs BindableMap
+	ExecuteSparkInputs BindableMap
+	ExecuteSparkOutput struct {
+		Outputs BindableMap        `json:"outputs,omitempty"`
+		Error   *ExecuteSparkError `json:"error,omitempty"`
+	}
+	ExecuteSparkError struct {
+		ErrorMessage string         `json:"error_message,omitempty"`
+		Metadata     map[string]any `json:"metadata,omitempty"`
+	}
 
 	SparkDataIO interface {
 		GetStageResult(workflowId, runId, stageName string) (Bindable, error)
@@ -151,6 +158,13 @@ func (b *bindable) GetValue() (any, error) {
 func (b *bindable) GetMimeType() string {
 	return b.MimeType
 }
+func (b *bindable) String() string {
+	val, _ := bind[string](b.Value)
+	if val != nil {
+		return *val
+	}
+	return ""
+}
 
 func NewBindable(value Value) *bindable {
 	return &bindable{MimeType: value.MimeType, Value: value.Value}
@@ -170,29 +184,26 @@ func (b *errorBindable) GetValue() (any, error) {
 func (b *errorBindable) GetMimeType() string {
 	return ""
 }
+func (b *errorBindable) String() string {
+	return b.err.Error()
+}
+
+func bind[T any](input any) (*T, error) {
+	v := new(T)
+	if input == nil {
+		return nil, nil
+	}
+
+	err := codec.Decode(input, v)
+	return v, err
+}
 
 func NewBindableError(err error) Bindable {
 	return &errorBindable{err: err}
 }
 
-type jsonBindable struct {
-	Value    []byte `json:"value"`
-	MimeType string `json:"mime_type"`
-}
-
-func (b *jsonBindable) Bind(a any) error {
-	return json.Unmarshal(b.Value, a)
-}
-
-func (b *jsonBindable) GetValue() (any, error) {
-	return b.Value, nil
-}
-func (b *jsonBindable) GetMimeType() string {
-	return "application/json"
-}
-
-func NewBindableJson(data []byte) Bindable {
-	return &jsonBindable{Value: data, MimeType: "application/json"}
+func (ese *ExecuteSparkError) Error() string {
+	return ese.ErrorMessage
 }
 
 /************************************************************************/

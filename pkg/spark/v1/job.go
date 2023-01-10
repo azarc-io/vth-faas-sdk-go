@@ -21,10 +21,6 @@ type JobMetadata struct {
 	JobExecutionRunId       string `json:"job_execution_run_id"`      // run id of the root job workflow
 }
 
-type JobOutput struct {
-	Outputs executeSparkOutputs `json:"outputs"`
-}
-
 type JobContext struct {
 	context.Context
 	Metadata *JobMetadata

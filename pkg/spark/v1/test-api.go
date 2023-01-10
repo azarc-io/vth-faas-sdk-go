@@ -16,9 +16,9 @@ type (
 	}
 
 	JobWorkflow interface {
-		Run(ctx workflow.Context, jmd *JobMetadata) (*JobOutput, error)
+		Run(ctx workflow.Context, jmd *JobMetadata) (*ExecuteSparkOutput, error)
 		ExecuteStageActivity(ctx context.Context, req *ExecuteStageRequest) (Bindable, StageError)
-		ExecuteCompleteActivity(ctx context.Context, req *ExecuteStageRequest) (executeSparkOutputs, StageError)
+		ExecuteCompleteActivity(ctx context.Context, req *ExecuteStageRequest) (*ExecuteSparkOutput, StageError)
 	}
 
 	StageTracker interface {

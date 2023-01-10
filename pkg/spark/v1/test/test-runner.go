@@ -18,16 +18,23 @@ var (
 // RunnerTest Test Helper
 type RunnerTest interface {
 	sparkv1.StageTracker
-	Execute(ctx *sparkv1.JobContext, opts ...sparkv1.Option) (Outputs, error)
+	Execute(ctx *sparkv1.JobContext, opts ...sparkv1.Option) (*Outputs, error)
 }
 
-type Outputs map[string]sparkv1.Bindable
+type Outputs struct {
+	sparkv1.ExecuteSparkOutput
+}
 
-func (o Outputs) Bind(varName string, target any) error {
-	if b := o[varName]; b != nil {
+func (o *Outputs) Bind(varName string, target any) error {
+	err := fmt.Errorf("%w: %s", ErrNoStageResult, varName)
+	if o == nil || o.Outputs == nil {
+		return err
+	}
+
+	if b := o.ExecuteSparkOutput.Outputs[varName]; b != nil {
 		return b.Bind(target)
 	}
-	return fmt.Errorf("%w: %s", ErrNoStageResult, varName)
+	return err
 }
 
 type runnerTest struct {
@@ -39,7 +46,7 @@ type runnerTest struct {
 	t        *testing.T
 }
 
-func (r *runnerTest) Execute(ctx *sparkv1.JobContext, opts ...sparkv1.Option) (Outputs, error) {
+func (r *runnerTest) Execute(ctx *sparkv1.JobContext, opts ...sparkv1.Option) (*Outputs, error) {
 	// Execute new workflow using test client
 	wts := testsuite.WorkflowTestSuite{}
 	env := wts.NewTestWorkflowEnvironment()
@@ -74,16 +81,20 @@ func (r *runnerTest) Execute(ctx *sparkv1.JobContext, opts ...sparkv1.Option) (O
 
 	env.ExecuteWorkflow(wf.Run, ctx.Metadata)
 
-	sr := sparkv1.JobOutput{}
-	if err := env.GetWorkflowResult(&sr); err != nil {
+	if err := env.GetWorkflowError(); err != nil {
 		return nil, err
 	}
 
-	outs := make(Outputs)
-	for name, bindable := range sr.Outputs {
-		outs[name] = bindable
+	res := sparkv1.ExecuteSparkOutput{}
+	if err := env.GetWorkflowResult(&res); err != nil {
+		return nil, err
 	}
-	return outs, env.GetWorkflowError()
+
+	if res.Error != nil {
+		return nil, res.Error
+	}
+
+	return &Outputs{res}, nil
 }
 
 func NewTestRunner(t *testing.T, spark sparkv1.Spark, options ...Option) (RunnerTest, error) {

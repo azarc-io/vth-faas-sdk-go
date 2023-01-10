@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/azarc-io/vth-faas-sdk-go/pkg/codec"
 	"time"
 )
 
@@ -27,6 +28,10 @@ var (
 	ErrStageNotFoundInNodeChain = errors.New("stage not found in the Node SparkChain")
 	ErrConditionalStageSkipped  = errors.New("conditional Stage execution")
 	ErrChainIsNotValid          = errors.New("SparkChain is not valid")
+)
+
+var (
+	MimeJsonError = codec.MimeTypeJson.WithType("error")
 )
 
 /************************************************************************/

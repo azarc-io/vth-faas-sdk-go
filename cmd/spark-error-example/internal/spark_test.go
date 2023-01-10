@@ -2,7 +2,6 @@ package spark_test
 
 import (
 	"context"
-	"errors"
 	"testing"
 	"time"
 
@@ -22,9 +21,11 @@ func TestSparkErrorWithRetries(t *testing.T) {
 		Times             uint
 		FirstBackoffWait  time.Duration
 		BackoffMultiplier uint
+		Panic             bool
 	}{
-		{"recover after x retries", "finally I can pass after 10 failures", "", 15, 10 * time.Second, 2},
-		{"fail after x retries", "", "failures 5 of 10", 5, 10 * time.Second, 2},
+		{"recover after x retries", "finally I can pass after 10 failures", "", 15, 10 * time.Second, 2, false},
+		{"fail after x retries", "", "failures 5 of 10", 5, 10 * time.Second, 2, false},
+		{"fail gracefully after panic", "", "i was forced to panic :)", 10, 10 * time.Second, 2, true},
 	}
 
 	for _, test := range tests {
@@ -34,6 +35,7 @@ func TestSparkErrorWithRetries(t *testing.T) {
 			assert.Nil(t, err)
 
 			result, err := worker.Execute(ctx, sparkv1.WithSparkConfig(spark.Config{
+				Panic: test.Panic,
 				Retry: &sparkv1.RetryConfig{
 					Times:             test.Times,
 					FirstBackoffWait:  test.FirstBackoffWait,
@@ -55,8 +57,7 @@ func TestSparkErrorWithRetries(t *testing.T) {
 			}
 
 			//error expected
-			cause := errors.Unwrap(err)
-			assert.Contains(t, cause.Error(), test.expectedErr)
+			assert.Contains(t, err.Error(), test.expectedErr)
 		})
 	}
 }
