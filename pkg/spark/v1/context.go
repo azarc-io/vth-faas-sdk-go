@@ -95,6 +95,18 @@ func NewStageContext(req *ExecuteStageRequest, sparkDataIO SparkDataIO, workflow
 	return stageContext{ExecuteStageRequest: req, sparkDataIO: sparkDataIO, name: name, logger: logger, inputs: inputs, workflowId: workflowId, runId: runId}
 }
 
+func (sc stageContext) JobKey() string {
+	return sc.ExecuteStageRequest.JobKey
+}
+
+func (sc stageContext) CorrelationID() string {
+	return sc.ExecuteStageRequest.CorrelationId
+}
+
+func (sc stageContext) TransactionID() string {
+	return sc.ExecuteStageRequest.TransactionId
+}
+
 func (sc stageContext) Input(name string) Input {
 	in, ok := sc.inputs[name]
 	if !ok {

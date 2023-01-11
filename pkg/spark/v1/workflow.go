@@ -104,10 +104,13 @@ func (w *jobWorkflow) executeStageActivity(ctx workflow.Context, stageName strin
 	for {
 		c := workflow.WithActivityOptions(ctx, options)
 		f := workflow.ExecuteActivity(c, w.ExecuteStageActivity, &ExecuteStageRequest{
-			StageName:  stageName,
-			Inputs:     state.JobContext.Inputs,
-			WorkflowId: info.WorkflowExecution.ID,
-			RunId:      info.WorkflowExecution.RunID,
+			StageName:     stageName,
+			Inputs:        state.JobContext.Inputs,
+			WorkflowId:    info.WorkflowExecution.ID,
+			RunId:         info.WorkflowExecution.RunID,
+			JobKey:        state.JobContext.JobKeyValue,
+			TransactionId: state.JobContext.TransactionIdValue,
+			CorrelationId: state.JobContext.CorrelationIdValue,
 		})
 		if err := f.Get(ctx, &sr); err != nil {
 			//TODO Compensate()

@@ -33,10 +33,13 @@ type (
 	}
 
 	ExecuteStageRequest struct {
-		StageName  string
-		Inputs     ExecuteSparkInputs
-		WorkflowId string
-		RunId      string
+		StageName     string
+		Inputs        ExecuteSparkInputs
+		WorkflowId    string
+		RunId         string
+		TransactionId string
+		CorrelationId string
+		JobKey        string
 	}
 
 	Value struct {

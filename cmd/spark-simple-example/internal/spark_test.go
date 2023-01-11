@@ -31,7 +31,9 @@ func Test_Should_Say_Hello_World(t *testing.T) {
 
 	worker.AssertStageCompleted("stage-1")
 	worker.AssertStageCompleted("stage-2")
+	worker.AssertStageCompleted("stage-5")
 	worker.AssertStageCompleted("chain-1_complete")
-	worker.AssertStageOrder("stage-1", "stage-2", "stage-3", "stage-4")
+	worker.AssertStageOrder("stage-1", "stage-2", "stage-3", "stage-4", "stage-5")
 	worker.AssertStageResult("stage-4", "my-bar-from-config")
+	worker.AssertStageResult("stage-5", "JobKey:test; TransactionId:tid; CorrelationId:cid")
 }
