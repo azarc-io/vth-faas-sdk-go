@@ -1,12 +1,10 @@
-package spark_v1
+package sparkv1
 
 import (
-	"context"
-	sparkv1 "github.com/azarc-io/vth-faas-sdk-go/internal/gen/azarc/sdk/spark/v1"
+	"errors"
+	"github.com/azarc-io/vth-faas-sdk-go/pkg/codec"
+	"reflect"
 )
-
-//go:generate mockgen -destination=./test/mock_context.go -package spark_v1_mock github.com/azarc-io/vth-faas-sdk-go/pkg/spark/v1 Context
-//go:generate mockgen -destination=./test/mock_stageprogress.go -package=spark_v1_mock github.com/azarc-io/vth-faas-sdk-go/pkg/spark/v1 StageProgressHandler
 
 /************************************************************************/
 // CONFIGURATION
@@ -20,32 +18,41 @@ const (
 )
 
 /************************************************************************/
+// ERRORS
+/************************************************************************/
+
+var (
+	ErrTargetNotPointer            = errors.New("unable to set value of non-pointer")
+	ErrUnableToBindUnknownMimeType = errors.New("unable to bind with unknown mime type")
+)
+
+/************************************************************************/
 // BUILDER
 /************************************************************************/
 
 type (
-	// Builder contract for the chain builder
+	// Builder contract for the SparkChain builder
 	Builder interface {
 		NewChain(name string) BuilderChain
 		ChainFinalizer
 	}
 
-	// BuilderChain the root of a chain
+	// BuilderChain the root of a SparkChain
 	BuilderChain interface {
 		ChainNode
 	}
 
-	// ChainNode a node in the chain
+	// ChainNode a Node in the SparkChain
 	ChainNode interface {
-		ChainStage // must have at least 1 stage
+		ChainStage // must have at least 1 Stage
 	}
 
-	// ChainStage a stage in the chain node
+	// ChainStage a Stage in the SparkChain Node
 	ChainStage interface {
 		Stage(name string, stageDefinitionFn StageDefinitionFn, options ...StageOption) ChainStageAny
 	}
 
-	// ChainStageAny allows defining more stages and at least 1 of each compensate, cancelled or complete
+	// ChainStageAny allows defining more Stages and at least 1 of each Compensate, cancelled or Complete
 	ChainStageAny interface {
 		ChainStage
 		ChainCompensate
@@ -53,7 +60,7 @@ type (
 		ChainComplete
 	}
 
-	// ChainCancelledOrComplete allows defining only cancel or completion
+	// ChainCancelledOrComplete allows defining only Cancel or completion
 	ChainCancelledOrComplete interface {
 		ChainCancelled
 		ChainComplete
@@ -74,58 +81,14 @@ type (
 		Complete(completeDefinitionFn CompleteDefinitionFn, options ...StageOption) Chain
 	}
 
-	// Chain finalizes a node in the chain, used internally to build a part of the chain
+	// Chain finalizes a Node in the SparkChain, used internally to build a part of the SparkChain
 	Chain interface {
-		build() *node
+		build() *Node
 	}
 
-	// ChainFinalizer finalizes the entire chain, used internally to build the chain
+	// ChainFinalizer finalizes the entire SparkChain, used internally to build the SparkChain
 	ChainFinalizer interface {
-		buildChain() *chain
-	}
-)
-
-/************************************************************************/
-// IO
-/************************************************************************/
-
-type (
-	IOHandler interface {
-		Inputs(jobKey string, names ...string) Inputs
-		Input(jobKey, name string) Input
-		Output(jobKey string, variables ...*Var) error
-	}
-
-	TestIOHandler interface {
-		IOHandler
-		SetVar(jobKey string, v *Var)
-		GetVar(jobKey, varName string) any
-	}
-)
-
-/************************************************************************/
-// PROGRESS
-/************************************************************************/
-
-type (
-	StageProgressHandler interface {
-		Get(jobKey, name string) (*sparkv1.StageStatus, error)
-		Set(stageStatus *sparkv1.SetStageStatusRequest) error
-		GetResult(jobKey, name string) Bindable
-		SetResult(resultResult *sparkv1.SetStageResultRequest) error
-	}
-
-	TestStageProgressHandler interface {
-		StageProgressHandler
-		AssertStageCompleted(jobKey, stageName string)
-		AssertStageStarted(jobKey, stageName string)
-		AssertStageSkipped(jobKey, stageName string)
-		AssertStageCancelled(jobKey, stageName string)
-		AssertStageFailed(jobKey, stageName string)
-		AddBehaviour() *Behaviour
-		ResetBehaviour()
-		AssertStageResult(jobKey, stageName string, expectedStageResult any)
-		AssertStageOrder(jobKey string, stageNames ...string)
+		BuildChain() *SparkChain
 	}
 )
 
@@ -140,7 +103,8 @@ type (
 
 	Bindable interface {
 		Bind(a any) error
-		Raw() ([]byte, error)
+		GetValue() (any, error)
+		GetMimeType() string
 		String() string
 	}
 
@@ -156,7 +120,91 @@ type (
 	Inputs interface {
 		Get(name string) Bindable
 	}
+
+	bindable    Value
+	BindableMap map[string]*bindable
+
+	ExecuteSparkInputs BindableMap
+	ExecuteSparkOutput struct {
+		Outputs BindableMap        `json:"outputs,omitempty"`
+		Error   *ExecuteSparkError `json:"error,omitempty"`
+	}
+	ExecuteSparkError struct {
+		ErrorMessage string         `json:"error_message,omitempty"`
+		Metadata     map[string]any `json:"metadata,omitempty"`
+	}
+
+	SparkDataIO interface {
+		GetStageResult(workflowId, runId, stageName string) (Bindable, error)
+	}
 )
+
+func (b *bindable) Bind(a any) error {
+	rv := reflect.ValueOf(a)
+	if rv.Kind() != reflect.Pointer || rv.IsNil() {
+		return ErrTargetNotPointer
+	}
+
+	if b == nil || b.Value == nil {
+		return nil
+	}
+
+	return codec.Decode(b.Value, a)
+}
+
+func (b *bindable) GetValue() (any, error) {
+	return b.Value, nil
+}
+func (b *bindable) GetMimeType() string {
+	return b.MimeType
+}
+func (b *bindable) String() string {
+	val, _ := bind[string](b.Value)
+	if val != nil {
+		return *val
+	}
+	return ""
+}
+
+func NewBindable(value Value) *bindable {
+	return &bindable{MimeType: value.MimeType, Value: value.Value}
+}
+
+type errorBindable struct {
+	err error
+}
+
+func (b *errorBindable) Bind(a any) error {
+	return b.err
+}
+
+func (b *errorBindable) GetValue() (any, error) {
+	return nil, b.err
+}
+func (b *errorBindable) GetMimeType() string {
+	return ""
+}
+func (b *errorBindable) String() string {
+	return b.err.Error()
+}
+
+func bind[T any](input any) (*T, error) {
+	v := new(T)
+	if input == nil {
+		return nil, nil
+	}
+
+	err := codec.Decode(input, v)
+	return v, err
+}
+
+func NewBindableError(err error) Bindable {
+	return &errorBindable{err: err}
+}
+
+func (ese *ExecuteSparkError) Error() string {
+	return ese.ErrorMessage
+}
 
 /************************************************************************/
 // CONTEXT
@@ -164,31 +212,16 @@ type (
 
 type (
 	Context interface {
-		Ctx() context.Context
 		JobKey() string
 		CorrelationID() string
 		TransactionID() string
-		LastActiveStage() *sparkv1.LastActiveStage
 	}
 
 	InitContext interface {
 		Config() BindableConfig
 	}
 
-	SparkContext interface {
-		Context
-		IOHandler() IOHandler
-		StageProgressHandler() StageProgressHandler
-		LastActiveStage() *sparkv1.LastActiveStage
-		Log() Logger
-		WithoutLastActiveStage() SparkContext
-		delegateStage() DelegateStageDefinitionFn
-		delegateComplete() DelegateCompleteDefinitionFn
-	}
-
 	StageContext interface {
-		Context
-		Inputs(names ...string) Inputs
 		Input(names string) Input
 		StageResult(name string) Bindable
 		Log() Logger
@@ -235,9 +268,7 @@ type (
 
 type (
 	Worker interface {
-		Execute(ctx Context) StageError
 		Run()
-		LocalContext(jobKey, correlationID, transactionId string) Context
 	}
 )
 
@@ -248,10 +279,8 @@ type (
 type (
 	StageError interface {
 		Error() string
-		Code() uint32
 		Metadata() map[string]any
-		ErrorType() sparkv1.ErrorType
-		ToErrorMessage() *sparkv1.Error
+		GetRetryConfig() *RetryConfig
 	}
 )
 
@@ -262,15 +291,10 @@ type (
 type (
 	StageOptionParams interface {
 		StageName() string
-		StageProgressHandler() StageProgressHandler
-		IOHandler() IOHandler
 		Context() Context
 	}
 
 	StageDefinitionFn    = func(ctx StageContext) (any, StageError)
 	CompleteDefinitionFn = func(ctx CompleteContext) StageError
 	StageOption          = func(StageOptionParams) StageError
-
-	DelegateStageDefinitionFn    = func(ctx StageContext, cb StageDefinitionFn) (any, StageError)
-	DelegateCompleteDefinitionFn = func(ctx CompleteContext, cb CompleteDefinitionFn) StageError
 )

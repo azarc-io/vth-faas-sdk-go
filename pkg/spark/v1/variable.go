@@ -1,11 +1,13 @@
-package spark_v1
+package sparkv1
+
+import "github.com/azarc-io/vth-faas-sdk-go/pkg/codec"
 
 type Var struct {
 	Name     string
-	MimeType string
+	MimeType codec.MimeType
 	Value    any
 }
 
-func NewVar(name, mimeType string, value any) *Var {
+func NewVar(name string, mimeType codec.MimeType, value any) *Var {
 	return &Var{name, mimeType, value}
 }

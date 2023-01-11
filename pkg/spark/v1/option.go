@@ -1,6 +1,9 @@
-package spark_v1
+package sparkv1
 
-import sparkv1 "github.com/azarc-io/vth-faas-sdk-go/internal/gen/azarc/sdk/spark/v1"
+import (
+	"encoding/json"
+	"github.com/rs/zerolog/log"
+)
 
 /************************************************************************/
 // STAGE OPTIONS
@@ -8,46 +11,21 @@ import sparkv1 "github.com/azarc-io/vth-faas-sdk-go/internal/gen/azarc/sdk/spark
 
 type stageOptionParams struct {
 	stageName string
-	sph       StageProgressHandler
-	vh        IOHandler
-	ctx       SparkContext
+	ctx       Context
 }
 
 func (s stageOptionParams) StageName() string {
 	return s.stageName
 }
 
-func (s stageOptionParams) StageProgressHandler() StageProgressHandler {
-	return s.sph
-}
-
-func (s stageOptionParams) IOHandler() IOHandler {
-	return s.vh
-}
-
 func (s stageOptionParams) Context() Context {
 	return s.ctx
 }
 
-func newStageOptionParams(ctx SparkContext, stageName string) StageOptionParams {
+func newStageOptionParams(ctx Context, stageName string) StageOptionParams {
 	return stageOptionParams{
 		stageName: stageName,
-		sph:       ctx.StageProgressHandler(),
-		vh:        ctx.IOHandler(),
 		ctx:       ctx,
-	}
-}
-
-func WithStageStatus(stageName string, status sparkv1.StageStatus) StageOption {
-	return func(sop StageOptionParams) StageError {
-		stageStatus, err := sop.StageProgressHandler().Get(sop.Context().JobKey(), stageName)
-		if err != nil {
-			return NewStageError(err, withErrorType(sparkv1.ErrorType_ERROR_TYPE_FAILED_UNSPECIFIED))
-		}
-		if *stageStatus != status {
-			return NewStageError(newErrConditionalStageSkipped(stageName), withErrorType(sparkv1.ErrorType_ERROR_TYPE_SKIP))
-		}
-		return nil
 	}
 }
 
@@ -55,69 +33,38 @@ func WithStageStatus(stageName string, status sparkv1.StageStatus) StageOption {
 // SPARK OPTIONS
 /************************************************************************/
 
-type sparkOpts struct {
-	variableHandler      IOHandler
-	stageProgressHandler StageProgressHandler
-	log                  Logger
-	delegateStage        DelegateStageDefinitionFn
-	delegateComplete     DelegateCompleteDefinitionFn
-	config               []byte
-	configType           ConfigType
-	configBasePath       string
+type SparkOpts struct {
+	log            Logger
+	config         []byte
+	configType     ConfigType
+	configBasePath string
 }
 
-type Option = func(je *sparkOpts) *sparkOpts
+type Option = func(je *SparkOpts) *SparkOpts
 
-func WithConfiguration(b []byte, t ConfigType) Option {
-	return func(jw *sparkOpts) *sparkOpts {
-		jw.config = b
-		jw.configType = t
-		return jw
+func WithSparkConfig(cfg any) Option {
+	d, err := json.Marshal(cfg)
+	if err != nil {
+		log.Fatal().Err(err).Msgf("unable to serialise config")
+	}
+	return func(je *SparkOpts) *SparkOpts {
+		je.config = d
+		return je
 	}
 }
 
-func WithConfigurationBasePath(path string) Option {
-	return func(jw *sparkOpts) *sparkOpts {
-		jw.configBasePath = path
-		return jw
-	}
+/************************************************************************/
+// WORKFLOW OPTIONS
+/************************************************************************/
+type workflowOpts struct {
+	stageTracker InternalStageTracker
 }
 
-func WithIOHandler(vh IOHandler) Option {
-	return func(jw *sparkOpts) *sparkOpts {
-		jw.variableHandler = vh
-		return jw
-	}
-}
+type WorkflowOption = func(je *workflowOpts) *workflowOpts
 
-func WithStageProgressHandler(sph StageProgressHandler) Option {
-	return func(jw *sparkOpts) *sparkOpts {
-		jw.stageProgressHandler = sph
-		return jw
-	}
-}
-
-func WithLog(log Logger) Option {
-	return func(jw *sparkOpts) *sparkOpts {
-		jw.log = log
-		return jw
-	}
-}
-
-// WithDelegateStage delegates execution of all stages
-// TODO support delegating single stage by name
-func WithDelegateStage(delegate DelegateStageDefinitionFn) Option {
-	return func(jw *sparkOpts) *sparkOpts {
-		jw.delegateStage = delegate
-		return jw
-	}
-}
-
-// WithDelegateCompletion delegates execution of all completion stages
-// TODO support delegating single completion stage by name
-func WithDelegateCompletion(delegate DelegateCompleteDefinitionFn) Option {
-	return func(jw *sparkOpts) *sparkOpts {
-		jw.delegateComplete = delegate
+func WithStageTracker(ist InternalStageTracker) WorkflowOption {
+	return func(jw *workflowOpts) *workflowOpts {
+		jw.stageTracker = ist
 		return jw
 	}
 }

@@ -1,13 +1,12 @@
-package spark_v1
+package sparkv1
 
 import (
 	"fmt"
-	sparkv1 "github.com/azarc-io/vth-faas-sdk-go/internal/gen/azarc/sdk/spark/v1"
 )
 
 var (
 	rootNodeType       = nodeType("root")
-	compensateNodeType = nodeType("compensate")
+	compensateNodeType = nodeType("Compensate")
 	cancelNodeType     = nodeType("canceled")
 )
 
@@ -15,69 +14,60 @@ var (
 // TYPES
 /************************************************************************/
 
-// nodeType describes the type of chain node
+// nodeType describes the type of SparkChain Node
 type nodeType string
 
-// chain represents the entire chain
-// the rootNode is the main entry point of the entire chain
-// it holds its own children as a tree below the rootNode
-type chain struct {
-	rootNode    *node
-	stagesMap   map[string]*stage
-	completeMap map[string]*completeStage
+// SparkChain represents the entire SparkChain
+// the RootNode is the main entry point of the entire SparkChain
+// it holds its own children as a tree below the RootNode
+type SparkChain struct {
+	RootNode    *Node
+	stagesMap   map[string]*Stage
+	completeMap map[string]*CompleteStage
 }
 
-// node wraps all the stages of a single chain
-// these are represented as one or more stages but only one of each
+func (sc *SparkChain) GetStageFunc(name string) StageDefinitionFn {
+	return sc.stagesMap[name].cb
+}
+
+func (sc *SparkChain) GetStageCompleteFunc(name string) CompleteDefinitionFn {
+	return sc.completeMap[name].cb
+}
+
+// Node wraps all the Stages of a single SparkChain
+// these are represented as one or more Stages but only one of each
 // - cancellation
 // - compensation
 // - completion (finalizer)
-type node struct {
-	stages     []*stage
-	complete   *completeStage
-	cancel     *node
-	compensate *node
+type Node struct {
+	Stages     []*Stage
+	Complete   *CompleteStage
+	Cancel     *Node
+	Compensate *Node
+	Name       string
 	nodeType   nodeType
 	breadcrumb string
-	name       string
 }
 
-type completeStage struct {
-	node *node
-	name string
+type CompleteStage struct {
+	Node *Node
+	Name string
 	so   []StageOption
 	cb   CompleteDefinitionFn
 }
 
-type stage struct {
-	node *node
-	name string
+type Stage struct {
+	Node *Node
+	Name string
 	so   []StageOption
 	cb   StageDefinitionFn
-}
-
-/************************************************************************/
-// CHAIN HELPERS
-/************************************************************************/
-
-func (c *chain) getNodeToResume(lastActiveStage *sparkv1.LastActiveStage) (*node, error) {
-	if lastActiveStage == nil {
-		return c.rootNode, nil
-	}
-	if s, ok := c.stagesMap[lastActiveStage.Name]; ok {
-		return s.node, nil
-	}
-	if s, ok := c.completeMap[lastActiveStage.Name]; ok {
-		return s.node, nil
-	}
-	return nil, newErrStageNotFoundInNodeChain(lastActiveStage.Name)
 }
 
 /************************************************************************/
 // CHAIN NODE HELPERS
 /************************************************************************/
 
-func (n *node) appendBreadcrumb(nodeType nodeType, breadcrumb ...string) {
+func (n *Node) appendBreadcrumb(nodeType nodeType, breadcrumb ...string) {
 	if n == nil {
 		return
 	}
@@ -93,7 +83,7 @@ func (n *node) appendBreadcrumb(nodeType nodeType, breadcrumb ...string) {
 // CHAIN NODE STAGE HELPERS
 /************************************************************************/
 
-func (s *stage) ApplyConditionalExecutionOptions(ctx SparkContext, stageName string) StageError {
+func (s *Stage) ApplyConditionalExecutionOptions(ctx Context, stageName string) StageError {
 	params := newStageOptionParams(ctx, stageName)
 	for _, stageOptions := range s.so {
 		if err := stageOptions(params); err != nil {
@@ -107,38 +97,38 @@ func (s *stage) ApplyConditionalExecutionOptions(ctx SparkContext, stageName str
 // CHAIN NODE ACCESSORS
 /************************************************************************/
 
-func (n *node) ChainName() string {
-	return n.name
+func (n *Node) ChainName() string {
+	return n.Name
 }
 
-func (n *node) CompletionName() string {
-	return n.complete.name
+func (n *Node) CompletionName() string {
+	return n.Complete.Name
 }
 
-func (n *node) CountOfStages() int {
-	return len(n.stages)
+func (n *Node) CountOfStages() int {
+	return len(n.Stages)
 }
 
-func (n *node) HasCompletionStage() bool {
-	return n.complete != nil
+func (n *Node) HasCompletionStage() bool {
+	return n.Complete != nil
 }
 
-func (n *node) HasCompensationStage() bool {
-	return n.compensate != nil
+func (n *Node) HasCompensationStage() bool {
+	return n.Compensate != nil
 }
 
-func (n *node) HasCancellationStage() bool {
-	return n.cancel != nil
+func (n *Node) HasCancellationStage() bool {
+	return n.Cancel != nil
 }
 
-func (n *node) IsRoot() bool {
+func (n *Node) IsRoot() bool {
 	return n.nodeType == rootNodeType
 }
 
-func (n *node) IsCompensate() bool {
+func (n *Node) IsCompensate() bool {
 	return n.nodeType == compensateNodeType
 }
 
-func (n *node) IsCancel() bool {
+func (n *Node) IsCancel() bool {
 	return n.nodeType == cancelNodeType
 }

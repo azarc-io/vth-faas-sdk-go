@@ -1,44 +1,37 @@
-package spark_v1
+package sparkv1
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"github.com/sethvargo/go-envconfig"
 	"gopkg.in/yaml.v3"
 	"os"
 	"path"
 	"reflect"
 	"strings"
-	"time"
-
-	"github.com/sethvargo/go-envconfig"
 )
 
 /************************************************************************/
 // SPARK CONFIG
 /************************************************************************/
 
-type config struct {
-	Config struct {
-		Health *configHealth `yaml:"health"`
-		Agent  *configAgent  `yaml:"agent"`
-		Server *configServer `yaml:"server"`
-		Log    *configLog    `yaml:"logging"`
-		App    *configApp    `yaml:"app"`
-	}
+type Config struct {
+	Id         string          `yaml:"id"`
+	Name       string          `yaml:"Name"`
+	QueueGroup string          `yaml:"queue_group"`
+	Health     *configHealth   `yaml:"health"`
+	Server     *configServer   `yaml:"plugin"`
+	Log        *configLog      `yaml:"logging"`
+	App        *configApp      `yaml:"app"`
+	Temporal   *configTemporal `yaml:"temporal"`
 }
 
 type configHealth struct {
 	Enabled bool   `env:"HEALTH_ENABLED" yaml:"enabled"`
 	Bind    string `env:"SERVER_BIND" yaml:"bind"`
 	Port    int    `env:"HEALTH_PORT" yaml:"port"`
-}
-
-type configAgent struct {
-	Host         string        `env:"AGENT_HOST" yaml:"host"`
-	Port         int           `env:"AGENT_PORT" yaml:"port"`
-	RetryBackoff time.Duration `env:"AGENT_RETRY_BACKOFF_DURATION" yaml:"retryBackoff"`
-	MaxRetries   int           `env:"AGENT_RETRY_ATTEMPTS" yaml:"maxRetries"`
 }
 
 type configServer struct {
@@ -57,20 +50,21 @@ type configApp struct {
 	InstanceID  string `env:"APP_INSTANCE_ID" yaml:"instanceId"`
 }
 
-func (m *config) agentAddress() string {
-	return fmt.Sprintf("%s:%d", m.Config.Agent.Host, m.Config.Agent.Port)
+type configTemporal struct {
+	Address   string `yaml:"address"`
+	Namespace string `yaml:"namespace"`
 }
 
-func (m *config) serverAddress() string {
-	return fmt.Sprintf("%s:%d", m.Config.Server.Bind, m.Config.Server.Port)
+func (m *Config) serverAddress() string {
+	return fmt.Sprintf("%s:%d", m.Server.Bind, m.Server.Port)
 }
 
-func (m *config) healthBindTo() string {
-	return fmt.Sprintf("%s:%d", m.Config.Health.Bind, m.Config.Health.Port)
+func (m *Config) healthBindTo() string {
+	return fmt.Sprintf("%s:%d", m.Health.Bind, m.Health.Port)
 }
 
-func loadSparkConfig(opts *sparkOpts) (*config, error) {
-	config := &config{}
+func loadSparkConfig(opts *SparkOpts) (*Config, error) {
+	config := &Config{}
 
 	if os.Getenv("SPARK_FILE_PATH") != "" {
 		b, err := os.ReadFile(os.Getenv("SPARK_FILE_PATH"))
@@ -84,7 +78,12 @@ func loadSparkConfig(opts *sparkOpts) (*config, error) {
 	}
 
 	if os.Getenv("SPARK_SECRET") != "" {
-		if err := yaml.Unmarshal([]byte(os.Getenv("SPARK_SECRET")), &config); err != nil {
+		secret, err := base64.StdEncoding.DecodeString(os.Getenv("SPARK_SECRET"))
+		if err != nil {
+			panic(err)
+		}
+
+		if err := yaml.Unmarshal(secret, &config); err != nil {
 			return nil, err
 		}
 		return config, nil
@@ -116,10 +115,10 @@ func loadSparkConfig(opts *sparkOpts) (*config, error) {
 type bindableConfig struct {
 	b        []byte
 	filePath string
-	opts     *sparkOpts
+	opts     *SparkOpts
 }
 
-func newBindableConfig(opts *sparkOpts) BindableConfig {
+func newBindableConfig(opts *SparkOpts) BindableConfig {
 	c := &bindableConfig{opts: opts}
 
 	var err error
@@ -130,7 +129,10 @@ func newBindableConfig(opts *sparkOpts) BindableConfig {
 
 	if os.Getenv("CONFIG_SECRET") != "" {
 		c.opts.configType = ConfigTypeJson
-		c.b = []byte(os.Getenv("CONFIG_SECRET"))
+		c.b, err = base64.StdEncoding.DecodeString(os.Getenv("CONFIG_SECRET"))
+		if err != nil {
+			panic(err)
+		}
 	} else if os.Getenv("CONFIG_FILE_PATH") != "" {
 		c.filePath = os.Getenv("CONFIG_FILE_PATH")
 		if c.b, err = os.ReadFile(c.filePath); err != nil {
@@ -163,12 +165,11 @@ func (r *bindableConfig) Bind(target any) error {
 	}
 
 	if r.opts.config != nil {
-		switch r.opts.configType {
-		case ConfigTypeJson:
-			return json.Unmarshal(r.opts.config, target)
-		case ConfigTypeYaml:
-			return yaml.Unmarshal(r.opts.config, target)
-		}
+		return json.Unmarshal(r.opts.config, target)
+	}
+
+	if len(r.b) > 1 {
+		return json.Unmarshal(r.b, target)
 	}
 
 	if strings.HasSuffix(r.filePath, ".yaml") {
