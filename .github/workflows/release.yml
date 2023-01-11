@@ -57,4 +57,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.PAT_TOKEN }}
           GORELEASER_CURRENT_TAG: ${{ steps.tag.outputs.new_tag }}
-          DOCKER_REGISTRY: ${{ needs.release.outputs.registry }}
+          DOCKER_REGISTRY: ${{ steps.ecr.outputs.repository-uri }}
