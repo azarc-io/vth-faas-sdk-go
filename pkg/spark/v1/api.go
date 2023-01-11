@@ -222,6 +222,7 @@ type (
 	}
 
 	StageContext interface {
+		Context
 		Input(names string) Input
 		StageResult(name string) Bindable
 		Log() Logger

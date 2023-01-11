@@ -43,11 +43,15 @@ func (s *Spark) BuildChain(b sparkv1.Builder) sparkv1.Chain {
 			// Test config is bound
 			return s.cfg.Foo, nil
 		}).
+		Stage("stage-5", func(ctx sparkv1.StageContext) (any, sparkv1.StageError) {
+			// Test config is bound
+			return fmt.Sprintf("JobKey:%s; TransactionId:%s; CorrelationId:%s", ctx.JobKey(), ctx.TransactionID(), ctx.CorrelationID()), nil
+		}).
 		Complete(func(ctx sparkv1.CompleteContext) sparkv1.StageError {
 			var (
-				stg1Res, stg2Res string
-				stg3Res          []byte
-				err              error
+				stg1Res, stg2Res, stg5Res string
+				stg3Res                   []byte
+				err                       error
 			)
 
 			// get the result of the 3 stages
@@ -60,10 +64,14 @@ func (s *Spark) BuildChain(b sparkv1.Builder) sparkv1.Chain {
 			if err = ctx.StageResult("stage-3").Bind(&stg3Res); err != nil {
 				return sparkv1.NewStageError(err)
 			}
+			if err = ctx.StageResult("stage-5").Bind(&stg5Res); err != nil {
+				return sparkv1.NewStageError(err)
+			}
 
 			// write the output of the spark
 			if err = ctx.Output(
 				sparkv1.NewVar("message", "application/text", fmt.Sprintf("%s %s %s", stg1Res, stg2Res, string(stg3Res))),
+				sparkv1.NewVar("contextValues", "application/text", stg5Res),
 			); err != nil {
 				return sparkv1.NewStageError(err)
 			}
