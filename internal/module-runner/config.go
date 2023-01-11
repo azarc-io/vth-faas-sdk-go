@@ -22,6 +22,12 @@ type config struct {
 	Temporal    *configTemporal `yaml:"temporal"`
 }
 
+func defaultConfig() *config {
+	return &config{
+		BinBasePath: "./",
+	}
+}
+
 type configSpark struct {
 	Id         string `yaml:"id"`          // Id is unique hash to identify this combination of Name and Config
 	Name       string `yaml:"name"`        // Name of the binary to execute
@@ -59,7 +65,7 @@ func (m *config) healthBindTo() string {
 }
 
 func LoadModuleConfig(opts ...ModuleOption) (*config, error) {
-	config := &config{}
+	config := defaultConfig()
 
 	if os.Getenv("MODULE_FILE_PATH") != "" {
 		b, err := os.ReadFile(os.Getenv("MODULE_FILE_PATH"))

@@ -113,9 +113,9 @@ func RunModule(cfg *config) (Runner, error) {
 				rpcClient:    rpcClient,
 			}
 		}()
-
-		r.initHealthz(cfg)
 	}
+
+	r.initHealthz(cfg)
 
 	return &r, nil
 }

@@ -6,7 +6,45 @@ release:
   draft: false
 
 builds:
-  - skip: true
+  - id: module-runner
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    dir: cmd/module-runner
+    main: main.go
+    binary: module-runner
+    env:
+      - CGO_ENABLED=0
+
+dockers:
+#  - id: linux-arm64
+#    ids:
+#      - module-runner
+#    goos: linux
+#    goarch: arm64
+#    image_templates:
+#      - '{{ .Env.DOCKER_REGISTRY }}:{{ .Tag }}-linux-arm64'
+#      - '{{ .Env.DOCKER_REGISTRY }}:latest-linux-arm64'
+#    skip_push: "true"
+#    build_flag_templates:
+#      - --platform=linux/arm64
+#    use: buildx
+  - id: linux-amd64
+    ids:
+      - module-runner
+    goos: linux
+    goarch: amd64
+    image_templates:
+      - '{{ .Env.DOCKER_REGISTRY }}:{{ .Tag }}-linux-amd64'
+      - '{{ .Env.DOCKER_REGISTRY }}:latest-linux-amd64'
+      - 'vth-module-runner:v1.19.1-linux-amd64'
+    skip_push: "true"
+    build_flag_templates:
+      - --platform=linux/amd64
+    use: buildx
 
 snapshot:
   name_template: "{{ incpatch .Version }}-next"

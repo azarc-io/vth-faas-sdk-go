@@ -7,8 +7,8 @@ import (
 
 func main() {
 	cfg, err := module_runner.LoadModuleConfig(
-		module_runner.WithBinBasePath("bin"),
-		module_runner.WithBasePath("cmd/module-runner"))
+		module_runner.WithBasePath("cmd/module-runner"),
+	)
 
 	if err != nil {
 		panic(err)

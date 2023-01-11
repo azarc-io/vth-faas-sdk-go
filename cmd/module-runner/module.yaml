@@ -1,6 +1,7 @@
 temporal:
   address: 127.0.0.1:7233
   namespace: default
+bin_base_path: ./bin
 sparks:
   - id: spark-simple-example_12345
     name: spark-simple-example

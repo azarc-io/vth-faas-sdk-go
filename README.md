@@ -1,51 +1,13 @@
-# vth-faas-sdk-go
-Golang SDK for Verathread Sparks/Connectors
+# Verathread Modules SDK & Module Runner
 
-value, err := ctx.GetStage("name").GetValue().Value() 
-
-brew install gh jq
-gh repo list azarc-io --limit 9999 --json sshUrl | jq '.[]|.sshUrl' | xargs -n1 git clone
-
-brew install grpcurl
-grpcurl -plaintext -vv localhost:7777 sdk_v1.AgentService/ExecuteJob
-
-grpc server config 
-```go
-svr := grpc.NewServer(grpc.ConnectionTimeout(time.Second * 10))
-
-sdk_v1.RegisterAgentServiceServer(svr, AgentService{})
-reflection.Register(svr) // <<<<<<<<<<<
-
-listener, err := net.Listen("tcp", "localhost:7777")
-```
+## Building the image locally
 
 ```shell
-~/dev/code 
-✦11 ❯ grpcurl -plaintext -vv localhost:7777 list                          
-grpc.reflection.v1alpha.ServerReflection
-sdk_v1.AgentService
+goreleaser release --rm-dist --snapshot 
+```
 
+## Re-Tag image for local 
 
-~/dev/code
-✦11 ❯ grpcurl -plaintext -vv -d '{"key": "job_key", "transaction_id": "transaction_id", "correlation_id": "correlation_id" }' localhost:7777 sdk_v1.AgentService/ExecuteJob
-
-Resolved method descriptor:
-rpc ExecuteJob ( .sdk_v1.ExecuteJobRequest ) returns ( .sdk_v1.Void );
-
-Request metadata to send:
-(empty)
-
-Response headers received:
-content-type: application/grpc
-
-Estimated response size: 0 bytes
-
-Response contents:
-{
-  
-}
-
-Response trailers received:
-(empty)
-Sent 1 request and received 1 response
+```shell
+docker tag k3d-local-registry:5000/module-runner:v1.19.0-linux-amd64 vth-module-runner:v1.19.1-linux-amd64
 ```
