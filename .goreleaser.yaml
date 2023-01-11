@@ -40,8 +40,8 @@ dockers:
     image_templates:
       - '{{ .Env.DOCKER_REGISTRY }}:{{ .Tag }}-linux-amd64'
       - '{{ .Env.DOCKER_REGISTRY }}:latest-linux-amd64'
-      - 'vth-module-runner:v1.19.1-linux-amd64'
-    skip_push: "true"
+#      - 'vth-module-runner:v1.19.1-linux-amd64'
+#    skip_push: "true"
     build_flag_templates:
       - --platform=linux/amd64
     use: buildx
