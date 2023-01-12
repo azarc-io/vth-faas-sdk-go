@@ -32,7 +32,7 @@ type result struct {
 func (st *stageTracker) GetStageResult(name string) (data any, mime codec.MimeType, err sparkv1.StageError) {
 	res, ok := st.results[name]
 	if !ok {
-		return nil, "", sparkv1.NewStageError(ErrNoStageResult)
+		return nil, "", sparkv1.NewStageError(fmt.Errorf("%w: %s", ErrNoStageResult, name))
 	}
 
 	raw, err2 := res.value.GetValue()
@@ -91,7 +91,7 @@ func (st *stageTracker) AssertStageFailed(stageName string) {
 func (st *stageTracker) AssertStageResult(stageName string, expectedStageResult any) {
 	res, ok := st.results[stageName]
 	if !ok {
-		assert.Error(st.t, ErrNoStageResult)
+		st.t.Error(fmt.Errorf("%w: %s", ErrNoStageResult, stageName))
 	}
 
 	// create new instance of the expected value so
@@ -121,7 +121,7 @@ func (st *stageTracker) AssertStageOrder(stageNames ...string) {
 func (st *stageTracker) assertStageStatus(stageName string, expectedStatus sparkv1.StageStatus) {
 	res, ok := st.results[stageName]
 	if !ok {
-		st.t.Error(ErrNoStageResult)
+		st.t.Error(fmt.Errorf("%w: %s", ErrNoStageResult, stageName))
 		return
 	}
 
