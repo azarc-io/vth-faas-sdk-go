@@ -119,7 +119,7 @@ func (w *jobWorkflow) executeStageActivity(ctx workflow.Context, stageName strin
 
 		if codec.MimeType(sr.MimeType) == codec.MimeTypeJson.WithType("error") {
 			attempts++
-			var se errorWrap
+			se := errorWrap{StageName: stageName}
 			if err := sr.Bind(&se); err != nil {
 				return nil, err
 			}
@@ -200,13 +200,15 @@ func (w *jobWorkflow) ExecuteCompleteActivity(ctx context.Context, req *ExecuteS
 	var err StageError
 	_ = w.executeFn(func() (any, StageError) {
 		err = fn(cc)
-		return nil, nil
+		return nil, err
 	}, &err)
 	if err != nil {
 		return &ExecuteSparkOutput{
 			Error: &ExecuteSparkError{
+				StageName:    req.StageName,
 				ErrorMessage: err.Error(),
 				Metadata:     err.Metadata(),
+				StackTrace:   getStackTrace(err),
 			},
 		}, nil
 	}
@@ -263,9 +265,11 @@ func NewJobWorkflow(ctx context.Context, sparkDataIO SparkDataIO, sparkId string
 
 // errorWrap used to marshal errors between workflow and activities
 type errorWrap struct {
-	ErrorMessage string         `json:"error_message,omitempty"`
-	Metadata     map[string]any `json:"metadata,omitempty"`
-	Retry        *RetryConfig   `json:"retry,omitempty"`
+	StageName    string           `json:"stage_name,omitempty"`
+	ErrorMessage string           `json:"error_message,omitempty"`
+	Metadata     map[string]any   `json:"metadata,omitempty"`
+	Retry        *RetryConfig     `json:"retry,omitempty"`
+	StackTrace   []StackTraceItem `json:"stack_trace"`
 }
 
 func (e errorWrap) Error() string {
@@ -276,9 +280,11 @@ func getTransferableError(err error) Bindable {
 	var ew []byte
 	if se, ok := err.(StageError); ok {
 		ew, _ = codec.Encode(errorWrap{
+			StageName:    se.StageName(),
 			ErrorMessage: se.Error(),
 			Metadata:     se.Metadata(),
 			Retry:        se.GetRetryConfig(),
+			StackTrace:   getStackTrace(se),
 		}, MimeJsonError)
 	} else {
 		ew, _ = codec.Encode(errorWrap{
@@ -293,15 +299,23 @@ func getSparkErrorOutput(err error) *ExecuteSparkOutput {
 	if e, ok := err.(errorWrap); ok {
 		return &ExecuteSparkOutput{
 			Error: &ExecuteSparkError{
+				StageName:    e.StageName,
 				ErrorMessage: e.ErrorMessage,
 				Metadata:     e.Metadata,
+				StackTrace:   e.StackTrace,
 			},
 		}
+	}
+
+	var stackTrace []StackTraceItem
+	if st, ok := err.(stackTracer); ok {
+		stackTrace = getStackTrace(st)
 	}
 
 	return &ExecuteSparkOutput{
 		Error: &ExecuteSparkError{
 			ErrorMessage: err.Error(),
+			StackTrace:   stackTrace,
 		},
 	}
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"go.temporal.io/sdk/testsuite"
 	"testing"
+	"time"
 )
 
 var (
@@ -26,7 +27,7 @@ type Outputs struct {
 }
 
 func (o *Outputs) Bind(varName string, target any) error {
-	err := fmt.Errorf("%w: %s", ErrNoStageResult, varName)
+	err := fmt.Errorf("%w: %s", ErrNoOutput, varName)
 	if o == nil || o.Outputs == nil {
 		return err
 	}
@@ -50,6 +51,7 @@ func (r *runnerTest) Execute(ctx *sparkv1.JobContext, opts ...sparkv1.Option) (*
 	// Execute new workflow using test client
 	wts := testsuite.WorkflowTestSuite{}
 	env := wts.NewTestWorkflowEnvironment()
+	env.SetTestTimeout(10 * time.Minute)
 
 	// Create the spark chain
 	builder := sparkv1.NewBuilder()

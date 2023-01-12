@@ -1,9 +1,10 @@
 package sparkv1
 
 import (
-	"errors"
+	"fmt"
+
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/codec"
-	"reflect"
+	"github.com/pkg/errors"
 )
 
 /************************************************************************/
@@ -130,8 +131,10 @@ type (
 		Error   *ExecuteSparkError `json:"error,omitempty"`
 	}
 	ExecuteSparkError struct {
-		ErrorMessage string         `json:"error_message,omitempty"`
-		Metadata     map[string]any `json:"metadata,omitempty"`
+		StageName    string           `json:"stage_name"`
+		ErrorMessage string           `json:"error_message,omitempty"`
+		Metadata     map[string]any   `json:"metadata,omitempty"`
+		StackTrace   []StackTraceItem `json:"stack_trace"`
 	}
 
 	SparkDataIO interface {
@@ -140,16 +143,11 @@ type (
 )
 
 func (b *bindable) Bind(a any) error {
-	rv := reflect.ValueOf(a)
-	if rv.Kind() != reflect.Pointer || rv.IsNil() {
-		return ErrTargetNotPointer
-	}
-
 	if b == nil || b.Value == nil {
 		return nil
 	}
 
-	return codec.Decode(b.Value, a)
+	return errors.WithStack(codec.Decode(b.Value, a))
 }
 
 func (b *bindable) GetValue() (any, error) {
@@ -203,7 +201,11 @@ func NewBindableError(err error) Bindable {
 }
 
 func (ese *ExecuteSparkError) Error() string {
-	return ese.ErrorMessage
+	var stack []string
+	for _, t := range ese.StackTrace {
+		stack = append(stack, fmt.Sprintf("%s\n\t%s\n", t.Type, t.Filepath))
+	}
+	return fmt.Sprintf("%s\n%s", ese.ErrorMessage, stack)
 }
 
 /************************************************************************/
@@ -278,7 +280,18 @@ type (
 /************************************************************************/
 
 type (
+	stackTracer interface {
+		StackTrace() errors.StackTrace
+	}
+
+	StackTraceItem struct {
+		Type     string `json:"type"`
+		Filepath string `json:"filepath"`
+	}
+
 	StageError interface {
+		stackTracer
+		StageName() string
 		Error() string
 		Metadata() map[string]any
 		GetRetryConfig() *RetryConfig

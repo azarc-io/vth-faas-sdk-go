@@ -54,7 +54,7 @@ func (s *Spark) BuildChain(b sparkv1.Builder) sparkv1.Chain {
 				err                       error
 			)
 
-			// get the result of the 3 stages
+			// get the result of the stages
 			if err = ctx.StageResult("stage-1").Bind(&stg1Res); err != nil {
 				return sparkv1.NewStageError(err)
 			}
