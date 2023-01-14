@@ -2,10 +2,12 @@ package module_runner
 
 import (
 	"encoding/base64"
+	"fmt"
 	"github.com/azarc-io/vth-faas-sdk-go/internal/healthz"
 	hclog "github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-plugin"
 	"gopkg.in/yaml.v3"
+	"io/fs"
 	"log"
 	"net/http"
 	"os"
@@ -71,7 +73,13 @@ func RunModule(cfg *config) (Runner, error) {
 	for _, s := range cfg.Sparks {
 		cmd := exec.Command(path.Join(cfg.BinBasePath, s.Name))
 		cmd.Env = os.Environ()
-		cmd.Env = append(cmd.Env, "CONFIG_SECRET="+base64.StdEncoding.EncodeToString([]byte(s.Config)))
+
+		cfgPath := path.Join(os.TempDir(), fmt.Sprintf("%s-%s-config.cfg", s.Name, s.Id))
+		if err := os.WriteFile(cfgPath, []byte(s.Config), fs.ModePerm); err != nil {
+			return nil, err
+		}
+
+		cmd.Env = append(cmd.Env, fmt.Sprintf("CONFIG_FILE_PATH=%s", cfgPath))
 
 		// Create the config options for the spark runner
 		m, _ := yaml.Marshal(map[string]any{
