@@ -47,6 +47,10 @@ var (
 	MimeJsonError = codec.MimeTypeJson.WithType("error")
 )
 
+const (
+	ErrorCodeGeneric = "VTH_INTERNAL_GENERIC"
+)
+
 /************************************************************************/
 // ERROR FACTORIES
 /************************************************************************/
@@ -59,12 +63,17 @@ func newErrConditionalStageSkipped(stageName string) error {
 	return fmt.Errorf("%w: Stage '%s' skipped", ErrConditionalStageSkipped, stageName)
 }
 
-func NewStageError(errorCode string, err error, opts ...ErrorOption) StageError {
+func NewStageErrorWithCode(errorCode string, err error, opts ...ErrorOption) StageError {
+	opts = append(opts, WithErrorCode(errorCode))
+	return NewStageError(err, opts...)
+}
+
+func NewStageError(err error, opts ...ErrorOption) StageError {
 	if _, ok := err.(stackTracer); !ok {
 		err = errors.WithStack(err)
 	}
 
-	stg := &stageError{err: err, errorCode: errorCode}
+	stg := &stageError{err: err, errorCode: ErrorCodeGeneric}
 	for _, opt := range opts {
 		stg = opt(stg)
 	}
@@ -119,6 +128,13 @@ func WithRetry(times uint, backoffMultiplier uint, firstBackoffWait time.Duratio
 	//TODO Change to have retries
 	return func(err *stageError) *stageError {
 		err.retry = &RetryConfig{Times: times, BackoffMultiplier: backoffMultiplier, FirstBackoffWait: firstBackoffWait}
+		return err
+	}
+}
+
+func WithErrorCode(errorCode string) ErrorOption {
+	return func(err *stageError) *stageError {
+		err.errorCode = errorCode
 		return err
 	}
 }
