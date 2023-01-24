@@ -291,6 +291,7 @@ type (
 
 	StageError interface {
 		stackTracer
+		ErrorCode() string
 		StageName() string
 		Error() string
 		Metadata() map[string]any

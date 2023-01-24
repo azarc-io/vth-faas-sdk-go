@@ -17,6 +17,7 @@ import (
 type ErrorOption = func(err *stageError) *stageError
 
 type stageError struct {
+	errorCode string
 	stageName string
 	err       error
 	metadata  map[string]any
@@ -58,12 +59,12 @@ func newErrConditionalStageSkipped(stageName string) error {
 	return fmt.Errorf("%w: Stage '%s' skipped", ErrConditionalStageSkipped, stageName)
 }
 
-func NewStageError(err error, opts ...ErrorOption) StageError {
+func NewStageError(errorCode string, err error, opts ...ErrorOption) StageError {
 	if _, ok := err.(stackTracer); !ok {
 		err = errors.WithStack(err)
 	}
 
-	stg := &stageError{err: err}
+	stg := &stageError{err: err, errorCode: errorCode}
 	for _, opt := range opts {
 		stg = opt(stg)
 	}
@@ -73,6 +74,10 @@ func NewStageError(err error, opts ...ErrorOption) StageError {
 /************************************************************************/
 // STAGE ERROR ENVELOPE
 /************************************************************************/
+
+func (s *stageError) ErrorCode() string {
+	return s.errorCode
+}
 
 func (s *stageError) StageName() string {
 	return s.stageName
