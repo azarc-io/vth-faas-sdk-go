@@ -206,6 +206,7 @@ func (w *jobWorkflow) ExecuteCompleteActivity(ctx context.Context, req *ExecuteS
 		return &ExecuteSparkOutput{
 			Error: &ExecuteSparkError{
 				StageName:    req.StageName,
+				ErrorCode:    err.ErrorCode(),
 				ErrorMessage: err.Error(),
 				Metadata:     err.Metadata(),
 				StackTrace:   getStackTrace(err),
@@ -222,6 +223,7 @@ func (w *jobWorkflow) ExecuteCompleteActivity(ctx context.Context, req *ExecuteS
 			return &ExecuteSparkOutput{
 				Error: &ExecuteSparkError{
 					ErrorMessage: err.Error(),
+					ErrorCode:    ErrorCodeGeneric,
 				},
 			}, nil
 		}
@@ -266,6 +268,7 @@ func NewJobWorkflow(ctx context.Context, sparkDataIO SparkDataIO, sparkId string
 // errorWrap used to marshal errors between workflow and activities
 type errorWrap struct {
 	StageName    string           `json:"stage_name,omitempty"`
+	ErrorCode    string           `json:"error_code"`
 	ErrorMessage string           `json:"error_message,omitempty"`
 	Metadata     map[string]any   `json:"metadata,omitempty"`
 	Retry        *RetryConfig     `json:"retry,omitempty"`
@@ -282,6 +285,7 @@ func getTransferableError(err error) Bindable {
 		ew, _ = codec.Encode(errorWrap{
 			StageName:    se.StageName(),
 			ErrorMessage: se.Error(),
+			ErrorCode:    se.ErrorCode(),
 			Metadata:     se.Metadata(),
 			Retry:        se.GetRetryConfig(),
 			StackTrace:   getStackTrace(se),
@@ -289,6 +293,7 @@ func getTransferableError(err error) Bindable {
 	} else {
 		ew, _ = codec.Encode(errorWrap{
 			ErrorMessage: err.Error(),
+			ErrorCode:    ErrorCodeGeneric,
 		}, MimeJsonError)
 	}
 
@@ -300,6 +305,7 @@ func getSparkErrorOutput(err error) *ExecuteSparkOutput {
 		return &ExecuteSparkOutput{
 			Error: &ExecuteSparkError{
 				StageName:    e.StageName,
+				ErrorCode:    e.ErrorCode,
 				ErrorMessage: e.ErrorMessage,
 				Metadata:     e.Metadata,
 				StackTrace:   e.StackTrace,
@@ -316,6 +322,7 @@ func getSparkErrorOutput(err error) *ExecuteSparkOutput {
 		Error: &ExecuteSparkError{
 			ErrorMessage: err.Error(),
 			StackTrace:   stackTrace,
+			ErrorCode:    ErrorCodeGeneric,
 		},
 	}
 }

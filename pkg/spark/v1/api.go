@@ -132,6 +132,7 @@ type (
 	}
 	ExecuteSparkError struct {
 		StageName    string           `json:"stage_name"`
+		ErrorCode    string           `json:"error_code"`
 		ErrorMessage string           `json:"error_message,omitempty"`
 		Metadata     map[string]any   `json:"metadata,omitempty"`
 		StackTrace   []StackTraceItem `json:"stack_trace"`
