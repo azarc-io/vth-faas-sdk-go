@@ -268,7 +268,7 @@ func NewJobWorkflow(ctx context.Context, sparkDataIO SparkDataIO, sparkId string
 // errorWrap used to marshal errors between workflow and activities
 type errorWrap struct {
 	StageName    string           `json:"stage_name,omitempty"`
-	ErrorCode    string           `json:"error_code"`
+	ErrorCode    ErrorCode        `json:"error_code"`
 	ErrorMessage string           `json:"error_message,omitempty"`
 	Metadata     map[string]any   `json:"metadata,omitempty"`
 	Retry        *RetryConfig     `json:"retry,omitempty"`

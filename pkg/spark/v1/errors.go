@@ -16,8 +16,10 @@ import (
 
 type ErrorOption = func(err *stageError) *stageError
 
+type ErrorCode string
+
 type stageError struct {
-	errorCode string
+	errorCode ErrorCode
 	stageName string
 	err       error
 	metadata  map[string]any
@@ -48,7 +50,7 @@ var (
 )
 
 const (
-	ErrorCodeGeneric = "VTH_INTERNAL_GENERIC"
+	ErrorCodeGeneric ErrorCode = "VTH_INTERNAL_GENERIC"
 )
 
 /************************************************************************/
@@ -63,7 +65,7 @@ func newErrConditionalStageSkipped(stageName string) error {
 	return fmt.Errorf("%w: Stage '%s' skipped", ErrConditionalStageSkipped, stageName)
 }
 
-func NewStageErrorWithCode(errorCode string, err error, opts ...ErrorOption) StageError {
+func NewStageErrorWithCode(errorCode ErrorCode, err error, opts ...ErrorOption) StageError {
 	opts = append(opts, WithErrorCode(errorCode))
 	return NewStageError(err, opts...)
 }
@@ -84,7 +86,7 @@ func NewStageError(err error, opts ...ErrorOption) StageError {
 // STAGE ERROR ENVELOPE
 /************************************************************************/
 
-func (s *stageError) ErrorCode() string {
+func (s *stageError) ErrorCode() ErrorCode {
 	return s.errorCode
 }
 
@@ -132,7 +134,7 @@ func WithRetry(times uint, backoffMultiplier uint, firstBackoffWait time.Duratio
 	}
 }
 
-func WithErrorCode(errorCode string) ErrorOption {
+func WithErrorCode(errorCode ErrorCode) ErrorOption {
 	return func(err *stageError) *stageError {
 		err.errorCode = errorCode
 		return err
