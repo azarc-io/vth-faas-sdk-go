@@ -13,9 +13,15 @@ import (
 
 type ConfigType string
 
+type ErrorCode string
+
 const (
 	ConfigTypeYaml ConfigType = "yaml"
 	ConfigTypeJson ConfigType = "json"
+)
+
+const (
+	ErrorCodeGeneric ErrorCode = "GENERIC"
 )
 
 /************************************************************************/
@@ -132,6 +138,7 @@ type (
 	}
 	ExecuteSparkError struct {
 		StageName    string           `json:"stage_name"`
+		ErrorCode    ErrorCode        `json:"error_code"`
 		ErrorMessage string           `json:"error_message,omitempty"`
 		Metadata     map[string]any   `json:"metadata,omitempty"`
 		StackTrace   []StackTraceItem `json:"stack_trace"`
@@ -291,6 +298,7 @@ type (
 
 	StageError interface {
 		stackTracer
+		ErrorCode() ErrorCode
 		StageName() string
 		Error() string
 		Metadata() map[string]any

@@ -17,6 +17,7 @@ import (
 type ErrorOption = func(err *stageError) *stageError
 
 type stageError struct {
+	errorCode ErrorCode
 	stageName string
 	err       error
 	metadata  map[string]any
@@ -46,6 +47,10 @@ var (
 	MimeJsonError = codec.MimeTypeJson.WithType("error")
 )
 
+const (
+	errorCodeInternal ErrorCode = "VTH_INTERNAL_GENERIC"
+)
+
 /************************************************************************/
 // ERROR FACTORIES
 /************************************************************************/
@@ -58,12 +63,17 @@ func newErrConditionalStageSkipped(stageName string) error {
 	return fmt.Errorf("%w: Stage '%s' skipped", ErrConditionalStageSkipped, stageName)
 }
 
+func NewStageErrorWithCode(errorCode ErrorCode, err error, opts ...ErrorOption) StageError {
+	opts = append(opts, WithErrorCode(errorCode))
+	return NewStageError(err, opts...)
+}
+
 func NewStageError(err error, opts ...ErrorOption) StageError {
 	if _, ok := err.(stackTracer); !ok {
 		err = errors.WithStack(err)
 	}
 
-	stg := &stageError{err: err}
+	stg := &stageError{err: err, errorCode: ErrorCodeGeneric}
 	for _, opt := range opts {
 		stg = opt(stg)
 	}
@@ -73,6 +83,10 @@ func NewStageError(err error, opts ...ErrorOption) StageError {
 /************************************************************************/
 // STAGE ERROR ENVELOPE
 /************************************************************************/
+
+func (s *stageError) ErrorCode() ErrorCode {
+	return s.errorCode
+}
 
 func (s *stageError) StageName() string {
 	return s.stageName
@@ -114,6 +128,13 @@ func WithRetry(times uint, backoffMultiplier uint, firstBackoffWait time.Duratio
 	//TODO Change to have retries
 	return func(err *stageError) *stageError {
 		err.retry = &RetryConfig{Times: times, BackoffMultiplier: backoffMultiplier, FirstBackoffWait: firstBackoffWait}
+		return err
+	}
+}
+
+func WithErrorCode(errorCode ErrorCode) ErrorOption {
+	return func(err *stageError) *stageError {
+		err.errorCode = errorCode
 		return err
 	}
 }
