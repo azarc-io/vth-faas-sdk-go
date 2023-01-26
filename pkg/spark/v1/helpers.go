@@ -9,7 +9,7 @@ var CompleteSuccess = func(ctx CompleteContext) StageError {
 }
 
 var CompleteError = func(ctx CompleteContext) StageError {
-	return NewStageError(errors.New("Complete failed"))
+	return NewStageErrorWithCode(errorCodeInternal, errors.New("Complete failed"))
 }
 
 func appendIfNotNil[T any](array []*T, items ...*T) []*T {

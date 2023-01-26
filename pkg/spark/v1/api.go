@@ -13,9 +13,15 @@ import (
 
 type ConfigType string
 
+type ErrorCode string
+
 const (
 	ConfigTypeYaml ConfigType = "yaml"
 	ConfigTypeJson ConfigType = "json"
+)
+
+const (
+	ErrorCodeGeneric ErrorCode = "GENERIC"
 )
 
 /************************************************************************/

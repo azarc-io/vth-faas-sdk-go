@@ -16,8 +16,6 @@ import (
 
 type ErrorOption = func(err *stageError) *stageError
 
-type ErrorCode string
-
 type stageError struct {
 	errorCode ErrorCode
 	stageName string
@@ -50,7 +48,7 @@ var (
 )
 
 const (
-	ErrorCodeGeneric ErrorCode = "VTH_INTERNAL_GENERIC"
+	errorCodeInternal ErrorCode = "VTH_INTERNAL_GENERIC"
 )
 
 /************************************************************************/

@@ -223,7 +223,7 @@ func (w *jobWorkflow) ExecuteCompleteActivity(ctx context.Context, req *ExecuteS
 			return &ExecuteSparkOutput{
 				Error: &ExecuteSparkError{
 					ErrorMessage: err.Error(),
-					ErrorCode:    ErrorCodeGeneric,
+					ErrorCode:    errorCodeInternal,
 				},
 			}, nil
 		}
@@ -238,9 +238,9 @@ func (w *jobWorkflow) executeFn(executor func() (any, StageError), se *StageErro
 		if err := recover(); err != nil {
 			switch ec := err.(type) {
 			case error:
-				*se = NewStageError(ec)
+				*se = NewStageErrorWithCode(errorCodeInternal, ec)
 			default:
-				*se = NewStageError(errors.New(fmt.Sprint(ec)))
+				*se = NewStageErrorWithCode(errorCodeInternal, errors.New(fmt.Sprint(ec)))
 			}
 		}
 	}()
@@ -293,7 +293,7 @@ func getTransferableError(err error) Bindable {
 	} else {
 		ew, _ = codec.Encode(errorWrap{
 			ErrorMessage: err.Error(),
-			ErrorCode:    ErrorCodeGeneric,
+			ErrorCode:    errorCodeInternal,
 		}, MimeJsonError)
 	}
 
@@ -322,7 +322,7 @@ func getSparkErrorOutput(err error) *ExecuteSparkOutput {
 		Error: &ExecuteSparkError{
 			ErrorMessage: err.Error(),
 			StackTrace:   stackTrace,
-			ErrorCode:    ErrorCodeGeneric,
+			ErrorCode:    errorCodeInternal,
 		},
 	}
 }
