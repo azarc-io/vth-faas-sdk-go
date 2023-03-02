@@ -25,7 +25,7 @@ func WithBasePath(configBasePath string) Option {
 }
 
 func WithSparkConfigYAML(d []byte) sparkv1.Option {
-	m := make(map[string]any)
+	var m map[string]any
 	if err := yaml.Unmarshal(d, &m); err != nil {
 		panic(err)
 	}
@@ -34,7 +34,7 @@ func WithSparkConfigYAML(d []byte) sparkv1.Option {
 }
 
 func WithSparkConfigJSON(d []byte) sparkv1.Option {
-	m := make(map[string]any)
+	var m map[string]any
 	if err := json.Unmarshal(d, &m); err != nil {
 		panic(err)
 	}
