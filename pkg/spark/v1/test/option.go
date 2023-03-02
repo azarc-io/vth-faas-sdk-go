@@ -2,6 +2,7 @@ package module_test_runner
 
 import (
 	"encoding/json"
+
 	sparkv1 "github.com/azarc-io/vth-faas-sdk-go/pkg/spark/v1"
 	"gopkg.in/yaml.v3"
 )
@@ -24,8 +25,8 @@ func WithBasePath(configBasePath string) Option {
 }
 
 func WithSparkConfigYAML(d []byte) sparkv1.Option {
-	m := make(map[string]any)
-	if err := yaml.Unmarshal(d, m); err != nil {
+	var m map[string]any
+	if err := yaml.Unmarshal(d, &m); err != nil {
 		panic(err)
 	}
 
@@ -33,8 +34,8 @@ func WithSparkConfigYAML(d []byte) sparkv1.Option {
 }
 
 func WithSparkConfigJSON(d []byte) sparkv1.Option {
-	m := make(map[string]any)
-	if err := json.Unmarshal(d, m); err != nil {
+	var m map[string]any
+	if err := json.Unmarshal(d, &m); err != nil {
 		panic(err)
 	}
 
