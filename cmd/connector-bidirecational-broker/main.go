@@ -93,7 +93,7 @@ func (c connector) Start(ctx connectorv1.StartContext) error {
 				messageName: descriptor.MessageName(),
 				body:        msg.body,
 				headers:     msg.headers,
-			}); err != nil {
+			}, ctx.Log()); err != nil {
 				return err
 			}
 			return nil
@@ -126,10 +126,10 @@ func (c connector) Stop(_ connectorv1.StopContext) error {
 /************************************************************************/
 
 // handleInboundRequest handles inbound requests from the server e.g. open api server
-func (c connector) handleInboundRequest(req *request) error {
+func (c connector) handleInboundRequest(req *request, logger connectorv1.Logger) error {
 	_, err := req.forwarder.Forward(req.messageName, req.body, req.headers)
 	if err != nil {
-		req.forwarder.LogError(err, "could not handle inbound request")
+		logger.LogError(err, "could not handle inbound request")
 		return err
 	}
 

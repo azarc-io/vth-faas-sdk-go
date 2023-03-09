@@ -41,12 +41,16 @@ type (
 		InboundDescriptors() []InboundDescriptor
 		OutboundDescriptors() []OutboundDescriptor
 		Forwarder() Forwarder
+		Log() Logger
+		RegisterPeriodicHealthCheck(name string, fn HealthCheckFunc)
 	}
 
 	StopContext interface {
-		Logger
+		Log() Logger
 	}
 )
+
+type HealthCheckFunc func() error
 
 /************************************************************************/
 // Forwarding
@@ -54,7 +58,6 @@ type (
 
 type (
 	Forwarder interface {
-		Logger
 		Forward(name string, body []byte, headers Headers) (InboundResponse, error)
 	}
 )
@@ -64,8 +67,9 @@ type (
 /************************************************************************/
 
 type Ingress interface {
-	IngressHost() string
-	IngressPort() int
+	ExternalAddress() string
+	InternalPort() int
+	InternalHost() string
 }
 
 /************************************************************************/

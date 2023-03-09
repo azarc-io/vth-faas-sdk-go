@@ -101,7 +101,7 @@ func (c connector) Start(ctx connectorv1.StartContext) error {
 	// ingress host will either be the ip address of the service or 0.0.0.0
 	// ingress port will use the configured port from the connector.yaml when unit testing locally
 	// ingress port will be provided by the agent when deployed through verathread
-	c.server = &mockServer{bindHost: ingress.IngressHost(), bindPort: ingress.IngressPort(), spec: c.config.ServerOpenApiSpec}
+	c.server = &mockServer{bindHost: ingress.ExternalAddress(), bindPort: ingress.InternalPort(), spec: c.config.ServerOpenApiSpec}
 	// register a handler with our mock server, you have to wrap the handler so that you can
 	// pass a forwarding context to your actual handler, that will give you access to everything
 	// you need to handle an inbound request
@@ -111,7 +111,7 @@ func (c connector) Start(ctx connectorv1.StartContext) error {
 			path:      path,
 			body:      body,
 			headers:   headers,
-		})
+		}, ctx.Log())
 
 		if err != nil {
 			return nil, err
@@ -133,7 +133,7 @@ func (c connector) Start(ctx connectorv1.StartContext) error {
 // you can gracefully terminate any clients/servers at this point
 func (c connector) Stop(ctx connectorv1.StopContext) error {
 	if err := c.server.stop(); err != nil {
-		ctx.LogError(err, "failed to gracefully stop the server")
+		ctx.Log().LogError(err, "failed to gracefully stop the server")
 	}
 	return c.client.disconnect()
 }
@@ -143,16 +143,16 @@ func (c connector) Stop(ctx connectorv1.StopContext) error {
 /************************************************************************/
 
 // handleInboundRequest handles inbound requests from the server e.g. open api server
-func (c connector) handleInboundRequest(req *request) (string, []byte, connectorv1.Headers, error) {
+func (c connector) handleInboundRequest(req *request, logger connectorv1.Logger) (string, []byte, connectorv1.Headers, error) {
 	response, err := req.forwarder.Forward(req.path, req.body, req.headers)
 	if err != nil {
-		req.forwarder.LogError(err, "could not handle inbound request")
+		logger.LogError(err, "could not handle inbound request")
 		return "", nil, nil, err
 	}
 
 	rawBody, err := response.Body().Raw()
 	if err != nil {
-		req.forwarder.LogError(err, "could not fetch response from agent")
+		logger.LogError(err, "could not fetch response from agent")
 		return "", nil, nil, err
 	}
 
