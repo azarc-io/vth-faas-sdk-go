@@ -1,53 +1,21 @@
 package sparkv1
 
 import (
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
-	"sync"
+	"github.com/azarc-io/vth-faas-sdk-go/internal/common"
 )
 
 type sparkContextLogger struct {
-	log      zerolog.Logger
-	metadata map[string]any
-	sync.Mutex
-}
-
-func (s *sparkContextLogger) Info(format string, v ...any) {
-	s.Lock()
-	defer s.Unlock()
-	log.Info().Fields(s.metadata).Msgf(format, v...)
-}
-
-func (s *sparkContextLogger) Warn(format string, v ...any) {
-	s.Lock()
-	defer s.Unlock()
-	log.Warn().Fields(s.metadata).Msgf(format, v...)
-}
-
-func (s *sparkContextLogger) Debug(format string, v ...any) {
-	s.Lock()
-	defer s.Unlock()
-	log.Debug().Fields(s.metadata).Msgf(format, v...)
-}
-
-func (s *sparkContextLogger) Error(err error, format string, v ...any) {
-	s.Lock()
-	defer s.Unlock()
-	log.Error().Err(err).Fields(s.metadata).Msgf(format, v...)
+	*common.Logger
 }
 
 func (s *sparkContextLogger) AddFields(k string, v any) Logger {
-	s.Lock()
-	defer s.Unlock()
-	s.metadata[k] = v
+	s.Logger.AddFields(k, v)
 	return s
 }
 
-var skipFrameCount = 3
-
 func NewLogger() Logger {
+	logger, _ := common.NewLogger("spark_context", "")
 	return &sparkContextLogger{
-		metadata: map[string]any{},
-		log:      log.With().Str("module", "spark_worker").CallerWithSkipFrameCount(skipFrameCount).Stack().Logger(),
+		logger,
 	}
 }
