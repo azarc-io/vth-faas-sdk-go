@@ -88,11 +88,11 @@ type (
 	request interface {
 		Body() Bindable
 		Headers() Headers
-		MessageName() string
 	}
 
 	InboundRequest interface {
 		request
+		MessageName() string
 		MimeType() string
 	}
 
@@ -102,6 +102,7 @@ type (
 
 	OutboundRequest interface {
 		request
+		MessageName() string
 		MimeType() string
 	}
 

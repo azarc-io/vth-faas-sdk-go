@@ -26,7 +26,7 @@ type config struct {
 
 type connectorConfig struct {
 	Id     string        `yaml:"id"`
-	Name   string        `yaml:"Name"`
+	Name   string        `yaml:"name"`
 	Tenant string        `yaml:"tenant"`
 	Agent  *agent        `yaml:"agent"`
 	Health *configHealth `yaml:"health"`
@@ -168,7 +168,7 @@ func (m messageDescriptor) Config() Bindable {
 		parts := strings.Split(m.Mime, "/")
 		tp = parts[len(parts)-1]
 	}
-	return newBindable(m.Options, bindableType(tp))
+	return NewBindable(m.Options, BindableType(tp))
 }
 
 func loadMessageDescriptorsConfig(messageType MessageType) ([]messageDescriptor, error) {
@@ -209,7 +209,7 @@ func loadUserConfig(opts *ConnectorOpts) (Bindable, error) {
 		if err != nil {
 			return nil, err
 		}
-		return newBindable(bytes, bindableTypeJson), nil
+		return NewBindable(bytes, BindableTypeJson), nil
 	}
 
 	configFilePathEnvVar := os.Getenv("CONFIG_FILE_PATH")
@@ -220,11 +220,11 @@ func loadUserConfig(opts *ConnectorOpts) (Bindable, error) {
 		}
 		parts := strings.Split(configFilePathEnvVar, ".")
 		tp := parts[len(parts)-1]
-		return newBindable(bytes, bindableType(tp)), nil
+		return NewBindable(bytes, BindableType(tp)), nil
 	}
 
 	if opts.config != nil {
-		return newBindable(opts.config, bindableTypeUnknown), nil
+		return NewBindable(opts.config, BindableTypeUnknown), nil
 	}
 
 	yamlFilePath := path.Join(opts.configBasePath, "config.yaml")
@@ -233,7 +233,7 @@ func loadUserConfig(opts *ConnectorOpts) (Bindable, error) {
 		if err != nil {
 			return nil, err
 		}
-		return newBindable(bytes, bindableTypeYaml), nil
+		return NewBindable(bytes, BindableTypeYaml), nil
 	}
 
 	jsonFilePath := path.Join(opts.configBasePath, "config.json")
@@ -242,7 +242,7 @@ func loadUserConfig(opts *ConnectorOpts) (Bindable, error) {
 		if err != nil {
 			return nil, err
 		}
-		return newBindable(bytes, bindableTypeJson), nil
+		return NewBindable(bytes, BindableTypeJson), nil
 	}
 
 	return nil, errors.New("config not provided")
@@ -252,17 +252,17 @@ func loadUserConfig(opts *ConnectorOpts) (Bindable, error) {
 // Bindable
 /************************************************************************/
 
-type bindableType string
+type BindableType string
 
 const (
-	bindableTypeJson    = "json"
-	bindableTypeYaml    = "yaml"
-	bindableTypeUnknown = ""
+	BindableTypeJson    = "json"
+	BindableTypeYaml    = "yaml"
+	BindableTypeUnknown = ""
 )
 
 type bindable struct {
 	data     []byte
-	dataType bindableType
+	dataType BindableType
 }
 
 func (r *bindable) Raw() ([]byte, error) {
@@ -275,15 +275,15 @@ func (r *bindable) Bind(target any) error {
 	}
 
 	switch r.dataType {
-	case bindableTypeYaml:
+	case BindableTypeYaml:
 		return yaml.Unmarshal(r.data, target)
-	case bindableTypeJson, bindableTypeUnknown:
+	case BindableTypeJson, BindableTypeUnknown:
 		return json.Unmarshal(r.data, target)
 	default:
 		return fmt.Errorf("can not load config, unsupported extension: %s", r.dataType)
 	}
 }
 
-func newBindable(data []byte, tp bindableType) Bindable {
+func NewBindable(data []byte, tp BindableType) Bindable {
 	return &bindable{data: data, dataType: tp}
 }

@@ -26,7 +26,7 @@ type forwardData struct {
 }
 
 func (f forwardData) Body() Bindable {
-	return newBindable(f.Payload, bindableTypeJson)
+	return NewBindable(f.Payload, BindableTypeJson)
 }
 
 func (f forwardData) Headers() Headers {

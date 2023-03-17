@@ -30,8 +30,8 @@ func (c *startContext) Ingress(name string) (Ingress, error) {
 
 func (c *startContext) InboundDescriptors() []InboundDescriptor {
 	descriptors := make([]InboundDescriptor, len(c.inboundDescriptors))
-	for i, d := range c.inboundDescriptors {
-		descriptors[i] = &d
+	for i := range c.inboundDescriptors {
+		descriptors[i] = c.inboundDescriptors[i]
 	}
 	return descriptors
 }
