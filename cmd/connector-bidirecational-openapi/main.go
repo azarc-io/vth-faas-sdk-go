@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	connectorv1 "github.com/azarc-io/vth-faas-sdk-go/pkg/connector/v1"
 )
 
@@ -25,7 +24,7 @@ type request struct {
 	forwarder connectorv1.Forwarder
 	path      string
 	body      []byte
-	headers   map[string]interface{}
+	headers   connectorv1.Headers
 }
 
 /************************************************************************/
@@ -105,7 +104,7 @@ func (c connector) Start(ctx connectorv1.StartContext) error {
 	// register a handler with our mock server, you have to wrap the handler so that you can
 	// pass a forwarding context to your actual handler, that will give you access to everything
 	// you need to handle an inbound request
-	c.server.onRequest = func(path string, body []byte, headers map[string]interface{}) (*response, error) {
+	c.server.onRequest = func(path string, body []byte, headers connectorv1.Headers) (*response, error) {
 		rPath, rBody, rHeaders, err := c.handleInboundRequest(&request{
 			forwarder: ctx.Forwarder(),
 			path:      path,
@@ -133,7 +132,7 @@ func (c connector) Start(ctx connectorv1.StartContext) error {
 // you can gracefully terminate any clients/servers at this point
 func (c connector) Stop(ctx connectorv1.StopContext) error {
 	if err := c.server.stop(); err != nil {
-		ctx.Log().LogError(err, "failed to gracefully stop the server")
+		ctx.Log().Error(err, "failed to gracefully stop the server")
 	}
 	return c.client.disconnect()
 }
@@ -146,17 +145,17 @@ func (c connector) Stop(ctx connectorv1.StopContext) error {
 func (c connector) handleInboundRequest(req *request, logger connectorv1.Logger) (string, []byte, connectorv1.Headers, error) {
 	response, err := req.forwarder.Forward(req.path, req.body, req.headers)
 	if err != nil {
-		logger.LogError(err, "could not handle inbound request")
+		logger.Error(err, "could not handle inbound request")
 		return "", nil, nil, err
 	}
 
 	rawBody, err := response.Body().Raw()
 	if err != nil {
-		logger.LogError(err, "could not fetch response from agent")
+		logger.Error(err, "could not fetch response from agent")
 		return "", nil, nil, err
 	}
 
-	return response.MessageName(), rawBody, response.Headers(), nil
+	return req.path, rawBody, response.Headers(), nil
 }
 
 /************************************************************************/
@@ -164,8 +163,9 @@ func (c connector) handleInboundRequest(req *request, logger connectorv1.Logger)
 /************************************************************************/
 
 func main() {
-	service := connectorv1.New(context.Background(), &connector{})
-	if err := service.Start(); err != nil {
+	service, err := connectorv1.NewConnectorWorker(&connector{})
+	if err != nil {
 		panic(err)
 	}
+	service.Run()
 }

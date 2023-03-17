@@ -25,6 +25,6 @@ func (c mockClient) DoExternalRequest(
 	mimeType string,
 	body []byte,
 	headers connectorv1.Headers,
-) ([]byte, map[string]any, error) {
-	return []byte(`"result": "hello!"`), map[string]any{}, nil
+) ([]byte, connectorv1.Headers, error) {
+	return []byte(`"result": "hello!"`), map[string]string{}, nil
 }

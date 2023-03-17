@@ -22,7 +22,7 @@ type request struct {
 	forwarder   connectorv1.Forwarder
 	messageName string
 	body        []byte
-	headers     map[string]interface{}
+	headers     map[string]string
 }
 
 /************************************************************************/
@@ -129,7 +129,7 @@ func (c connector) Stop(_ connectorv1.StopContext) error {
 func (c connector) handleInboundRequest(req *request, logger connectorv1.Logger) error {
 	_, err := req.forwarder.Forward(req.messageName, req.body, req.headers)
 	if err != nil {
-		logger.LogError(err, "could not handle inbound request")
+		logger.Error(err, "could not handle inbound request")
 		return err
 	}
 
@@ -141,8 +141,9 @@ func (c connector) handleInboundRequest(req *request, logger connectorv1.Logger)
 /************************************************************************/
 
 func main() {
-	service := connectorv1.New(nil, &connector{publishers: map[string]*publication{}})
-	if err := service.Start(); err != nil {
+	service, err := connectorv1.NewConnectorWorker(&connector{publishers: map[string]*publication{}})
+	if err != nil {
 		panic(err)
 	}
+	service.Run()
 }

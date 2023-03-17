@@ -6,7 +6,7 @@ type mockServer struct {
 	bindHost  string
 	bindPort  int
 	spec      string
-	onRequest func(path string, body []byte, headers map[string]interface{}) (*response, error)
+	onRequest func(path string, body []byte, headers map[string]string) (*response, error)
 }
 
 type response struct {
