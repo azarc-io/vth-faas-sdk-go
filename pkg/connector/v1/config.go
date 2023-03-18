@@ -19,7 +19,7 @@ import (
 // CONNECTOR CONFIG
 /************************************************************************/
 
-type config struct {
+type Config struct {
 	Ingress         []ingressConfig `yaml:"ingress"`
 	ConnectorConfig connectorConfig `yaml:"config"`
 }
@@ -88,8 +88,8 @@ func (a agent) forwarderURL() string {
 	return fmt.Sprintf("http://%s:%d%s", a.Host, a.Port, a.Forwarder.Path)
 }
 
-func loadConnectorConfig(opts *ConnectorOpts) (*config, error) {
-	config := &config{}
+func loadConnectorConfig(opts *ConnectorOpts) (*Config, error) {
+	config := &Config{}
 
 	if os.Getenv("CONNECTOR_FILE_PATH") != "" {
 		b, err := os.ReadFile(os.Getenv("CONNECTOR_FILE_PATH"))

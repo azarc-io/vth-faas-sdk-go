@@ -49,6 +49,7 @@ func (w *worker) Run() {
 		logger:             w.opts.log,
 		forwarder:          w.opts.forwarder,
 		health:             w.health,
+		healthConfig:       w.config.Health,
 		ingress:            w.ingress,
 	}
 
