@@ -1,5 +1,7 @@
 package connectorv1
 
+import "fmt"
+
 /************************************************************************/
 // CONFIGURATION
 /************************************************************************/
@@ -54,6 +56,16 @@ type (
 		Forward(name string, body []byte, headers Headers) (InboundResponse, error)
 	}
 )
+
+type HttpError struct {
+	HttpCode int    `json:"http_code"`
+	Reason   string `json:"reason"`
+	Raw      []byte `json:"raw"`
+}
+
+func (he *HttpError) Error() string {
+	return fmt.Sprintf("Http error %d: %s", he.HttpCode, he.Reason)
+}
 
 /************************************************************************/
 // INGRESS

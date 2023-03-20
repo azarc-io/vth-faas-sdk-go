@@ -3,68 +3,10 @@
   message_name: "message-name-1"
   mime_type: application/json
   type: "inbound"
-  options: # this is []byte representation in yaml
-    - 123
-    - 10
-    - 32
-    - 32
-    - 32
-    - 32
-    - 34
-    - 116
-    - 101
-    - 115
-    - 116
-    - 45
-    - 107
-    - 101
-    - 121
-    - 34
-    - 58
-    - 32
-    - 34
-    - 116
-    - 101
-    - 115
-    - 116
-    - 45
-    - 118
-    - 97
-    - 108
-    - 117
-    - 101
-    - 45
-    - 49
-    - 34
-    - 10
-    - 32
-    - 32
-    - 125
+  options: eyJ0ZXN0LWtleSI6ICJ0ZXN0LXZhbHVlLTEifQ==
 - id: message_id_2
   name: User friendly name 2
   message_name: "message-name-2"
   mime_type: application/yaml
   type: "inbound"
-  options:
-    - 116
-    - 101
-    - 115
-    - 116
-    - 45
-    - 107
-    - 101
-    - 121
-    - 58
-    - 32
-    - 116
-    - 101
-    - 115
-    - 116
-    - 45
-    - 118
-    - 97
-    - 108
-    - 117
-    - 101
-    - 45
-    - 50
+  options: dGVzdC1rZXk6IHRlc3QtdmFsdWUtMg==

@@ -136,13 +136,31 @@ func loadConnectorConfig(opts *ConnectorOpts) (*Config, error) {
 // MESSAGE DESCRIPTORS CONFIG
 /************************************************************************/
 
+type options []byte
+
+func (s options) MarshalYAML() (interface{}, error) {
+	node := yaml.Node{}
+	err := node.Encode(base64.StdEncoding.EncodeToString(s))
+	return node, err
+}
+
+func (s *options) UnmarshalYAML(unmarshal func(interface{}) error) error {
+	var str string
+	err := unmarshal(&str)
+	if err != nil {
+		return err
+	}
+	*s, err = base64.StdEncoding.DecodeString(str)
+	return err
+}
+
 type messageDescriptor struct {
 	ID           string      `json:"id" yaml:"id"`
 	ReadableName string      `json:"name" yaml:"name"`
 	MsgName      string      `json:"message_name" yaml:"message_name"`
 	Mime         string      `json:"mime_type" yaml:"mime_type"`
 	Type         MessageType `json:"type" yaml:"type"`
-	Options      []byte      `json:"options" yaml:"options"`
+	Options      options     `json:"options" yaml:"options"`
 }
 
 func (m messageDescriptor) Name() string {

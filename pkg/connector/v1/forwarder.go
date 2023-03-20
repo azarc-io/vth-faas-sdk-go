@@ -3,6 +3,7 @@ package connectorv1
 import (
 	"bytes"
 	"encoding/json"
+	"io"
 	"net/http"
 )
 
@@ -60,7 +61,15 @@ func (f *forwarder) Forward(name string, body []byte, headers Headers) (InboundR
 		return nil, err
 	}
 	if response.StatusCode != http.StatusOK {
-		// TODO: how to handle?
+		body, err := io.ReadAll(response.Body)
+		if err != nil {
+			return nil, err
+		}
+		return nil, &HttpError{
+			HttpCode: response.StatusCode,
+			Reason:   response.Status,
+			Raw:      body,
+		}
 	}
 	var resp forwardData
 	err = json.NewDecoder(response.Body).Decode(&resp)
