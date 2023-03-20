@@ -100,7 +100,7 @@ func (c connector) Start(ctx connectorv1.StartContext) error {
 	// ingress host will either be the ip address of the service or 0.0.0.0
 	// ingress port will use the configured port from the connector.yaml when unit testing locally
 	// ingress port will be provided by the agent when deployed through verathread
-	c.server = &mockServer{bindHost: ingress.ExternalAddress(), bindPort: ingress.InternalPort(), spec: c.config.ServerOpenApiSpec}
+	c.server = &mockServer{bindHost: ingress.InternalHost(), bindPort: ingress.InternalPort(), spec: c.config.ServerOpenApiSpec}
 	// register a handler with our mock server, you have to wrap the handler so that you can
 	// pass a forwarding context to your actual handler, that will give you access to everything
 	// you need to handle an inbound request

@@ -1,7 +1,6 @@
 ingress:
   - name: "http-8080"
     enabled: true
-    port: 8080
     type: http
     bind:
       host: 0.0.0.0

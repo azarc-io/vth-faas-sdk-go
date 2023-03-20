@@ -36,7 +36,6 @@ type connectorConfig struct {
 type ingressConfig struct {
 	Name     string                `yaml:"name"`
 	Enabled  bool                  `yaml:"enabled"`
-	Port     int                   `yaml:"port"`
 	Type     string                `yaml:"type"`
 	Bind     ingressBindConfig     `yaml:"bind"`
 	Endpoint ingressEndpointConfig `yaml:"endpoint"`

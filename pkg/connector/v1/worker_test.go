@@ -9,11 +9,12 @@ import (
 	"os"
 	"syscall"
 	"testing"
+	"time"
 )
 
 type forwardResponse struct {
-	HeadersMap map[string]string `json:"headers"`
-	Payload    []byte            `json:"payload"`
+	HeadersMap connectorv1.Headers `json:"headers"`
+	Payload    []byte              `json:"payload"`
 }
 
 func (f forwardResponse) Body() connectorv1.Bindable {
@@ -97,7 +98,7 @@ func TestWorker(t *testing.T) {
 		"key": "value",
 	}).Return(forwardResponse{
 		Payload: []byte(`{"response": "response-body"}`),
-		HeadersMap: map[string]string{
+		HeadersMap: connectorv1.Headers{
 			"key": "header-value",
 		},
 	}, nil)
@@ -108,7 +109,11 @@ func TestWorker(t *testing.T) {
 	assert.NoError(t, err)
 
 	go func() {
-		<-waitChan
+		select {
+		case <-waitChan:
+		case <-time.After(1 * time.Second):
+			t.Fail()
+		}
 		_ = syscall.Kill(syscall.Getpid(), syscall.SIGINT)
 	}()
 	worker.Run()

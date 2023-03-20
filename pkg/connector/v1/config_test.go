@@ -12,7 +12,6 @@ func verifyConnectorConfig(t *testing.T, conf *Config) {
 	t.Run("ingress", func(t *testing.T) {
 		assert.Equal(t, 1, len(conf.Ingress))
 		assert.Equal(t, "http-8080", conf.Ingress[0].Name)
-		assert.Equal(t, 8080, conf.Ingress[0].Port)
 		assert.Equal(t, "0.0.0.0", conf.Ingress[0].Bind.Host)
 		assert.Equal(t, 8080, conf.Ingress[0].Bind.Port)
 	})

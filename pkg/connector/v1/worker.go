@@ -38,7 +38,7 @@ func (w *worker) Run() {
 		}()
 		defer func() {
 			if err := w.healthServer.Shutdown(context.Background()); err != nil {
-				panic(err) // TODO: should we panic or just ignore?
+				w.opts.log.Error(err, "failed to shutdown health server")
 			}
 		}()
 	}
