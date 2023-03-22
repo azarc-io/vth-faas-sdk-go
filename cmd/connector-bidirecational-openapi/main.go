@@ -9,7 +9,7 @@ import (
 /************************************************************************/
 
 type connector struct {
-	config *config
+	config config
 	client *mockClient
 	server *mockServer
 }
@@ -74,7 +74,7 @@ func (c connector) HandleOutboundRequest(ctx connectorv1.OutboundRequest) (any, 
 // you can access custom configuration at this point and set up your clients/servers
 // you can also read the message descriptors for inbound and outbound message types
 // from the context
-func (c connector) Start(ctx connectorv1.StartContext) error {
+func (c *connector) Start(ctx connectorv1.StartContext) error {
 	// fetch user configured parameters for your connector, this is a json
 	// payload that matches your configuration schema as set in the connector.yaml file
 	if err := ctx.Config().Bind(&c.config); err != nil {
@@ -130,7 +130,7 @@ func (c connector) Start(ctx connectorv1.StartContext) error {
 
 // Stop called by the sdk when the service is asked to shut down
 // you can gracefully terminate any clients/servers at this point
-func (c connector) Stop(ctx connectorv1.StopContext) error {
+func (c *connector) Stop(ctx connectorv1.StopContext) error {
 	if err := c.server.stop(); err != nil {
 		ctx.Log().Error(err, "failed to gracefully stop the server")
 	}
@@ -142,7 +142,7 @@ func (c connector) Stop(ctx connectorv1.StopContext) error {
 /************************************************************************/
 
 // handleInboundRequest handles inbound requests from the server e.g. open api server
-func (c connector) handleInboundRequest(req *request, logger connectorv1.Logger) (string, []byte, connectorv1.Headers, error) {
+func (c *connector) handleInboundRequest(req *request, logger connectorv1.Logger) (string, []byte, connectorv1.Headers, error) {
 	response, err := req.forwarder.Forward(req.path, req.body, req.headers)
 	if err != nil {
 		logger.Error(err, "could not handle inbound request")
