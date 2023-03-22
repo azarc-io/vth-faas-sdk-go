@@ -32,13 +32,17 @@ func (w *worker) Run() {
 	}
 }
 
-func NewTestConnectorWorker(t *testing.T, connector connectorv1.Connector, opts ...Option) (connectorv1.ConnectorWorker, chan struct{}) {
+type Finisher func()
+
+func NewTestConnectorWorker(t *testing.T, connector connectorv1.Connector, opts ...Option) (connectorv1.ConnectorWorker, Finisher) {
 	signaler := make(chan struct{}, 1)
 	w := &worker{t: t, connector: connector, signaler: signaler}
 	for _, option := range opts {
 		w = option(w)
 	}
-	return w, signaler
+	return w, func() {
+		signaler <- struct{}{}
+	}
 }
 
 type Option func(*worker) *worker
