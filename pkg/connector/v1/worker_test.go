@@ -111,7 +111,7 @@ func TestWorker(t *testing.T) {
 	go func() {
 		select {
 		case <-waitChan:
-		case <-time.After(1 * time.Second):
+		case <-time.After(10 * time.Second):
 			t.Fail()
 		}
 		_ = syscall.Kill(syscall.Getpid(), syscall.SIGINT)

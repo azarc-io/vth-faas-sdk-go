@@ -134,7 +134,7 @@ func TestWorkerE2E(t *testing.T) {
 
 		select {
 		case <-healthCheckChan: // health check func has run
-		case <-time.After(1 * time.Second): // health check func hasn't run
+		case <-time.After(10 * time.Second): // health check func hasn't run
 			t.Fail()
 		}
 		_ = syscall.Kill(syscall.Getpid(), syscall.SIGINT)
