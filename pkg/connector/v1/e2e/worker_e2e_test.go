@@ -23,8 +23,8 @@ import (
 )
 
 func TestWorkerE2E(t *testing.T) {
-	_ = os.Setenv("INBOUND_DESCRIPTOR_FILE_PATH", "../test/inbound_descriptors_config_1.yaml")
-	_ = os.Setenv("CONFIG_FILE_PATH", "../test/user_config_1.yaml")
+	_ = os.Setenv("INBOUND_DESCRIPTOR_FILE_PATH", "../fixtures/inbound_descriptors_config_1.yaml")
+	_ = os.Setenv("CONFIG_FILE_PATH", "../fixtures/user_config_1.yaml")
 
 	waitChan := make(chan struct{}, 1)
 	healthCheckChan := make(chan struct{}, 1)
@@ -64,7 +64,7 @@ func TestWorkerE2E(t *testing.T) {
 	assert.NoError(t, err)
 
 	// modify connector configuration to use correct ports
-	configBytes, err := os.ReadFile("../test/connector_config_1.yaml")
+	configBytes, err := os.ReadFile("../fixtures/connector_config_1.yaml")
 	assert.NoError(t, err)
 	var config connectorv1.Config
 	err = yaml.Unmarshal(configBytes, &config)

@@ -33,7 +33,7 @@ func verifyConnectorConfig(t *testing.T, conf *Config) {
 }
 
 func TestLoadConnectorConfigFromEnvPathFileName(t *testing.T) {
-	_ = os.Setenv("CONNECTOR_FILE_PATH", "./test/connector_config_1.yaml")
+	_ = os.Setenv("CONNECTOR_FILE_PATH", "./fixtures/connector_config_1.yaml")
 	defer func() {
 		_ = os.Unsetenv("CONNECTOR_FILE_PATH")
 	}()
@@ -60,7 +60,7 @@ func TestLoadConnectorConfigFromEnvVarSecret(t *testing.T) {
 
 func TestLoadConnectorConfigFromBaseFilePath(t *testing.T) {
 
-	conf, err := loadConnectorConfig(&ConnectorOpts{configBasePath: "./test"})
+	conf, err := loadConnectorConfig(&ConnectorOpts{configBasePath: "./fixtures"})
 	assert.NoError(t, err)
 
 	verifyConnectorConfig(t, conf)
@@ -85,7 +85,7 @@ func verifyMessageDescriptors(t *testing.T, descriptors []messageDescriptor) {
 }
 
 func TestLoadMessageDescriptorsConfigFromEnvFilePath(t *testing.T) {
-	_ = os.Setenv("INBOUND_DESCRIPTOR_FILE_PATH", "./test/inbound_descriptors_config_1.yaml")
+	_ = os.Setenv("INBOUND_DESCRIPTOR_FILE_PATH", "./fixtures/inbound_descriptors_config_1.yaml")
 	defer func() {
 		_ = os.Unsetenv("INBOUND_DESCRIPTOR_FILE_PATH")
 	}()
@@ -124,7 +124,7 @@ func verifyUserConfig(t *testing.T, config Bindable) {
 func TestLoadUserConfigWithEnvFilePath(t *testing.T) {
 
 	t.Run("yaml", func(t *testing.T) {
-		_ = os.Setenv("CONFIG_FILE_PATH", "./test/user_config_1.yaml")
+		_ = os.Setenv("CONFIG_FILE_PATH", "./fixtures/user_config_1.yaml")
 		defer func() {
 			_ = os.Unsetenv("CONFIG_FILE_PATH")
 		}()
@@ -136,7 +136,7 @@ func TestLoadUserConfigWithEnvFilePath(t *testing.T) {
 	})
 
 	t.Run("json", func(t *testing.T) {
-		_ = os.Setenv("CONFIG_FILE_PATH", "./test/config.json")
+		_ = os.Setenv("CONFIG_FILE_PATH", "./fixtures/config.json")
 		defer func() {
 			_ = os.Unsetenv("CONFIG_FILE_PATH")
 		}()
@@ -173,7 +173,7 @@ func TestLoadUserConfigFromOptionsConfig(t *testing.T) {
 }
 
 func TestLoadUserConfigFromOptionsBasePath(t *testing.T) {
-	conf, err := loadUserConfig(&ConnectorOpts{configBasePath: "./test"})
+	conf, err := loadUserConfig(&ConnectorOpts{configBasePath: "./fixtures"})
 	assert.NoError(t, err)
 
 	verifyUserConfig(t, conf)

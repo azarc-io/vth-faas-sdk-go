@@ -30,9 +30,9 @@ func TestWorker(t *testing.T) {
 	connector := mock.NewMockConnector(ctrl)
 	forwarder := mock.NewMockForwarder(ctrl)
 
-	_ = os.Setenv("CONNECTOR_FILE_PATH", "./test/connector_config_1.yaml")
-	_ = os.Setenv("INBOUND_DESCRIPTOR_FILE_PATH", "./test/inbound_descriptors_config_1.yaml")
-	_ = os.Setenv("CONFIG_FILE_PATH", "./test/user_config_1.yaml")
+	_ = os.Setenv("CONNECTOR_FILE_PATH", "./fixtures/connector_config_1.yaml")
+	_ = os.Setenv("INBOUND_DESCRIPTOR_FILE_PATH", "./fixtures/inbound_descriptors_config_1.yaml")
+	_ = os.Setenv("CONFIG_FILE_PATH", "./fixtures/user_config_1.yaml")
 
 	waitChan := make(chan struct{}, 1)
 	connector.EXPECT().Start(gomock.Any()).DoAndReturn(func(ctx connectorv1.StartContext) error {
