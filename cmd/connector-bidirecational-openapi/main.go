@@ -131,6 +131,7 @@ func (c *connector) Start(ctx connectorv1.StartContext) error {
 // Stop called by the sdk when the service is asked to shut down
 // you can gracefully terminate any clients/servers at this point
 func (c *connector) Stop(ctx connectorv1.StopContext) error {
+	ctx.Log().Info("stopping")
 	if err := c.server.stop(); err != nil {
 		ctx.Log().Error(err, "failed to gracefully stop the server")
 	}

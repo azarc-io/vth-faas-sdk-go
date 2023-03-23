@@ -1,54 +1,44 @@
 package main
 
 import (
+	_ "embed"
+	"encoding/json"
 	connectorv1 "github.com/azarc-io/vth-faas-sdk-go/pkg/connector/v1"
-	"github.com/azarc-io/vth-faas-sdk-go/pkg/connector/v1/mock"
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/connector/v1/test"
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
+//go:embed connector_test_config.json
+var configBytes []byte
+
 func TestConnector(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	startCtx := mock.NewMockStartContext(ctrl)
+	// initialize connector
 	c := &connector{}
 
-	loggerMock := mock.NewMockLogger(ctrl)
-	loggerMock.EXPECT().Error(gomock.Any(), gomock.Any()).AnyTimes()
-	startCtx.EXPECT().Log().Return(loggerMock)
+	// load config
+	var config test.Config
+	err := json.Unmarshal(configBytes, &config)
+	assert.NoError(t, err)
 
-	configMock := mock.NewMockBindable(ctrl)
-	configMock.EXPECT().Bind(gomock.Any()).Do(func(val interface{}) error {
-		conf, ok := val.(*config)
-		assert.True(t, ok)
-		conf.ClientOpenApiSpec = "client_spec"
-		conf.ServerOpenApiSpec = "server_spec"
-		conf.OutboundAddress = "outbound_address"
-		return nil
-	}).Return(nil)
-	startCtx.EXPECT().Config().Return(configMock)
+	// create a start context
+	ctx := test.NewStartContext(t, &config)
 
-	ingressMock := mock.NewMockIngress(ctrl)
-	ingressMock.EXPECT().InternalHost().Return("ingress.internal.host")
-	ingressMock.EXPECT().InternalPort().Return(1234)
-	startCtx.EXPECT().Ingress("http-8080").Return(ingressMock, nil)
-
-	forwarderMock := mock.NewMockForwarder(ctrl)
-	inboundResponseMock := mock.NewMockInboundResponse(ctrl)
-	responseBodyMock := mock.NewMockBindable(ctrl)
-	responseBodyMock.EXPECT().Raw().Return([]byte("response-body"), nil)
-	inboundResponseMock.EXPECT().Body().Return(responseBodyMock)
-	inboundResponseMock.EXPECT().Headers().Return(connectorv1.Headers{
-		"response-header-key": "response-header-value",
-	})
-	forwarderMock.EXPECT().Forward("test-message", []byte("test-body"), connectorv1.Headers{
+	// setup expectations
+	ctx.MockForward("test-message", []byte("test-body"), connectorv1.Headers{
 		"request-header-key": "request-header-value",
-	}).Return(inboundResponseMock, nil)
-	startCtx.EXPECT().Forwarder().Return(forwarderMock)
+	}, &test.InboundResponse{
+		HeadersMap: connectorv1.Headers{
+			"response-header-key": "response-header-value",
+		},
+		Payload: []byte("response-body"),
+	}, nil)
 
-	worker, _ := test.NewTestConnectorWorker(t, c, test.WithStartContextMock(startCtx))
-	worker.Run() // run is not blocking because we test only Start method
+	// call Start method
+	err = c.Start(ctx)
+
+	// verify results
+	assert.NoError(t, err)
 
 	assert.Equal(t, "client_spec", c.config.ClientOpenApiSpec)
 	assert.Equal(t, "server_spec", c.config.ServerOpenApiSpec)
@@ -73,4 +63,17 @@ func TestConnector(t *testing.T) {
 	assert.Equal(t, connectorv1.Headers{
 		"response-header-key": "response-header-value",
 	}, resp.headers)
+
+	// create a stop context
+	stopCtx := test.NewStopContext(t).WithLoggerMock()
+
+	// setup expectations
+	stopCtx.LoggerMock.EXPECT().Info("stopping")
+
+	// call Stop method
+	err = c.Stop(stopCtx)
+
+	// verify results
+	assert.NoError(t, err)
+	assert.False(t, c.client.connected)
 }
