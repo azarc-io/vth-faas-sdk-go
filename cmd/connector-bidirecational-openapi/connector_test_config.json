@@ -1,0 +1,12 @@
+{
+  "user_config": "ew0KICAiY2xpZW50X29wZW5fYXBpX3NwZWMiOiAiY2xpZW50X3NwZWMiLA0KICAic2VydmVyX29wZW5fYXBpX3NwZWMiOiAic2VydmVyX3NwZWMiLA0KICAib3V0Ym91bmRfYWRkcmVzcyI6ICJvdXRib3VuZF9hZGRyZXNzIg0KfQ==",
+  "ingress_config": [
+    {
+      "name": "http-8080",
+      "host": "ingress.internal.host",
+      "port": 1234,
+      "external_address": "ingress.external/address"
+    }
+  ],
+  "inbound_descriptors": []
+}

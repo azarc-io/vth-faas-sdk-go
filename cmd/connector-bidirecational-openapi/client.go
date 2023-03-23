@@ -10,21 +10,21 @@ type mockClient struct {
 	spec      string
 }
 
-func (c mockClient) connect() error {
+func (c *mockClient) connect() error {
 	c.connected = true
 	return nil
 }
 
-func (c mockClient) disconnect() error {
+func (c *mockClient) disconnect() error {
 	c.connected = false
 	return nil
 }
 
-func (c mockClient) DoExternalRequest(
+func (c *mockClient) DoExternalRequest(
 	endpoint string,
 	mimeType string,
 	body []byte,
 	headers connectorv1.Headers,
-) ([]byte, map[string]any, error) {
-	return []byte(`"result": "hello!"`), map[string]any{}, nil
+) ([]byte, connectorv1.Headers, error) {
+	return []byte(`"result": "hello!"`), map[string]string{}, nil
 }

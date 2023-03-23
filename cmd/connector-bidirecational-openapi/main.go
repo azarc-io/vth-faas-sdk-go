@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	connectorv1 "github.com/azarc-io/vth-faas-sdk-go/pkg/connector/v1"
 )
 
@@ -10,7 +9,7 @@ import (
 /************************************************************************/
 
 type connector struct {
-	config *config
+	config config
 	client *mockClient
 	server *mockServer
 }
@@ -25,7 +24,7 @@ type request struct {
 	forwarder connectorv1.Forwarder
 	path      string
 	body      []byte
-	headers   map[string]interface{}
+	headers   connectorv1.Headers
 }
 
 /************************************************************************/
@@ -75,7 +74,7 @@ func (c connector) HandleOutboundRequest(ctx connectorv1.OutboundRequest) (any, 
 // you can access custom configuration at this point and set up your clients/servers
 // you can also read the message descriptors for inbound and outbound message types
 // from the context
-func (c connector) Start(ctx connectorv1.StartContext) error {
+func (c *connector) Start(ctx connectorv1.StartContext) error {
 	// fetch user configured parameters for your connector, this is a json
 	// payload that matches your configuration schema as set in the connector.yaml file
 	if err := ctx.Config().Bind(&c.config); err != nil {
@@ -101,17 +100,17 @@ func (c connector) Start(ctx connectorv1.StartContext) error {
 	// ingress host will either be the ip address of the service or 0.0.0.0
 	// ingress port will use the configured port from the connector.yaml when unit testing locally
 	// ingress port will be provided by the agent when deployed through verathread
-	c.server = &mockServer{bindHost: ingress.IngressHost(), bindPort: ingress.IngressPort(), spec: c.config.ServerOpenApiSpec}
+	c.server = &mockServer{bindHost: ingress.InternalHost(), bindPort: ingress.InternalPort(), spec: c.config.ServerOpenApiSpec}
 	// register a handler with our mock server, you have to wrap the handler so that you can
 	// pass a forwarding context to your actual handler, that will give you access to everything
 	// you need to handle an inbound request
-	c.server.onRequest = func(path string, body []byte, headers map[string]interface{}) (*response, error) {
+	c.server.onRequest = func(path string, body []byte, headers connectorv1.Headers) (*response, error) {
 		rPath, rBody, rHeaders, err := c.handleInboundRequest(&request{
 			forwarder: ctx.Forwarder(),
 			path:      path,
 			body:      body,
 			headers:   headers,
-		})
+		}, ctx.Log())
 
 		if err != nil {
 			return nil, err
@@ -131,9 +130,10 @@ func (c connector) Start(ctx connectorv1.StartContext) error {
 
 // Stop called by the sdk when the service is asked to shut down
 // you can gracefully terminate any clients/servers at this point
-func (c connector) Stop(ctx connectorv1.StopContext) error {
+func (c *connector) Stop(ctx connectorv1.StopContext) error {
+	ctx.Log().Info("stopping")
 	if err := c.server.stop(); err != nil {
-		ctx.LogError(err, "failed to gracefully stop the server")
+		ctx.Log().Error(err, "failed to gracefully stop the server")
 	}
 	return c.client.disconnect()
 }
@@ -143,20 +143,20 @@ func (c connector) Stop(ctx connectorv1.StopContext) error {
 /************************************************************************/
 
 // handleInboundRequest handles inbound requests from the server e.g. open api server
-func (c connector) handleInboundRequest(req *request) (string, []byte, connectorv1.Headers, error) {
+func (c *connector) handleInboundRequest(req *request, logger connectorv1.Logger) (string, []byte, connectorv1.Headers, error) {
 	response, err := req.forwarder.Forward(req.path, req.body, req.headers)
 	if err != nil {
-		req.forwarder.LogError(err, "could not handle inbound request")
+		logger.Error(err, "could not handle inbound request")
 		return "", nil, nil, err
 	}
 
 	rawBody, err := response.Body().Raw()
 	if err != nil {
-		req.forwarder.LogError(err, "could not fetch response from agent")
+		logger.Error(err, "could not fetch response from agent")
 		return "", nil, nil, err
 	}
 
-	return response.MessageName(), rawBody, response.Headers(), nil
+	return req.path, rawBody, response.Headers(), nil
 }
 
 /************************************************************************/
@@ -164,8 +164,9 @@ func (c connector) handleInboundRequest(req *request) (string, []byte, connector
 /************************************************************************/
 
 func main() {
-	service := connectorv1.New(context.Background(), &connector{})
-	if err := service.Start(); err != nil {
+	service, err := connectorv1.NewConnectorWorker(&connector{})
+	if err != nil {
 		panic(err)
 	}
+	service.Run()
 }

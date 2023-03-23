@@ -1,19 +1,14 @@
 package connectorv1
 
+import "fmt"
+
 /************************************************************************/
 // CONFIGURATION
 /************************************************************************/
 
-type ConfigType string
-
-const (
-	ConfigTypeYaml ConfigType = "yaml"
-	ConfigTypeJson ConfigType = "json"
-)
-
-type Configuration interface {
-	Bind(target any) error
-	Raw() interface{}
+type Bindable interface {
+	Raw() ([]byte, error)
+	Bind(any) error
 }
 
 /************************************************************************/
@@ -22,11 +17,11 @@ type Configuration interface {
 
 type (
 	Logger interface {
-		LogError(err error, format string, v ...interface{})
-		LogFatal(err error, format string, v ...interface{}) // this will crash the service
-		LogInfo(format string, v ...interface{})
-		LogWarn(format string, v ...interface{})
-		LogDebug(format string, v ...interface{})
+		Error(err error, format string, v ...interface{})
+		Fatal(err error, format string, v ...interface{}) // this will crash the service
+		Info(format string, v ...interface{})
+		Warn(format string, v ...interface{})
+		Debug(format string, v ...interface{})
 	}
 )
 
@@ -36,17 +31,21 @@ type (
 
 type (
 	StartContext interface {
-		Config() Configuration
+		Config() Bindable
 		Ingress(name string) (Ingress, error)
 		InboundDescriptors() []InboundDescriptor
 		OutboundDescriptors() []OutboundDescriptor
 		Forwarder() Forwarder
+		Log() Logger
+		RegisterPeriodicHealthCheck(name string, fn HealthCheckFunc)
 	}
 
 	StopContext interface {
-		Logger
+		Log() Logger
 	}
 )
+
+type HealthCheckFunc func() error
 
 /************************************************************************/
 // Forwarding
@@ -54,53 +53,81 @@ type (
 
 type (
 	Forwarder interface {
-		Logger
 		Forward(name string, body []byte, headers Headers) (InboundResponse, error)
 	}
 )
+
+type HttpError struct {
+	HttpCode int    `json:"http_code"`
+	Reason   string `json:"reason"`
+	Raw      []byte `json:"raw"`
+}
+
+func (he *HttpError) Error() string {
+	return fmt.Sprintf("Http error %d: %s", he.HttpCode, he.Reason)
+}
 
 /************************************************************************/
 // INGRESS
 /************************************************************************/
 
 type Ingress interface {
-	IngressHost() string
-	IngressPort() int
+	ExternalAddress() string
+	InternalPort() int
+	InternalHost() string
 }
 
 /************************************************************************/
 // MODELS
 /************************************************************************/
 
-type Headers = map[string]any
+type Headers = map[string]string
+
+type MessageType string
+
+const MessageTypeInbound MessageType = "inbound"
+const MessageTypeOutbound MessageType = "outbound"
 
 type (
-	OutboundRequest interface {
+	MessageDescriptor interface {
+		Name() string
+		MessageName() string
+		MimeType() string
+		MessageType() MessageType
+		Config() Bindable
+	}
+
+	request interface {
 		Body() Bindable
 		Headers() Headers
+	}
+
+	InboundRequest interface {
+		request
 		MessageName() string
 		MimeType() string
 	}
 
-	Bindable interface {
-		Raw() ([]byte, error)
-		Bind(any) error
+	OutboundResponse interface {
+		request
+	}
+
+	OutboundRequest interface {
+		request
+		MessageName() string
+		MimeType() string
 	}
 
 	InboundResponse interface {
-		MessageName() string
-		Body() Bindable
-		Headers() Headers
+		request
 	}
 
 	InboundDescriptor interface {
-		OutboundRequest
-		Config() Bindable
+		MessageDescriptor
 	}
 
 	OutboundDescriptor interface {
-		OutboundRequest
-		Config() Bindable
+		MessageDescriptor
 	}
 )
 
@@ -115,8 +142,8 @@ type Connector interface {
 	Stop(ctx StopContext) error
 }
 
-type ConnectorService interface {
-	Start() error
+type ConnectorWorker interface {
+	Run()
 }
 
 type InboundConnector interface {

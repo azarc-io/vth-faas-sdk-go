@@ -1,0 +1,12 @@
+- id: message_id_1
+  name: User friendly name 1
+  message_name: "message-name-1"
+  mime_type: application/json
+  type: "inbound"
+  options: eyJ0ZXN0LWtleSI6ICJ0ZXN0LXZhbHVlLTEifQ==
+- id: message_id_2
+  name: User friendly name 2
+  message_name: "message-name-2"
+  mime_type: application/yaml
+  type: "inbound"
+  options: dGVzdC1rZXk6IHRlc3QtdmFsdWUtMg==

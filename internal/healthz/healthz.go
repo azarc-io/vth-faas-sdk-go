@@ -53,6 +53,7 @@ type check struct {
 	period time.Duration
 	fn     CheckFunc
 	err    error
+	mutex  sync.Mutex
 	stopch chan bool
 }
 
@@ -60,12 +61,16 @@ func (c *check) Do() {
 	t := time.NewTicker(c.period)
 	defer t.Stop()
 
+	c.mutex.Lock()
 	c.err = c.fn()
+	c.mutex.Unlock()
 
 	for {
 		select {
 		case <-t.C:
+			c.mutex.Lock()
 			c.err = c.fn()
+			c.mutex.Unlock()
 		case <-c.stopch:
 			return
 		}
@@ -77,6 +82,8 @@ func (c *check) Close() {
 }
 
 func (c *check) Status() error {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
 	return c.err
 }
 

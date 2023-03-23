@@ -1,0 +1,28 @@
+ingress:
+  - name: "http-8080"
+    enabled: true
+    type: http
+    bind:
+      host: 0.0.0.0
+      port: 8080
+    endpoint:
+      host: some-external-url.com
+      port: 443
+      path: /v1/endpoint/12356
+      protocol: https
+config:
+  id: connector-simple-example_12345
+  name: connector-simple-example
+  tenant: tenant-id
+  health:
+    enabled: false
+    bind: 0.0.0.0
+    port: 8081
+    interval: 30s
+  agent:
+    host: 127.0.0.1
+    port: 8031
+    forwarder:
+      path: /v1/connector-forwarded-message
+  logging:
+    level: "info"
