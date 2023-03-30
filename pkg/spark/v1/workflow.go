@@ -160,10 +160,13 @@ func (w *jobWorkflow) executeCompleteActivity(ctx workflow.Context, stageName st
 
 	c := workflow.WithActivityOptions(ctx, options)
 	f := workflow.ExecuteActivity(c, w.ExecuteCompleteActivity, &ExecuteStageRequest{
-		StageName:  stageName,
-		Inputs:     state.JobContext.Inputs,
-		WorkflowId: info.WorkflowExecution.ID,
-		RunId:      info.WorkflowExecution.RunID,
+		StageName:     stageName,
+		Inputs:        state.JobContext.Inputs,
+		WorkflowId:    info.WorkflowExecution.ID,
+		RunId:         info.WorkflowExecution.RunID,
+		JobKey:        state.JobContext.JobKeyValue,
+		TransactionId: state.JobContext.TransactionIdValue,
+		CorrelationId: state.JobContext.CorrelationIdValue,
 	})
 	if err := f.Get(ctx, &res); err != nil {
 		// TODO ctx.Compensate()
@@ -218,6 +221,11 @@ func (w *jobWorkflow) ExecuteCompleteActivity(ctx context.Context, req *ExecuteS
 		Outputs: map[string]*bindable{},
 	}
 	for _, output := range cc.(*completeContext).outputs {
+		if output.Raw {
+			res.Outputs[output.Name] = &bindable{Value: output.Value, Raw: output.Value, MimeType: string(output.MimeType)}
+			continue
+		}
+
 		val, err := codec.Encode(output.Value, output.MimeType)
 		if err != nil {
 			return &ExecuteSparkOutput{

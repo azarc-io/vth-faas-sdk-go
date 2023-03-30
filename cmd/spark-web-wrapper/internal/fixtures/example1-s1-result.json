@@ -1,0 +1,16 @@
+{
+  "value": {
+    "great": "output",
+    "andInt": 9876
+  },
+  "logs": [
+    {
+      "level": "debug",
+      "message": "Spark: Something dummy happened"
+    },
+    {
+      "level": "error",
+      "message": "Spark: Another dummy errored"
+    }
+  ]
+}

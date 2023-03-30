@@ -156,6 +156,9 @@ func newBindableConfig(opts *SparkOpts) BindableConfig {
 }
 
 func (r *bindableConfig) Raw() ([]byte, error) {
+	if r.opts.config != nil {
+		return r.opts.config, nil
+	}
 	return r.b, nil
 }
 

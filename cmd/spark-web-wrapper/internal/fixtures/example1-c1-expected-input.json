@@ -1,0 +1,24 @@
+{
+  "correlationID": "cid",
+  "jobKey": "test",
+  "transactionID": "tid",
+  "inputs": [
+    {
+      "name": "foo",
+      "value": 12345
+    }
+  ],
+  "previousStages": [
+    {
+      "name": "My-Stage-1",
+      "value": {
+        "andInt": 9876,
+        "great": "output"
+      }
+    },
+    {
+      "name": "My-Stage-2",
+      "value": "This text stage-2 output"
+    }
+  ]
+}
