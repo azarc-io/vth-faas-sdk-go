@@ -1,0 +1,346 @@
+openapi: 3.0.0
+info:
+  title: Web Wrapper Spark Proxy API
+  description: Web Wrapper Spark Proxy API
+  version: 1.0.0
+paths:
+  /spec:
+    get:
+      description: Return the full specification for this spark
+      responses:
+        200:
+          description: Configuration for the Spark and its stages
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/spec'
+        500:
+          description: Error describing the issues with the spark
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+  /init:
+    post:
+      description: Initialise the spark. Only called once on startup.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                config:
+                  type: string
+                  title: Config
+                  description: Full user defined config to configure spark on initialise
+      responses:
+        202:
+          description: Initialisation successful
+        500:
+          description: Error initialising spark
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+
+  /stages/{name}:
+    post:
+      description: Called to execute a sparks stage
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/stageRequest'
+      responses:
+        200:
+          description: Stage Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/stageResponse'
+        500:
+          description: Stage Errored
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorStage'
+
+  /complete/{name}:
+    post:
+      description: Called to execute a sparks complete stage
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/stageRequest'
+      responses:
+        200:
+          description: Complete Stage Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/completeStageResponse'
+        500:
+          description: Stage Errored
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorStage'
+
+components:
+  schemas:
+    error:
+      type: object
+      title: Error
+      properties:
+        code:
+          type: string
+          title: Code
+        message:
+          type: string
+          title: Message
+      required:
+        - code
+        - message
+
+    errorStage:
+      type: object
+      title: "Stage Error"
+      properties:
+        code:
+          type: string
+          title: Error Code
+        message:
+          type: string
+          title: Error Message
+        metadata:
+          type: object
+          title: Metadata
+        retry:
+          $ref: '#/components/schemas/retryStrategy'
+      required:
+        - code
+        - message
+
+    spec:
+      type: object
+      title: Spark Specification
+      properties:
+        stages:
+          type: array
+          title: Stages
+          items:
+            $ref: '#/components/schemas/stage'
+        complete:
+          $ref: '#/components/schemas/completeStage'
+
+      required:
+        - stages
+        - complete
+
+    stage:
+      type: object
+      title: Spark Stage
+      properties:
+        type:
+          type: string
+          title: Type
+          enum:
+            - stage
+        name:
+          type: string
+          title: Name
+        inputs:
+          type: array
+          title: Inputs
+          items:
+            type: string
+            title: Name
+      required:
+        - type
+        - name
+        - inputs
+
+    completeStage:
+      type: object
+      title: Spark Complete Stage
+      properties:
+        type:
+          type: string
+          title: Type
+          enum:
+            - complete
+        name:
+          type: string
+          title: Name
+        inputs:
+          type: array
+          title: Inputs
+          items:
+            type: string
+            title: Name
+      required:
+        - type
+        - name
+        - inputs
+
+    stageRequest:
+      type: object
+      title: Stage Request
+      properties:
+        jobKey:
+          type: string
+          title: Job Key
+        correlationID:
+          type: string
+          title: Correlation ID
+        transactionID:
+          type: string
+          title: Transaction ID
+        previousStages:
+          type: array
+          title: Previous Stages
+          items:
+            $ref: '#/components/schemas/previousStageResult'
+        inputs:
+          type: array
+          title: Inputs
+          items:
+            $ref: '#/components/schemas/input'
+
+      required:
+        - jobKey
+        - correlationID
+        - transactionID
+        - previousStages
+
+    previousStageResult:
+      type: object
+      title: Previous Stage Result
+      properties:
+        name:
+          type: string
+          title: Name
+        value:
+          title: Value
+      required:
+        - name
+        - value
+
+    stageResponse:
+      type: object
+      title: Stage Response
+      properties:
+        value:
+          title: Value
+        logs:
+          type: array
+          title: Logs
+          items:
+            $ref: '#/components/schemas/log'
+      required:
+        - value
+
+    completeStageResponse:
+      type: object
+      title: Complete Stage Response
+      properties:
+        outputs:
+          type: array
+          items:
+            $ref: '#/components/schemas/output'
+        logs:
+          type: array
+          title: Logs
+          items:
+            $ref: '#/components/schemas/log'
+      required:
+        - outputs
+
+    log:
+      type: object
+      title: "Log"
+      properties:
+        message:
+          type: string
+          title: Message
+        level:
+          type: string
+          title: Level
+          enum:
+            - debug
+            - info
+            - error
+      required:
+        - message
+        - level
+
+    output:
+      type: object
+      title: Output
+      properties:
+        name:
+          type: string
+          title: Name
+        mimetype:
+          type: string
+          title: Mime Type
+          enum:
+            - application/json
+            - application/text
+            - application/octet-stream
+        value:
+          title: Value
+          description: Any type of value
+      required:
+        - name
+        - mimetype
+        - value
+
+    input:
+      type: object
+      title: Input
+      properties:
+        name:
+          type: string
+          title: Name
+        value:
+          title: Value
+      required:
+        - name
+        - value
+
+    retryStrategy:
+      type: object
+      title: Retry Strategy
+      properties:
+        times:
+          type: integer
+          title: Times
+        firstBackoffWait:
+          type: integer
+          title: First Backoff Wait
+          description: First time to backoff wait in milliseconds
+        backoffMultiplier:
+          type: integer
+          title: Backoff Multiplier
+          description: Backoff Multiplier to increment after each failure attempt
+      required:
+        - times
+        - firstBackoffWait
+        - backoffMultiplier
+
+
+  
