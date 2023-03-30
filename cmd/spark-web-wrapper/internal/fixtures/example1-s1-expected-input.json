@@ -1,0 +1,16 @@
+{
+  "correlationID":"cid",
+  "jobKey":"test",
+  "transactionID":"tid",
+  "inputs": [
+    {
+      "name":  "foo",
+      "value": 12345
+    },
+    {
+      "name": "bar",
+      "value": null
+    }
+  ],
+  "previousStages": null
+}

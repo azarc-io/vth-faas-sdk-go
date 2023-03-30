@@ -1,0 +1,13 @@
+{
+  "code": "ERR-1234",
+  "message": "EEEK I broke",
+  "metadata": {
+    "foo": "bar",
+    "another": 1234
+  },
+  "retry": {
+    "backoffMultiplier": 5,
+    "firstBackoffWait": 12000000,
+    "times": 13
+  }
+}

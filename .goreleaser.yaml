@@ -18,6 +18,18 @@ builds:
     binary: module-runner
     env:
       - CGO_ENABLED=0
+  - id: spark-web-wrapper
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    dir: cmd/spark-web-wrapper
+    main: main.go
+    binary: spark-web-wrapper
+    env:
+      - CGO_ENABLED=0
 
 dockers:
 #  - id: linux-arm64
@@ -35,6 +47,7 @@ dockers:
   - id: linux-amd64
     ids:
       - module-runner
+      - spark-web-wrapper
     goos: linux
     goarch: amd64
     image_templates:
