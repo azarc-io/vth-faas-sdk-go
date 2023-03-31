@@ -1,0 +1,41 @@
+{
+  "outputs": [
+    {
+      "name": "v-string",
+      "mimetype": "application/text",
+      "value": "hello back"
+    },
+    {
+      "name": "v-int",
+      "mimetype": "application/text",
+      "value": 1234
+    },
+    {
+      "name": "v-float",
+      "mimetype": "application/text",
+      "value": 789.123
+    },
+    {
+      "name": "v-bool",
+      "mimetype": "application/text",
+      "value": true
+    },
+    {
+      "name": "v-object",
+      "mimetype": "application/json",
+      "value": {
+        "foo": "bar"
+      }
+    }
+  ],
+  "logs": [
+    {
+      "level": "debug",
+      "message": "Complete: Something dummy happened"
+    },
+    {
+      "level": "error",
+      "message": "Complete: Another dummy errored"
+    }
+  ]
+}
