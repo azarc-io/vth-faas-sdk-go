@@ -1,0 +1,25 @@
+{
+  "stages": [
+    {
+      "type": "stage",
+      "name": "My-Stage-1",
+      "inputs": [
+        "foo",
+        "bar"
+      ]
+    },{
+      "type": "stage",
+      "name": "My-Stage-2",
+      "inputs": [
+        "foo"
+      ]
+    }
+  ],
+  "complete": {
+    "type": "complete",
+    "name": "My-Complete",
+    "inputs": [
+      "foo"
+    ]
+  }
+}

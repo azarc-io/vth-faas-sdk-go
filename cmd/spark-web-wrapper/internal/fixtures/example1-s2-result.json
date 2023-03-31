@@ -1,0 +1,17 @@
+{
+  "value": "This text stage-2 output",
+  "logs": [
+    {
+      "level": "debug",
+      "message": "Spark: Something dummy happened"
+    },
+    {
+      "level": "error",
+      "message": "Spark: Another dummy errored"
+    },
+    {
+      "level": "info",
+      "message": "Spark: Dummy Random Info"
+    }
+  ]
+}
