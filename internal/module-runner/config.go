@@ -7,6 +7,7 @@ import (
 	"gopkg.in/yaml.v3"
 	"os"
 	"path"
+	"time"
 )
 
 /************************************************************************/
@@ -16,7 +17,6 @@ import (
 type config struct {
 	BinBasePath string          `yaml:"bin_base_path"`
 	Health      *configHealth   `yaml:"health"`
-	Server      *configServer   `yaml:"server"`
 	Log         *configLog      `yaml:"logging"`
 	Sparks      []*configSpark  `yaml:"sparks"`
 	Temporal    *configTemporal `yaml:"temporal"`
@@ -29,22 +29,23 @@ func defaultConfig() *config {
 }
 
 type configSpark struct {
-	Id         string `yaml:"id"`          // Id is unique hash to identify this combination of Name and Config
-	Name       string `yaml:"name"`        // Name of the binary to execute
-	QueueGroup string `yaml:"queue_group"` // QueueGroup name of execution group
-	Config     string `yaml:"config"`      // Config will be JSON string with config details
+	Id             string         `yaml:"id"`              // Id is unique hash to identify this combination of Name and Config
+	Name           string         `yaml:"name"`            // Name of the binary to execute
+	QueueGroup     string         `yaml:"queue_group"`     // QueueGroup name of execution group
+	Config         string         `yaml:"config"`          // Config Deprecated: will be JSON string with config details
+	ConfigServer   *configServer  `yaml:"config_server"`   // ConfigServer which is used to retrieve startup config
+	StartupTimeout *time.Duration `yaml:"startup_timeout"` // StartupTimeout amount of time to wait for spark to start before error
+}
+
+type configServer struct {
+	Url    string `yaml:"url" json:"url,omitempty"`
+	ApiKey string `yaml:"api_key" json:"api_key,omitempty"`
 }
 
 type configHealth struct {
 	Enabled bool   `env:"HEALTH_ENABLED" yaml:"enabled"`
 	Bind    string `env:"SERVER_BIND" yaml:"bind"`
 	Port    int    `env:"HEALTH_PORT" yaml:"port"`
-}
-
-type configServer struct {
-	Bind    string `env:"SERVER_BIND" yaml:"bind"`
-	Port    int    `env:"SERVER_PORT" yaml:"port"`
-	Enabled bool   `env:"SERVER_ENABLED" yaml:"enabled"`
 }
 
 type configLog struct {
@@ -54,10 +55,6 @@ type configLog struct {
 type configTemporal struct {
 	Address   string `yaml:"address"`
 	Namespace string `yaml:"namespace"`
-}
-
-func (m *config) serverAddress() string {
-	return fmt.Sprintf("%s:%d", m.Server.Bind, m.Server.Port)
 }
 
 func (m *config) healthBindTo() string {
