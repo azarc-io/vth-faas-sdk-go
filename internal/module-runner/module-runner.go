@@ -7,6 +7,7 @@ import (
 	hclog "github.com/hashicorp/go-hclog"
 	"github.com/hashicorp/go-plugin"
 	"gopkg.in/yaml.v3"
+	"io"
 	"io/fs"
 	"log"
 	"net/http"
@@ -14,6 +15,10 @@ import (
 	"os/exec"
 	"path"
 	"time"
+)
+
+const (
+	requestTokenHeader = "X-Token"
 )
 
 type Runner interface {
@@ -75,7 +80,21 @@ func RunModule(cfg *config) (Runner, error) {
 		cmd.Env = os.Environ()
 
 		cfgPath := path.Join(os.TempDir(), fmt.Sprintf("%s-%s-config.cfg", s.Name, s.Id))
-		if err := os.WriteFile(cfgPath, []byte(s.Config), fs.ModePerm); err != nil {
+
+		var cfgData []byte
+		// Check if config server is used
+		if s.ConfigServer != nil {
+			var err error
+			cfgData, err = getConfigFromServer(s)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			// Deprecated: Move to using config server
+			cfgData = []byte(s.Config)
+		}
+
+		if err := os.WriteFile(cfgPath, cfgData, fs.ModePerm); err != nil {
 			return nil, err
 		}
 
@@ -91,6 +110,11 @@ func RunModule(cfg *config) (Runner, error) {
 
 		cmd.Env = append(cmd.Env, "SPARK_SECRET="+base64.StdEncoding.EncodeToString(m))
 
+		startupTimeout := time.Second * 20
+		if s.StartupTimeout != nil {
+			startupTimeout = *s.StartupTimeout
+		}
+
 		// We're a host! Start by launching the plugin process.
 		pc := plugin.NewClient(&plugin.ClientConfig{
 			HandshakeConfig: plugin.HandshakeConfig{
@@ -101,7 +125,7 @@ func RunModule(cfg *config) (Runner, error) {
 			Plugins:      map[string]plugin.Plugin{},
 			Cmd:          cmd,
 			Logger:       logger,
-			StartTimeout: time.Second * 20,
+			StartTimeout: startupTimeout,
 			//TODO: Investigate graceful shutdown time, currently defaults to 2s:
 			//  https://github.com/hashicorp/go-plugin/pull/222/files
 		})
@@ -126,4 +150,26 @@ func RunModule(cfg *config) (Runner, error) {
 	r.initHealthz(cfg)
 
 	return &r, nil
+}
+
+func getConfigFromServer(s *configSpark) ([]byte, error) {
+	req, err := http.NewRequest(http.MethodGet, s.ConfigServer.Url, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set(requestTokenHeader, s.ConfigServer.ApiKey)
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("unable to request spark config: (%s): %w", s.Id, err)
+	}
+	if res.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unable to fetch spark config: (%s): %w", s.Id, err)
+	}
+
+	cfgData, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, fmt.Errorf("unable to read spark config: (%s): %w", s.Id, err)
+	}
+
+	return cfgData, nil
 }
