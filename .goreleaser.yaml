@@ -73,6 +73,21 @@ dockers:
     build_flag_templates:
       - --platform=linux/amd64
     use: buildx
+  - id: linux-arm64-ubuntu
+    ids:
+      - module-runner
+      - spark-web-wrapper
+    goos: linux
+    goarch: arm64
+    dockerfile: Dockerfile.ubuntu
+    image_templates:
+      - '{{ .Env.DOCKER_REGISTRY }}:{{ .Tag }}-ubuntu-arm64'
+      - '{{ .Env.DOCKER_REGISTRY }}:latest-ubuntu-arm64'
+    #      - 'vth-module-runner:v1.19.1-linux-amd64'
+    #    skip_push: "true"
+    build_flag_templates:
+      - --platform=linux/arm/v7
+    use: buildx
 
 snapshot:
   name_template: "{{ incpatch .Version }}-next"
