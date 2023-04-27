@@ -78,6 +78,7 @@ type configLog struct {
 type agent struct {
 	Host      string `env:"AGENT_HOST" yaml:"host"`
 	Port      int    `env:"AGENT_PORT" yaml:"port"`
+	Token     string `env:"AGENT_TOKEN" yaml:"token"`
 	Forwarder struct {
 		Path string `yaml:"path"`
 	} `yaml:"forwarder"`
