@@ -7,6 +7,8 @@ import (
 	"net/http"
 )
 
+const agentTokenHeader = "X-Dev-Token"
+
 type requestDoer interface {
 	Do(req *http.Request) (*http.Response, error)
 }
@@ -56,6 +58,8 @@ func (f *forwarder) Forward(name string, body []byte, headers Headers) (InboundR
 		return nil, err
 	}
 	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set(agentTokenHeader, f.config.Agent.Token)
+
 	response, err := f.httpClient.Do(request)
 	if err != nil {
 		return nil, err

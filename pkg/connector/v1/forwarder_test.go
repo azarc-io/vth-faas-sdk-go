@@ -19,8 +19,9 @@ func (m mockHttpDoer) Do(req *http.Request) (*http.Response, error) {
 
 func TestForward(t *testing.T) {
 	agentConfig := &agent{
-		Host: "test.agent",
-		Port: 8080,
+		Host:  "test.agent",
+		Port:  8080,
+		Token: "test-token",
 		Forwarder: struct {
 			Path string `yaml:"path"`
 		}{
@@ -36,6 +37,8 @@ func TestForward(t *testing.T) {
 	mockClient := mockHttpDoer{DoFunc: func(req *http.Request) (*http.Response, error) {
 		assert.Equal(t, "http://test.agent:8080/forward", req.URL.String())
 		assert.Equal(t, "application/json", req.Header.Get("Content-Type"))
+		assert.Equal(t, agentConfig.Token, req.Header.Get("X-Dev-Token"))
+
 		body, err := io.ReadAll(req.Body)
 		assert.NoError(t, err)
 		var data forwardData
