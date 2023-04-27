@@ -66,5 +66,18 @@ func Decode(input any, target any) error {
 		return ErrInvalidOctetStreamType
 	}
 
-	return json.Unmarshal(data, target)
+	if err := json.Unmarshal(data, target); err != nil {
+		// this is fallback for non-json types being set
+		switch target.(type) {
+		case *string:
+			// is a string
+			rv.Elem().Set(reflect.ValueOf(string(data)))
+		case *[]byte:
+			rv.Elem().Set(reflect.ValueOf(data))
+		default:
+			return err
+		}
+	}
+
+	return nil
 }
