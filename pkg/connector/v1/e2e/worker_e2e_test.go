@@ -23,6 +23,8 @@ import (
 )
 
 func TestWorkerE2E(t *testing.T) {
+	dummyRequestBody := []byte(`{"key":"request"}`)
+
 	_ = os.Setenv("INBOUND_DESCRIPTOR_FILE_PATH", "../fixtures/inbound_descriptors_config_1.yaml")
 	_ = os.Setenv("CONFIG_FILE_PATH", "../fixtures/user_config_1.yaml")
 
@@ -38,7 +40,7 @@ func TestWorkerE2E(t *testing.T) {
 			MsgName     string            `json:"message_name"`
 			ConnectorID string            `json:"connector_id"`
 			HeadersMap  map[string]string `json:"headers"`
-			Payload     []byte            `json:"payload"`
+			Payload     json.RawMessage   `json:"payload"`
 		}
 		err = json.Unmarshal(body, &forwardData)
 		assert.NoError(t, err)
@@ -46,13 +48,15 @@ func TestWorkerE2E(t *testing.T) {
 		assert.Equal(t, "message-name-1", forwardData.MsgName)
 		assert.Equal(t, "connector-simple-example_12345", forwardData.ConnectorID)
 		assert.Equal(t, map[string]string{"key": "value"}, forwardData.HeadersMap)
-		assert.Equal(t, []byte("some-data"), forwardData.Payload)
+		assert.Equal(t, dummyRequestBody, []byte(forwardData.Payload))
 
 		resp := map[string]any{
 			"headers": map[string]string{
 				"key": "header-value",
 			},
-			"payload": []byte(`{"response": "response-body"}`),
+			"payload": map[string]string{
+				"response": "response-body",
+			},
 		}
 		err = json.NewEncoder(writer).Encode(resp)
 		assert.NoError(t, err)
@@ -98,7 +102,7 @@ func TestWorkerE2E(t *testing.T) {
 			healthCheckChan <- struct{}{}
 			return nil
 		})
-		resp, err := ctx.Forwarder().Forward("message-name-1", []byte("some-data"), map[string]string{
+		resp, err := ctx.Forwarder().Forward("message-name-1", dummyRequestBody, map[string]string{
 			"key": "value",
 		})
 		assert.NoError(t, err)

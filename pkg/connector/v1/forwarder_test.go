@@ -18,6 +18,8 @@ func (m mockHttpDoer) Do(req *http.Request) (*http.Response, error) {
 }
 
 func TestForward(t *testing.T) {
+	dummyRequestBody := []byte(`{"key":"request"}`)
+	dummyResponseBody := []byte(`{"key":"response"}`)
 	agentConfig := &agent{
 		Host:  "test.agent",
 		Port:  8080,
@@ -49,10 +51,10 @@ func TestForward(t *testing.T) {
 		assert.Equal(t, "test-name", data.MsgName)
 		assert.Equal(t, 1, len(data.HeadersMap))
 		assert.Equal(t, "test-value", data.HeadersMap["test-header"])
-		assert.Equal(t, []byte("test-body"), data.Payload)
+		assert.Equal(t, dummyRequestBody, []byte(data.Payload))
 
 		resp := forwardData{
-			Payload: []byte("response-data"),
+			Payload: dummyResponseBody,
 			HeadersMap: map[string]string{
 				"response-header": "response-value",
 			},
@@ -66,7 +68,7 @@ func TestForward(t *testing.T) {
 	}}
 	fwd := newForwarder(connectorConfig, withRequestDoer(mockClient))
 
-	resp, err := fwd.Forward("test-name", []byte("test-body"), map[string]string{
+	resp, err := fwd.Forward("test-name", dummyRequestBody, map[string]string{
 		"test-header": "test-value",
 	})
 	assert.NoError(t, err)
@@ -76,5 +78,5 @@ func TestForward(t *testing.T) {
 
 	assert.Equal(t, 1, len(resp.Headers()))
 	assert.Equal(t, "response-value", resp.Headers()["response-header"])
-	assert.Equal(t, []byte("response-data"), respData)
+	assert.Equal(t, dummyResponseBody, respData)
 }
