@@ -43,8 +43,10 @@ func (f forwardData) MessageName() string {
 
 func (f *forwarder) Forward(name string, body []byte, headers Headers) (InboundResponse, error) {
 	// TODO: Body must be JSON object for now but we must change to bytes after agent update
-	if err := json.Unmarshal(body, &map[string]any{}); err != nil {
-		return nil, errors.New("request body must be a valid json object")
+	if len(body) > 0 {
+		if err := json.Unmarshal(body, &map[string]any{}); err != nil {
+			return nil, errors.New("request body must be a valid json object")
+		}
 	}
 	req := forwardData{
 		Tenant:      f.config.Tenant,
