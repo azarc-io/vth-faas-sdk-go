@@ -48,3 +48,45 @@ func TestConversion(t *testing.T) {
 		})
 	}
 }
+
+func TestDecodeToBytes(t *testing.T) {
+	t.Run("raw json", func(t *testing.T) {
+		val := `
+{
+	"foo": "bar
+}
+`
+		enc := base64.StdEncoding.EncodeToString([]byte(val))
+		out, err := codec.DecodeToBytes(enc)
+		assert.NoError(t, err)
+		assert.Equal(t, val, string(out))
+	})
+
+	t.Run("raw string", func(t *testing.T) {
+		val := `hello from here`
+		enc := base64.StdEncoding.EncodeToString([]byte(val))
+		out, err := codec.DecodeToBytes(enc)
+		assert.NoError(t, err)
+		assert.Equal(t, val, string(out))
+	})
+
+	t.Run("byte array", func(t *testing.T) {
+		val := `hello from here`
+		enc := []byte(val)
+		out, err := codec.DecodeToBytes(enc)
+		assert.NoError(t, err)
+		assert.Equal(t, val, string(out))
+	})
+}
+
+func TestMime(t *testing.T) {
+	t.Run("Get Base Type", func(t *testing.T) {
+		mt := codec.MimeTypeOctetStream.WithType("pdf")
+		assert.Equal(t, codec.MimeTypeOctetStream, mt.BaseType())
+	})
+
+	t.Run("With sub type", func(t *testing.T) {
+		mt := codec.MimeTypeOctetStream.WithType("pdf")
+		assert.Equal(t, codec.MimeType("application/octet-stream+pdf"), mt)
+	})
+}
