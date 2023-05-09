@@ -187,6 +187,13 @@ func (b *errorBindable) GetMimeType() string {
 	return ""
 }
 
+func (b *errorBindable) String() string {
+	return b.err.Error()
+}
+func (b *errorBindable) Bytes() ([]byte, error) {
+	return []byte(b.err.Error()), nil
+}
+
 func NewBindableError(err error) Bindable {
 	return &errorBindable{err: err}
 }

@@ -1,6 +1,7 @@
 package codec
 
 import (
+	"encoding/base64"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -35,4 +36,46 @@ func TestConversion(t *testing.T) {
 			assert.Equal(t, out, test.expected)
 		})
 	}
+}
+
+func TestDecodeToBytes(t *testing.T) {
+	t.Run("raw json", func(t *testing.T) {
+		val := `
+{
+	"foo": "bar
+}
+`
+		enc := base64.StdEncoding.EncodeToString([]byte(val))
+		out, err := DecodeToBytes(enc)
+		assert.NoError(t, err)
+		assert.Equal(t, val, string(out))
+	})
+
+	t.Run("raw string", func(t *testing.T) {
+		val := `hello from here`
+		enc := base64.StdEncoding.EncodeToString([]byte(val))
+		out, err := DecodeToBytes(enc)
+		assert.NoError(t, err)
+		assert.Equal(t, val, string(out))
+	})
+
+	t.Run("byte array", func(t *testing.T) {
+		val := `hello from here`
+		enc := []byte(val)
+		out, err := DecodeToBytes(enc)
+		assert.NoError(t, err)
+		assert.Equal(t, val, string(out))
+	})
+}
+
+func TestMime(t *testing.T) {
+	t.Run("Get Base Type", func(t *testing.T) {
+		mt := MimeTypeOctetStream.WithType("pdf")
+		assert.Equal(t, MimeTypeOctetStream, mt.BaseType())
+	})
+
+	t.Run("With sub type", func(t *testing.T) {
+		mt := MimeTypeOctetStream.WithType("pdf")
+		assert.Equal(t, MimeType("application/octet-stream+pdf"), mt)
+	})
 }
