@@ -112,11 +112,12 @@ func NewTestRunner(t *testing.T, spark sparkv1.Spark, options ...Option) (Runner
 func NewTestJobContext(ctx context.Context, jobKey, correlationId, transactionId string, inputs sparkv1.ExecuteSparkInputs) *sparkv1.JobContext {
 	ins := make(sparkv1.ExecuteSparkInputs)
 	for name, bindable := range inputs {
-		data, err := codec.Encode(bindable.Value, codec.MimeType(bindable.MimeType))
+		data, err := codec.Encode(bindable.Value)
 		if err != nil {
 			panic(err)
 		}
-		ins[name] = sparkv1.NewBindable(sparkv1.Value{Value: data, MimeType: bindable.MimeType})
+
+		ins[name] = sparkv1.NewBindableValue(data, bindable.MimeType)
 	}
 
 	return &sparkv1.JobContext{
