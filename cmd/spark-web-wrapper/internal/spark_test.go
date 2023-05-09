@@ -48,11 +48,11 @@ func TestShouldInitialiseSparkAndRunMultiStages(t *testing.T) {
 
 	ctx := module_test_runner.NewTestJobContext(context.Background(), "test", "cid", "tid", sparkv1.ExecuteSparkInputs{
 		"myKey": {
-			Value:    "anything",
+			Value:    []byte(`"anything"`),
 			MimeType: "",
 		},
 		"foo": {
-			Value:    12345,
+			Value:    []byte(`12345`),
 			MimeType: string(codec.MimeTypeJson),
 		},
 	})

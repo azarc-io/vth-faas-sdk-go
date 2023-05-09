@@ -188,12 +188,12 @@ func (w *jobWorkflow) ExecuteStageActivity(ctx context.Context, req *ExecuteStag
 		return getTransferableError(err.(error)), nil
 	}
 
-	stageValue, err2 := codec.Encode(out, codec.MimeTypeJson)
+	stageValue, err2 := codec.Encode(out)
 	if err2 != nil {
 		return getTransferableError(err2), nil
 	}
 
-	return &bindable{Value: stageValue, Raw: out, MimeType: string(codec.MimeTypeJson)}, nil
+	return &bindable{Value: stageValue, MimeType: string(codec.MimeTypeJson)}, nil
 }
 
 func (w *jobWorkflow) ExecuteCompleteActivity(ctx context.Context, req *ExecuteStageRequest) (*ExecuteSparkOutput, StageError) {
@@ -221,21 +221,7 @@ func (w *jobWorkflow) ExecuteCompleteActivity(ctx context.Context, req *ExecuteS
 		Outputs: map[string]*bindable{},
 	}
 	for _, output := range cc.(*completeContext).outputs {
-		if output.Raw {
-			res.Outputs[output.Name] = &bindable{Value: output.Value, Raw: output.Value, MimeType: string(output.MimeType)}
-			continue
-		}
-
-		val, err := codec.Encode(output.Value, output.MimeType)
-		if err != nil {
-			return &ExecuteSparkOutput{
-				Error: &ExecuteSparkError{
-					ErrorMessage: err.Error(),
-					ErrorCode:    errorCodeInternal,
-				},
-			}, nil
-		}
-		res.Outputs[output.Name] = &bindable{Value: val, Raw: output.Value, MimeType: string(output.MimeType)}
+		res.Outputs[output.Name] = &bindable{Value: output.Value, MimeType: string(output.MimeType)}
 	}
 	return res, err
 }
@@ -297,12 +283,12 @@ func getTransferableError(err error) Bindable {
 			Metadata:     se.Metadata(),
 			Retry:        se.GetRetryConfig(),
 			StackTrace:   getStackTrace(se),
-		}, MimeJsonError)
+		})
 	} else {
 		ew, _ = codec.Encode(errorWrap{
 			ErrorMessage: err.Error(),
 			ErrorCode:    errorCodeInternal,
-		}, MimeJsonError)
+		})
 	}
 
 	return NewBindable(Value{Value: ew, MimeType: string(MimeJsonError)})

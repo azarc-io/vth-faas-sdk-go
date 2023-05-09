@@ -110,9 +110,8 @@ type (
 
 	Bindable interface {
 		Bind(a any) error
-		GetValue() (any, error)
+		GetValue() ([]byte, error)
 		GetMimeType() string
-		String() string
 	}
 
 	BindableConfig interface {
@@ -157,22 +156,20 @@ func (b *bindable) Bind(a any) error {
 	return errors.WithStack(codec.Decode(b.Value, a))
 }
 
-func (b *bindable) GetValue() (any, error) {
+func (b *bindable) GetValue() ([]byte, error) {
 	return b.Value, nil
 }
 func (b *bindable) GetMimeType() string {
 	return b.MimeType
 }
-func (b *bindable) String() string {
-	val, _ := bind[string](b.Value)
-	if val != nil {
-		return *val
-	}
-	return ""
-}
 
 func NewBindable(value Value) *bindable {
 	return &bindable{MimeType: value.MimeType, Value: value.Value}
+}
+
+func NewBindableValue(value any, mimeType string) *bindable {
+	val, _ := codec.Encode(value)
+	return &bindable{MimeType: mimeType, Value: val}
 }
 
 type errorBindable struct {
@@ -183,24 +180,11 @@ func (b *errorBindable) Bind(a any) error {
 	return b.err
 }
 
-func (b *errorBindable) GetValue() (any, error) {
+func (b *errorBindable) GetValue() ([]byte, error) {
 	return nil, b.err
 }
 func (b *errorBindable) GetMimeType() string {
 	return ""
-}
-func (b *errorBindable) String() string {
-	return b.err.Error()
-}
-
-func bind[T any](input any) (*T, error) {
-	v := new(T)
-	if input == nil {
-		return nil, nil
-	}
-
-	err := codec.Decode(input, v)
-	return v, err
 }
 
 func NewBindableError(err error) Bindable {
