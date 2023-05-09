@@ -65,7 +65,7 @@ func (s *sparkPlugin) start() error {
 		_, err := tc.ExecuteWorkflow(context.Background(), o, s.config.Id, &JobMetadata{
 			SparkId: s.config.Id,
 			Inputs: map[string]*bindable{
-				"name": {MimeType: "application/text", Value: "Jono"},
+				"name": NewBindableValue("Jono", "application/text"),
 			},
 		})
 		if err != nil {

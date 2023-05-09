@@ -43,8 +43,7 @@ type (
 	}
 
 	Value struct {
-		Value    any    `json:"value"`
-		Raw      any    `json:"raw"` // TODO Remove, only used for debug
+		Value    []byte `json:"value"`
 		MimeType string `json:"mime_type"`
 	}
 )
