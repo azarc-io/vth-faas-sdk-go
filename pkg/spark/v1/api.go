@@ -113,6 +113,7 @@ type (
 		GetValue() (any, error)
 		GetMimeType() string
 		String() string
+		Bytes() ([]byte, error)
 	}
 
 	BindableConfig interface {
@@ -170,6 +171,9 @@ func (b *bindable) String() string {
 	}
 	return ""
 }
+func (b *bindable) Bytes() ([]byte, error) {
+	return codec.DecodeToBytes(b.Value)
+}
 
 func NewBindable(value Value) *bindable {
 	return &bindable{MimeType: value.MimeType, Value: value.Value}
@@ -191,6 +195,9 @@ func (b *errorBindable) GetMimeType() string {
 }
 func (b *errorBindable) String() string {
 	return b.err.Error()
+}
+func (b *errorBindable) Bytes() ([]byte, error) {
+	return []byte(b.err.Error()), nil
 }
 
 func bind[T any](input any) (*T, error) {
