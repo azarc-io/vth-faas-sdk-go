@@ -1,7 +1,6 @@
 package codec
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -29,62 +28,19 @@ func (mt MimeType) WithType(subType string) MimeType {
 	return MimeType(fmt.Sprintf("%s+%s", mt, strings.ToLower(subType)))
 }
 
-func Encode(v any, mime MimeType) ([]byte, error) {
-	if mime == MimeTypeJson.WithType("text") {
-		switch val := v.(type) {
-		case string:
-			return []byte(val), nil
-		case []byte:
-			return val, nil
-		}
-	}
-
+func Encode(v any) ([]byte, error) {
 	return json.Marshal(v)
 }
 
-func Decode(input any, target any) error {
+func Decode(input []byte, target any) error {
 	rv := reflect.ValueOf(target)
 	if rv.Kind() != reflect.Pointer || rv.IsNil() {
 		return ErrTargetNotPointer
 	}
 
-	if input == nil {
+	if len(input) == 0 {
 		return nil
 	}
 
-	var err error
-	switch val := input.(type) {
-	case string:
-		input, err = base64.StdEncoding.DecodeString(val)
-		if err != nil {
-			return err
-		}
-	}
-
-	data, ok := input.([]byte)
-	if !ok {
-		return ErrInvalidOctetStreamType
-	}
-
-	if err := json.Unmarshal(data, target); err != nil {
-		// check if this is a JSON string instead
-		var nv string
-		if err2 := json.Unmarshal(data, &nv); err2 == nil {
-			// covers test: "json bytes from raw json string"
-			data = []byte(nv)
-		}
-
-		// this is fallback for non-json types being set
-		switch target.(type) {
-		case *string:
-			// is a string
-			rv.Elem().Set(reflect.ValueOf(string(data)))
-		case *[]byte:
-			rv.Elem().Set(reflect.ValueOf(data))
-		default:
-			return err
-		}
-	}
-
-	return nil
+	return json.Unmarshal(input, target)
 }
