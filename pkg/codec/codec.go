@@ -1,11 +1,11 @@
 package codec
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"reflect"
+	"regexp"
 	"strings"
 )
 
@@ -25,66 +25,47 @@ const (
 	MimeTypeOctetStream MimeType = "application/octet-stream"
 )
 
+// isBase64Characters checks if a string contains only valid base64 characters
+var validBase64 = regexp.MustCompile(`^[A-Za-z0-9+/]*=?=?$`)
+
 func (mt MimeType) WithType(subType string) MimeType {
 	return MimeType(fmt.Sprintf("%s+%s", mt, strings.ToLower(subType)))
 }
 
-func Encode(v any, mime MimeType) ([]byte, error) {
-	if mime == MimeTypeJson.WithType("text") {
-		switch val := v.(type) {
-		case string:
-			return []byte(val), nil
-		case []byte:
-			return val, nil
-		}
-	}
+func (mt MimeType) BaseType() MimeType {
+	v := strings.Split(string(mt), "+")[0]
+	return MimeType(v)
+}
 
+func Encode(v any) ([]byte, error) {
+	if b, ok := v.([]byte); ok {
+		return b, nil
+	}
 	return json.Marshal(v)
 }
 
-func Decode(input any, target any) error {
-	rv := reflect.ValueOf(target)
-	if rv.Kind() != reflect.Pointer || rv.IsNil() {
-		return ErrTargetNotPointer
+func DecodeValue(input []byte, mime MimeType) (any, error) {
+	var data any
+	return data, DecodeAndBind(input, mime, &data)
+}
+
+func DecodeAndBind(input []byte, mime MimeType, target any) error {
+	val := reflect.ValueOf(target)
+	if val.Kind() != reflect.Pointer || val.IsNil() {
+		return fmt.Errorf("DecodeAndBind: expected a pointer")
 	}
 
-	if input == nil {
+	elem := val.Elem()
+	if !elem.CanSet() {
+		return fmt.Errorf("overrideValue: cannot set value of the pointer")
+	}
+
+	// allow binding of raw bytes
+	_, ok := target.(*[]byte)
+	if mime.BaseType() == MimeTypeOctetStream || ok {
+		elem.Set(reflect.ValueOf(input))
 		return nil
 	}
 
-	var err error
-	switch val := input.(type) {
-	case string:
-		input, err = base64.StdEncoding.DecodeString(val)
-		if err != nil {
-			return err
-		}
-	}
-
-	data, ok := input.([]byte)
-	if !ok {
-		return ErrInvalidOctetStreamType
-	}
-
-	if err := json.Unmarshal(data, target); err != nil {
-		// check if this is a JSON string instead
-		var nv string
-		if err2 := json.Unmarshal(data, &nv); err2 == nil {
-			// covers test: "json bytes from raw json string"
-			data = []byte(nv)
-		}
-
-		// this is fallback for non-json types being set
-		switch target.(type) {
-		case *string:
-			// is a string
-			rv.Elem().Set(reflect.ValueOf(string(data)))
-		case *[]byte:
-			rv.Elem().Set(reflect.ValueOf(data))
-		default:
-			return err
-		}
-	}
-
-	return nil
+	return json.Unmarshal(input, target)
 }
