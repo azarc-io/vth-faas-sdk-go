@@ -153,7 +153,11 @@ func (b *bindable) Bind(a any) error {
 		return nil
 	}
 
-	return errors.WithStack(codec.Decode(b.Value, a))
+	if err := codec.DecodeAndBind(b.Value, codec.MimeType(b.MimeType), a); err != nil {
+		return errors.WithStack(err)
+	}
+
+	return nil
 }
 
 func (b *bindable) GetValue() ([]byte, error) {

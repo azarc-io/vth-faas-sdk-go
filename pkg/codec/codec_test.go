@@ -1,7 +1,6 @@
 package codec
 
 import (
-	"encoding/base64"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -10,12 +9,13 @@ func TestConversion(t *testing.T) {
 	tests := []struct {
 		name     string
 		input    any
+		mime     MimeType
 		expected any
 	}{
-		{name: "bytes", input: []byte(`my test`), expected: []byte("my test")},
-		{name: "raw string", input: "my test string", expected: "my test string"},
-		{name: "json int", input: 123, expected: 123.0},
-		{name: "json float", input: 123.12, expected: 123.12},
+		{name: "bytes", input: []byte(`my test`), mime: MimeTypeOctetStream, expected: []byte("my test")},
+		{name: "raw string", input: "my test string", mime: MimeTypeText, expected: "my test string"},
+		{name: "json int", input: 123, mime: MimeTypeText, expected: 123.0},
+		{name: "json float", input: 123.12, mime: MimeTypeText, expected: 123.12},
 	}
 
 	for _, test := range tests {
@@ -24,47 +24,44 @@ func TestConversion(t *testing.T) {
 			assert.NoError(t, err)
 
 			var out any
-			if _, ok := test.expected.([]byte); ok {
-				var o []byte
-				err = Decode(encIn, &o)
-				out = o
-			} else {
-				err = Decode(encIn, &out)
-			}
-
+			err = DecodeAndBind(encIn, test.mime, &out)
 			assert.NoError(t, err)
 			assert.Equal(t, out, test.expected)
 		})
 	}
 }
 
-func TestDecodeToBytes(t *testing.T) {
+func TestDecode(t *testing.T) {
 	t.Run("raw json", func(t *testing.T) {
 		val := `
 {
-	"foo": "bar
+	"foo": "bar"
 }
 `
-		enc := base64.StdEncoding.EncodeToString([]byte(val))
-		out, err := DecodeToBytes(enc)
+		out, err := DecodeValue([]byte(val), MimeTypeJson)
 		assert.NoError(t, err)
-		assert.Equal(t, val, string(out))
+		assert.Equal(t, map[string]any{"foo": "bar"}, out)
 	})
 
-	t.Run("raw string", func(t *testing.T) {
-		val := `hello from here`
-		enc := base64.StdEncoding.EncodeToString([]byte(val))
-		out, err := DecodeToBytes(enc)
+	t.Run("json encoded string", func(t *testing.T) {
+		val := `"hello from here"`
+		out, err := DecodeValue([]byte(val), MimeTypeText)
 		assert.NoError(t, err)
-		assert.Equal(t, val, string(out))
+		assert.Equal(t, "hello from here", out)
 	})
 
-	t.Run("byte array", func(t *testing.T) {
-		val := `hello from here`
-		enc := []byte(val)
-		out, err := DecodeToBytes(enc)
+	t.Run("number", func(t *testing.T) {
+		val := `123`
+		out, err := DecodeValue([]byte(val), MimeTypeText)
 		assert.NoError(t, err)
-		assert.Equal(t, val, string(out))
+		assert.Equal(t, 123.0, out)
+	})
+
+	t.Run("float", func(t *testing.T) {
+		val := `123.567`
+		out, err := DecodeValue([]byte(val), MimeTypeText)
+		assert.NoError(t, err)
+		assert.Equal(t, 123.567, out)
 	})
 }
 
