@@ -1,50 +1,78 @@
-package codec_test
+package codec
 
 import (
-	"encoding/base64"
-	"fmt"
-	"github.com/azarc-io/vth-faas-sdk-go/pkg/codec"
 	"github.com/stretchr/testify/assert"
-	"reflect"
 	"testing"
 )
 
 func TestConversion(t *testing.T) {
 	tests := []struct {
 		name     string
-		input    string
-		ot       reflect.Type
+		input    any
+		mime     MimeType
 		expected any
 	}{
-		{name: "raw string to bytes", input: "my test", ot: reflect.TypeOf([]byte{}), expected: []byte("my test")},
-		{name: "json bytes", input: fmt.Sprintf(`"%s"`, base64.StdEncoding.EncodeToString([]byte("my test"))), ot: reflect.TypeOf([]byte{}), expected: []byte("my test")},
-		{name: "raw string", input: "my test string", ot: reflect.TypeOf(""), expected: "my test string"},
-		{name: "json string", input: `"my test string"`, ot: reflect.TypeOf(""), expected: "my test string"},
-		{name: "json int", input: `123`, ot: reflect.TypeOf(0), expected: 123.0},
-		{name: "json float", input: `123.12`, ot: reflect.TypeOf(0), expected: 123.12},
-		{name: "json bytes from raw json string", input: `"{\n  \t\"cntr_no\": \"MSMU6298516\",\n  \t\"carrier_no\": \"MSCU\"\n}"`, ot: reflect.TypeOf([]byte{}), expected: []byte("{\n  \t\"cntr_no\": \"MSMU6298516\",\n  \t\"carrier_no\": \"MSCU\"\n}")},
+		{name: "bytes", input: []byte(`my test`), mime: MimeTypeOctetStream, expected: []byte("my test")},
+		{name: "raw string", input: "my test string", mime: MimeTypeText, expected: "my test string"},
+		{name: "json int", input: 123, mime: MimeTypeText, expected: 123.0},
+		{name: "json float", input: 123.12, mime: MimeTypeText, expected: 123.12},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			input := base64.StdEncoding.EncodeToString([]byte(test.input))
+			encIn, err := Encode(test.input)
+			assert.NoError(t, err)
 
-			switch test.ot {
-			case reflect.TypeOf(""):
-				var out string
-				assert.NoError(t, codec.Decode(input, &out))
-				assert.Equal(t, test.expected, out)
-			case reflect.TypeOf([]byte{}):
-				var out []byte
-				assert.NoError(t, codec.Decode(input, &out))
-				assert.Equal(t, string(test.expected.([]byte)), string(out))
-			case reflect.TypeOf(0):
-				var out float64
-				assert.NoError(t, codec.Decode(input, &out))
-				assert.Equal(t, test.expected, out)
-			default:
-				t.Fatalf("type not supported")
-			}
+			var out any
+			err = DecodeAndBind(encIn, test.mime, &out)
+			assert.NoError(t, err)
+			assert.Equal(t, out, test.expected)
 		})
 	}
+}
+
+func TestDecode(t *testing.T) {
+	t.Run("raw json", func(t *testing.T) {
+		val := `
+{
+	"foo": "bar"
+}
+`
+		out, err := DecodeValue([]byte(val), MimeTypeJson)
+		assert.NoError(t, err)
+		assert.Equal(t, map[string]any{"foo": "bar"}, out)
+	})
+
+	t.Run("json encoded string", func(t *testing.T) {
+		val := `"hello from here"`
+		out, err := DecodeValue([]byte(val), MimeTypeText)
+		assert.NoError(t, err)
+		assert.Equal(t, "hello from here", out)
+	})
+
+	t.Run("number", func(t *testing.T) {
+		val := `123`
+		out, err := DecodeValue([]byte(val), MimeTypeText)
+		assert.NoError(t, err)
+		assert.Equal(t, 123.0, out)
+	})
+
+	t.Run("float", func(t *testing.T) {
+		val := `123.567`
+		out, err := DecodeValue([]byte(val), MimeTypeText)
+		assert.NoError(t, err)
+		assert.Equal(t, 123.567, out)
+	})
+}
+
+func TestMime(t *testing.T) {
+	t.Run("Get Base Type", func(t *testing.T) {
+		mt := MimeTypeOctetStream.WithType("pdf")
+		assert.Equal(t, MimeTypeOctetStream, mt.BaseType())
+	})
+
+	t.Run("With sub type", func(t *testing.T) {
+		mt := MimeTypeOctetStream.WithType("pdf")
+		assert.Equal(t, MimeType("application/octet-stream+pdf"), mt)
+	})
 }
