@@ -4,16 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	spark "github.com/azarc-io/vth-faas-sdk-go/cmd/spark-complex-example/internal"
-	sparkv1 "github.com/azarc-io/vth-faas-sdk-go/pkg/spark/v1"
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/spark/v1/test"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
 func Test_Should_Chain_Multiple_Inputs_And_Outputs(t *testing.T) {
-	ctx := module_test_runner.NewTestJobContext(context.Background(), "test", "cid", "tid", sparkv1.ExecuteSparkInputs{
+	ctx := module_test_runner.NewTestJobContext(context.Background(), "test", "cid", "tid", module_test_runner.Inputs{
 		"name_string": {
-			Value:    []byte(`"Bob"`),
+			Value:    "Bob",
 			MimeType: "application/text",
 		},
 	})

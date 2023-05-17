@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/azarc-io/vth-faas-sdk-go/pkg/codec"
 	sparkv1 "github.com/azarc-io/vth-faas-sdk-go/pkg/spark/v1"
 	"github.com/google/uuid"
 	"go.temporal.io/sdk/testsuite"
@@ -20,6 +21,12 @@ type RunnerTest interface {
 	sparkv1.StageTracker
 	Execute(ctx *sparkv1.JobContext, opts ...sparkv1.Option) (*Outputs, error)
 }
+
+type Input struct {
+	Value    any
+	MimeType codec.MimeType
+}
+type Inputs map[string]Input
 
 type Outputs struct {
 	sparkv1.ExecuteSparkOutput
@@ -108,10 +115,10 @@ func NewTestRunner(t *testing.T, spark sparkv1.Spark, options ...Option) (Runner
 	return &runnerTest{spark: spark, testOpts: &to, InternalStageTracker: st, StageTracker: st, t: t}, nil
 }
 
-func NewTestJobContext(ctx context.Context, jobKey, correlationId, transactionId string, inputs sparkv1.ExecuteSparkInputs) *sparkv1.JobContext {
+func NewTestJobContext(ctx context.Context, jobKey, correlationId, transactionId string, inputs Inputs) *sparkv1.JobContext {
 	ins := make(sparkv1.ExecuteSparkInputs)
 	for name, bindable := range inputs {
-		ins[name] = sparkv1.NewBindable(sparkv1.Value{Value: bindable.Value, MimeType: bindable.MimeType})
+		ins[name] = sparkv1.NewBindable(sparkv1.Value{Value: MustEncode(bindable.Value), MimeType: string(bindable.MimeType)})
 	}
 
 	return &sparkv1.JobContext{
