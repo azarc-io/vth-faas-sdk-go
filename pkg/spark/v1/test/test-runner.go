@@ -26,7 +26,7 @@ type Input struct {
 	Value    any
 	MimeType codec.MimeType
 }
-type Inputs map[string]Input
+type Inputs map[string]*Input
 
 type Outputs struct {
 	sparkv1.ExecuteSparkOutput

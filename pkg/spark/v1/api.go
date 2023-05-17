@@ -112,6 +112,7 @@ type (
 		Bind(a any) error
 		GetValue() ([]byte, error)
 		GetMimeType() string
+		String() string
 	}
 
 	BindableConfig interface {
@@ -166,6 +167,12 @@ func (b *bindable) GetValue() ([]byte, error) {
 func (b *bindable) GetMimeType() string {
 	return b.MimeType
 }
+func (b *bindable) String() string {
+	// Note: This function will return empty string if the bindable value is not a string
+	var val string
+	_ = b.Bind(&val)
+	return val
+}
 
 func NewBindable(value Value) *bindable {
 	return &bindable{MimeType: value.MimeType, Value: value.Value}
@@ -190,7 +197,6 @@ func (b *errorBindable) GetValue() ([]byte, error) {
 func (b *errorBindable) GetMimeType() string {
 	return ""
 }
-
 func (b *errorBindable) String() string {
 	return b.err.Error()
 }
