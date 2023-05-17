@@ -7,18 +7,10 @@ import (
 type Var struct {
 	Name     string
 	MimeType codec.MimeType
-	Value    any
-	Raw      bool
+	Value    []byte
 }
 
 func NewVar(name string, mimeType codec.MimeType, value any) *Var {
-	return &Var{name, mimeType, value, false}
-}
-
-func NewRawVar(name string, mimeType codec.MimeType, value []byte) *Var {
-	return &Var{name, mimeType, value, true}
-}
-
-type rawVar struct {
-	Raw []byte
+	val, _ := codec.Encode(value)
+	return &Var{name, mimeType, val}
 }

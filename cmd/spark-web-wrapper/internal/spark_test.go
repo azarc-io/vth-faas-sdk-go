@@ -46,14 +46,14 @@ func TestShouldInitialiseSparkAndRunMultiStages(t *testing.T) {
 		{http.MethodPost, 200, "/basepath/complete/My-Complete", example1_c1_result, example1_c1_expected_input},
 	})
 
-	ctx := module_test_runner.NewTestJobContext(context.Background(), "test", "cid", "tid", sparkv1.ExecuteSparkInputs{
+	ctx := module_test_runner.NewTestJobContext(context.Background(), "test", "cid", "tid", module_test_runner.Inputs{
 		"myKey": {
 			Value:    "anything",
 			MimeType: "",
 		},
 		"foo": {
 			Value:    12345,
-			MimeType: string(codec.MimeTypeJson),
+			MimeType: codec.MimeTypeJson,
 		},
 	})
 
@@ -105,7 +105,7 @@ func TestShouldErrorOnStage1(t *testing.T) {
 			{http.MethodPost, 500, "/basepath/stages/My-Stage-1", example1_stage_error_with_retry, nil},
 		})
 
-		ctx := module_test_runner.NewTestJobContext(context.Background(), "test", "cid", "tid", sparkv1.ExecuteSparkInputs{})
+		ctx := module_test_runner.NewTestJobContext(context.Background(), "test", "cid", "tid", module_test_runner.Inputs{})
 		worker, err := module_test_runner.NewTestRunner(t, spark.NewSpark(svr.URL+"/basepath"))
 		assert.Nil(t, err)
 
@@ -129,7 +129,7 @@ func TestShouldErrorOnStage1(t *testing.T) {
 			{http.MethodPost, 502, "/basepath/stages/My-Stage-1", []byte("dummy timeout issue"), nil},
 		})
 
-		ctx := module_test_runner.NewTestJobContext(context.Background(), "test", "cid", "tid", sparkv1.ExecuteSparkInputs{})
+		ctx := module_test_runner.NewTestJobContext(context.Background(), "test", "cid", "tid", module_test_runner.Inputs{})
 		worker, err := module_test_runner.NewTestRunner(t, spark.NewSpark(svr.URL+"/basepath"))
 		assert.Nil(t, err)
 
@@ -155,7 +155,7 @@ func TestShouldErrorOnStageComplete(t *testing.T) {
 		{http.MethodPost, 500, "/basepath/complete/My-Complete", example1_stage_error_with_retry, nil},
 	})
 
-	ctx := module_test_runner.NewTestJobContext(context.Background(), "test", "cid", "tid", sparkv1.ExecuteSparkInputs{})
+	ctx := module_test_runner.NewTestJobContext(context.Background(), "test", "cid", "tid", module_test_runner.Inputs{})
 	worker, err := module_test_runner.NewTestRunner(t, spark.NewSpark(svr.URL+"/basepath"))
 	assert.Nil(t, err)
 

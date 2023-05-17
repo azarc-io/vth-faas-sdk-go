@@ -96,7 +96,7 @@ func (s *WorkerSuite) Test_Should_Call_BuildChain_On_Registration() {
 	jobKey := "test"
 	spark := new(basicSpark)
 	worker := s.createWorker(spark)
-	ctx := NewTestJobContext(context.Background(), jobKey, "cid", "tid", sparkv1.ExecuteSparkInputs{})
+	ctx := NewTestJobContext(context.Background(), jobKey, "cid", "tid", Inputs{})
 
 	out, err := worker.Execute(ctx)
 	s.Require().NoError(err)
@@ -123,7 +123,7 @@ func (s *WorkerSuite) Test_Should_Drain_Running_Stages_During_Shutdown_When_Cont
 	}()
 
 	go func() {
-		ctx := NewTestJobContext(oc, jobKey, "cid", "tid", sparkv1.ExecuteSparkInputs{})
+		ctx := NewTestJobContext(oc, jobKey, "cid", "tid", Inputs{})
 		_, err := worker.Execute(ctx)
 		s.ErrorContains(err, "canceled")
 		close(done)
