@@ -40,10 +40,11 @@ func (st *stageTracker) GetStageResult(name string) (data any, mime codec.MimeTy
 		return nil, "", sparkv1.NewStageError(err2)
 	}
 
-	switch v := raw.(type) {
-	case sparkv1.StageError:
-		return v, codec.MimeTypeJson.WithType("error"), nil
-	}
+	//TODO Remove
+	//switch v := raw.(type) {
+	//case sparkv1.StageError:
+	//	return v, codec.MimeTypeJson.WithType("error"), nil
+	//}
 	return raw, codec.MimeType(res.value.GetMimeType()), nil
 }
 
