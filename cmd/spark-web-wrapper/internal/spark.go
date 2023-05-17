@@ -190,12 +190,7 @@ func (s *Spark) getCompleteStage(cs *client.CompleteStage) sparkv1.CompleteDefin
 
 			for _, o := range res.Outputs {
 				if o.Value != nil {
-					val, err := json.Marshal(o.Value)
-					if err != nil {
-						return sparkv1.NewStageError(err)
-					}
-
-					if err := ctx.Output(sparkv1.NewRawVar(o.Name, codec.MimeType(o.Mimetype), val)); err != nil {
+					if err := ctx.Output(sparkv1.NewVar(o.Name, codec.MimeType(o.Mimetype), o.Value)); err != nil {
 						return sparkv1.NewStageError(err)
 					}
 				}

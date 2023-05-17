@@ -10,7 +10,7 @@ import (
 )
 
 func Test_Should_Say_Hello_World(t *testing.T) {
-	ctx := module_test_runner.NewTestJobContext(context.Background(), "test", "cid", "tid", sparkv1.ExecuteSparkInputs{
+	ctx := module_test_runner.NewTestJobContext(context.Background(), "test", "cid", "tid", module_test_runner.Inputs{
 		"myKey": {
 			Value:    nil,
 			MimeType: "",

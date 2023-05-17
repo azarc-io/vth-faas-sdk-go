@@ -22,6 +22,12 @@ type RunnerTest interface {
 	Execute(ctx *sparkv1.JobContext, opts ...sparkv1.Option) (*Outputs, error)
 }
 
+type Input struct {
+	Value    any
+	MimeType codec.MimeType
+}
+type Inputs map[string]Input
+
 type Outputs struct {
 	sparkv1.ExecuteSparkOutput
 }
@@ -109,14 +115,10 @@ func NewTestRunner(t *testing.T, spark sparkv1.Spark, options ...Option) (Runner
 	return &runnerTest{spark: spark, testOpts: &to, InternalStageTracker: st, StageTracker: st, t: t}, nil
 }
 
-func NewTestJobContext(ctx context.Context, jobKey, correlationId, transactionId string, inputs sparkv1.ExecuteSparkInputs) *sparkv1.JobContext {
+func NewTestJobContext(ctx context.Context, jobKey, correlationId, transactionId string, inputs Inputs) *sparkv1.JobContext {
 	ins := make(sparkv1.ExecuteSparkInputs)
 	for name, bindable := range inputs {
-		data, err := codec.Encode(bindable.Value, codec.MimeType(bindable.MimeType))
-		if err != nil {
-			panic(err)
-		}
-		ins[name] = sparkv1.NewBindable(sparkv1.Value{Value: data, MimeType: bindable.MimeType})
+		ins[name] = sparkv1.NewBindable(sparkv1.Value{Value: MustEncode(bindable.Value), MimeType: string(bindable.MimeType)})
 	}
 
 	return &sparkv1.JobContext{
