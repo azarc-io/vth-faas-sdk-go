@@ -25,12 +25,15 @@ type Config struct {
 }
 
 type connectorConfig struct {
-	Id     string        `yaml:"id"`
-	Name   string        `yaml:"name"`
-	Tenant string        `yaml:"tenant"`
-	Agent  *agent        `yaml:"agent"`
-	Health *configHealth `yaml:"health"`
-	Log    *configLog    `yaml:"logging"`
+	Id            string        `yaml:"id"`
+	Name          string        `yaml:"name"`
+	Tenant        string        `yaml:"tenant"`
+	ArcID         string        `yaml:"arc_id"`
+	EnvironmentID string        `yaml:"environment_id"`
+	StageID       string        `yaml:"stage_id"`
+	Agent         *agent        `yaml:"agent"`
+	Health        *configHealth `yaml:"health"`
+	Log           *configLog    `yaml:"logging"`
 }
 
 type ingressConfig struct {

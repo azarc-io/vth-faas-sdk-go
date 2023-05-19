@@ -14,6 +14,9 @@ config:
   id: connector-simple-example_12345
   name: connector-simple-example
   tenant: tenant-id
+  arc_id: arc-id
+  environment_id: env-id
+  stage_id: stg-id
   health:
     enabled: false
     bind: 0.0.0.0
