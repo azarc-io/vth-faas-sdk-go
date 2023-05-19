@@ -31,10 +31,13 @@ func TestForward(t *testing.T) {
 		},
 	}
 	connectorConfig := &connectorConfig{
-		Id:     "connector-id",
-		Name:   "connector-name",
-		Tenant: "connector-tenant",
-		Agent:  agentConfig,
+		Id:            "connector-id",
+		Name:          "connector-name",
+		Tenant:        "connector-tenant",
+		ArcID:         "arc-id",
+		EnvironmentID: "env-id",
+		StageID:       "stage-id",
+		Agent:         agentConfig,
 	}
 	mockClient := mockHttpDoer{DoFunc: func(req *http.Request) (*http.Response, error) {
 		assert.Equal(t, "http://test.agent:8080/forward", req.URL.String())
@@ -47,6 +50,9 @@ func TestForward(t *testing.T) {
 		err = json.Unmarshal(body, &data)
 		assert.NoError(t, err)
 		assert.Equal(t, connectorConfig.Id, data.ConnectorID)
+		assert.Equal(t, connectorConfig.ArcID, data.ArcID)
+		assert.Equal(t, connectorConfig.EnvironmentID, data.EnvironmentID)
+		assert.Equal(t, connectorConfig.StageID, data.StageID)
 		assert.Equal(t, connectorConfig.Tenant, data.Tenant)
 		assert.Equal(t, "test-name", data.MsgName)
 		assert.Equal(t, 1, len(data.HeadersMap))
