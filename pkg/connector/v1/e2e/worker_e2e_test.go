@@ -43,7 +43,7 @@ func TestWorkerE2E(t *testing.T) {
 			EnvironmentID string            `json:"environment_id"`
 			StageID       string            `json:"stage_id"`
 			HeadersMap    map[string]string `json:"headers"`
-			Payload       []byte            `json:"payload"`
+			Payload       json.RawMessage   `json:"payload"`
 		}
 		err = json.Unmarshal(body, &forwardData)
 		assert.NoError(t, err)
@@ -54,13 +54,15 @@ func TestWorkerE2E(t *testing.T) {
 		assert.Equal(t, "env-id", forwardData.EnvironmentID)
 		assert.Equal(t, "stg-id", forwardData.StageID)
 		assert.Equal(t, map[string]string{"key": "value"}, forwardData.HeadersMap)
-		assert.Equal(t, dummyRequestBody, forwardData.Payload)
+		assert.Equal(t, dummyRequestBody, []byte(forwardData.Payload))
 
 		resp := map[string]any{
 			"headers": map[string]string{
 				"key": "header-value",
 			},
-			"payload": []byte(`{"response": "response-body"}`),
+			"payload": map[string]string{
+				"response": "response-body",
+			},
 		}
 		err = json.NewEncoder(writer).Encode(resp)
 		assert.NoError(t, err)

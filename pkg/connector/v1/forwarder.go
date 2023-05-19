@@ -3,6 +3,7 @@ package connectorv1
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 )
@@ -28,7 +29,7 @@ type forwardData struct {
 	EnvironmentID string            `json:"environment_id"`
 	StageID       string            `json:"stage_id"`
 	HeadersMap    map[string]string `json:"headers"`
-	Payload       []byte            `json:"payload"`
+	Payload       json.RawMessage   `json:"payload"`
 }
 
 func (f forwardData) Body() Bindable {
@@ -44,6 +45,12 @@ func (f forwardData) MessageName() string {
 }
 
 func (f *forwarder) Forward(name string, body []byte, headers Headers) (InboundResponse, error) {
+	// TODO: Body must be JSON object for now but we must change to bytes after agent update
+	if len(body) > 0 {
+		if err := json.Unmarshal(body, &map[string]any{}); err != nil {
+			return nil, errors.New("request body must be a valid json object")
+		}
+	}
 	req := forwardData{
 		Tenant:        f.config.Tenant,
 		MsgName:       name,
