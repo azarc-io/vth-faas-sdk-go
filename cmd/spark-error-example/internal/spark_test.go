@@ -30,7 +30,7 @@ func TestSparkErrorWithRetries(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			ctx := module_test_runner.NewTestJobContext(context.Background(), "test", "cid", "tid", sparkv1.ExecuteSparkInputs{})
+			ctx := module_test_runner.NewTestJobContext(context.Background(), "test", "cid", "tid", module_test_runner.Inputs{})
 			worker, err := module_test_runner.NewTestRunner(t, spark.NewSpark(totalTimesToErr))
 			assert.Nil(t, err)
 

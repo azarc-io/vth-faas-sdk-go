@@ -22,11 +22,14 @@ type forwarder struct {
 }
 
 type forwardData struct {
-	Tenant      string            `json:"tenant"`
-	MsgName     string            `json:"message_name"`
-	ConnectorID string            `json:"connector_id"`
-	HeadersMap  map[string]string `json:"headers"`
-	Payload     json.RawMessage   `json:"payload"`
+	Tenant        string            `json:"tenant"`
+	MsgName       string            `json:"message_name"`
+	ConnectorID   string            `json:"connector_id"`
+	ArcID         string            `json:"arc_id"`
+	EnvironmentID string            `json:"environment_id"`
+	StageID       string            `json:"stage_id"`
+	HeadersMap    map[string]string `json:"headers"`
+	Payload       json.RawMessage   `json:"payload"`
 }
 
 func (f forwardData) Body() Bindable {
@@ -49,11 +52,14 @@ func (f *forwarder) Forward(name string, body []byte, headers Headers) (InboundR
 		}
 	}
 	req := forwardData{
-		Tenant:      f.config.Tenant,
-		MsgName:     name,
-		ConnectorID: f.config.Id,
-		HeadersMap:  headers,
-		Payload:     body,
+		Tenant:        f.config.Tenant,
+		MsgName:       name,
+		ConnectorID:   f.config.Id,
+		ArcID:         f.config.ArcID,
+		EnvironmentID: f.config.EnvironmentID,
+		StageID:       f.config.StageID,
+		HeadersMap:    headers,
+		Payload:       body,
 	}
 
 	data, err := json.Marshal(req)

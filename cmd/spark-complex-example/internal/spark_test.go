@@ -2,15 +2,15 @@ package spark_test
 
 import (
 	"context"
+	"encoding/json"
 	spark "github.com/azarc-io/vth-faas-sdk-go/cmd/spark-complex-example/internal"
-	sparkv1 "github.com/azarc-io/vth-faas-sdk-go/pkg/spark/v1"
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/spark/v1/test"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
 func Test_Should_Chain_Multiple_Inputs_And_Outputs(t *testing.T) {
-	ctx := module_test_runner.NewTestJobContext(context.Background(), "test", "cid", "tid", sparkv1.ExecuteSparkInputs{
+	ctx := module_test_runner.NewTestJobContext(context.Background(), "test", "cid", "tid", module_test_runner.Inputs{
 		"name_string": {
 			Value:    "Bob",
 			MimeType: "application/text",
@@ -63,14 +63,18 @@ func Test_Should_Chain_Multiple_Inputs_And_Outputs(t *testing.T) {
 	})
 
 	t.Run("out7-json-bytes", func(t *testing.T) {
-		res := make(map[string]string)
+		var res []byte
 		assert.NoError(t, result.Bind("out7-json-bytes", &res))
-		assert.Equal(t, "bar", res["foo"])
+		out := make(map[string]string)
+		assert.NoError(t, json.Unmarshal(res, &out))
+		assert.Equal(t, "bar", out["foo"])
 	})
 
 	t.Run("out8-json-string", func(t *testing.T) {
-		res := make(map[string]string)
+		var res string
 		assert.NoError(t, result.Bind("out8-json-string", &res))
-		assert.Equal(t, "bar", res["foo"])
+		out := make(map[string]string)
+		assert.NoError(t, json.Unmarshal([]byte(res), &out))
+		assert.Equal(t, "bar", out["foo"])
 	})
 }
