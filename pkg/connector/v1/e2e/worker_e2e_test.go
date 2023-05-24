@@ -36,17 +36,23 @@ func TestWorkerE2E(t *testing.T) {
 		assert.NoError(t, err)
 
 		var forwardData struct {
-			Tenant      string            `json:"tenant"`
-			MsgName     string            `json:"message_name"`
-			ConnectorID string            `json:"connector_id"`
-			HeadersMap  map[string]string `json:"headers"`
-			Payload     json.RawMessage   `json:"payload"`
+			Tenant        string            `json:"tenant"`
+			MsgName       string            `json:"message_name"`
+			ConnectorID   string            `json:"connector_id"`
+			ArcID         string            `json:"arc_id"`
+			EnvironmentID string            `json:"environment_id"`
+			StageID       string            `json:"stage_id"`
+			HeadersMap    map[string]string `json:"headers"`
+			Payload       json.RawMessage   `json:"payload"`
 		}
 		err = json.Unmarshal(body, &forwardData)
 		assert.NoError(t, err)
 		assert.Equal(t, "tenant-id", forwardData.Tenant)
 		assert.Equal(t, "message-name-1", forwardData.MsgName)
 		assert.Equal(t, "connector-simple-example_12345", forwardData.ConnectorID)
+		assert.Equal(t, "arc-id", forwardData.ArcID)
+		assert.Equal(t, "env-id", forwardData.EnvironmentID)
+		assert.Equal(t, "stg-id", forwardData.StageID)
 		assert.Equal(t, map[string]string{"key": "value"}, forwardData.HeadersMap)
 		assert.Equal(t, dummyRequestBody, []byte(forwardData.Payload))
 
