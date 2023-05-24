@@ -1,10 +1,13 @@
 package sparkv1
 
+import "context"
+
 /************************************************************************/
 // JOB CONTEXT
 /************************************************************************/
 
 type jobContext struct {
+	context.Context
 	metadata *sparkMetadata
 	log      Logger
 }
@@ -42,6 +45,7 @@ func NewJobContext(metadata Context, opts *SparkOpts) Context {
 /************************************************************************/
 
 type sparkMetadata struct {
+	context.Context
 	jobKey        string
 	correlationID string
 	transactionID string
@@ -78,6 +82,7 @@ func NewSparkMetadata(jobKey, correlationID, transactionID string, logger Logger
 /************************************************************************/
 
 type stageContext struct {
+	context.Context
 	*ExecuteStageRequest
 	workflowId  string
 	runId       string
@@ -87,12 +92,12 @@ type stageContext struct {
 	sparkDataIO SparkDataIO
 }
 
-func NewCompleteContext(req *ExecuteStageRequest, sparkDataIO SparkDataIO, workflowId, runId, name string, logger Logger, inputs ExecuteSparkInputs) CompleteContext {
-	return &completeContext{stageContext: stageContext{ExecuteStageRequest: req, name: name, logger: logger, inputs: inputs, sparkDataIO: sparkDataIO, workflowId: workflowId, runId: runId}}
+func NewCompleteContext(ctx context.Context, req *ExecuteStageRequest, sparkDataIO SparkDataIO, workflowId, runId, name string, logger Logger, inputs ExecuteSparkInputs) CompleteContext {
+	return &completeContext{stageContext: stageContext{Context: ctx, ExecuteStageRequest: req, name: name, logger: logger, inputs: inputs, sparkDataIO: sparkDataIO, workflowId: workflowId, runId: runId}}
 }
 
-func NewStageContext(req *ExecuteStageRequest, sparkDataIO SparkDataIO, workflowId, runId, name string, logger Logger, inputs ExecuteSparkInputs) StageContext {
-	return stageContext{ExecuteStageRequest: req, sparkDataIO: sparkDataIO, name: name, logger: logger, inputs: inputs, workflowId: workflowId, runId: runId}
+func NewStageContext(ctx context.Context, req *ExecuteStageRequest, sparkDataIO SparkDataIO, workflowId, runId, name string, logger Logger, inputs ExecuteSparkInputs) StageContext {
+	return stageContext{Context: ctx, ExecuteStageRequest: req, sparkDataIO: sparkDataIO, name: name, logger: logger, inputs: inputs, workflowId: workflowId, runId: runId}
 }
 
 func (sc stageContext) JobKey() string {

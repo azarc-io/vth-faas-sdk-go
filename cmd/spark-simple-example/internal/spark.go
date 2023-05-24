@@ -4,6 +4,7 @@ import (
 	"fmt"
 	sparkv1 "github.com/azarc-io/vth-faas-sdk-go/pkg/spark/v1"
 	"github.com/rs/zerolog/log"
+	"time"
 )
 
 type Config struct {
@@ -37,7 +38,20 @@ func (s *Spark) BuildChain(b sparkv1.Builder) sparkv1.Chain {
 			return "world", nil
 		}).
 		Stage("stage-3", func(ctx sparkv1.StageContext) (any, sparkv1.StageError) {
-			return []byte("with bytes"), nil
+			done := make(chan any)
+			go func() {
+				time.Sleep(time.Second)
+				done <- []byte("with bytes")
+			}()
+
+			for {
+				select {
+				case val := <-done:
+					return val, nil
+				case <-ctx.Done():
+					return nil, nil
+				}
+			}
 		}).
 		Stage("stage-4", func(ctx sparkv1.StageContext) (any, sparkv1.StageError) {
 			// Test config is bound

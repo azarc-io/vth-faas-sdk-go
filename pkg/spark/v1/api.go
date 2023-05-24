@@ -1,6 +1,7 @@
 package sparkv1
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/codec"
@@ -222,6 +223,7 @@ func (ese *ExecuteSparkError) Error() string {
 
 type (
 	Context interface {
+		context.Context
 		JobKey() string
 		CorrelationID() string
 		TransactionID() string

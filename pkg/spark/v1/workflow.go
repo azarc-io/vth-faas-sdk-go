@@ -178,7 +178,7 @@ func (w *jobWorkflow) executeCompleteActivity(ctx workflow.Context, stageName st
 
 func (w *jobWorkflow) ExecuteStageActivity(ctx context.Context, req *ExecuteStageRequest) (Bindable, StageError) {
 	fn := w.Chain.GetStageFunc(req.StageName)
-	sc := NewStageContext(req, w.sparkDataIO, req.WorkflowId, req.RunId, req.StageName, NewLogger(), req.Inputs)
+	sc := NewStageContext(ctx, req, w.sparkDataIO, req.WorkflowId, req.RunId, req.StageName, NewLogger(), req.Inputs)
 
 	var err StageError
 	out := w.executeFn(func() (any, StageError) {
@@ -198,7 +198,7 @@ func (w *jobWorkflow) ExecuteStageActivity(ctx context.Context, req *ExecuteStag
 
 func (w *jobWorkflow) ExecuteCompleteActivity(ctx context.Context, req *ExecuteStageRequest) (*ExecuteSparkOutput, StageError) {
 	fn := w.Chain.GetStageCompleteFunc(req.StageName)
-	cc := NewCompleteContext(req, w.sparkDataIO, req.WorkflowId, req.RunId, req.StageName, NewLogger(), req.Inputs)
+	cc := NewCompleteContext(ctx, req, w.sparkDataIO, req.WorkflowId, req.RunId, req.StageName, NewLogger(), req.Inputs)
 
 	var err StageError
 	_ = w.executeFn(func() (any, StageError) {
