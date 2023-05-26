@@ -2,9 +2,10 @@ package sparkv1
 
 import (
 	"context"
-	"github.com/rs/zerolog/log"
 	"sync"
 	"time"
+
+	"github.com/rs/zerolog/log"
 )
 
 /************************************************************************/
@@ -82,6 +83,8 @@ func (w *sparkWorker) startPlugin() {
 }
 
 func (w *sparkWorker) initIfRequired() {
+	log.Info().Msgf("THIS IS CONFIG: ", string(w.opts.config))
+
 	w.initOnce.Do(func() {
 		err := w.spark.Init(NewInitContext(w.opts))
 		if err != nil {
