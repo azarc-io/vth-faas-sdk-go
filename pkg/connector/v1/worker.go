@@ -125,7 +125,7 @@ func NewConnectorWorker(connector Connector, options ...Option) (ConnectorWorker
 	}
 
 	if w.opts.forwarder == nil {
-		w.opts.forwarder = newForwarder(w.config)
+		w.opts.forwarder = newForwarder(w.config, withLogger(w.opts.log))
 	}
 
 	w.initHealthz()
