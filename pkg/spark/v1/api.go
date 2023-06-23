@@ -146,7 +146,8 @@ type (
 	}
 
 	SparkDataIO interface {
-		GetStageResult(workflowId, runId, stageName string) (Bindable, error)
+		GetStageResult(workflowID, runID, stageName, correlationID string) (Bindable, error)
+		PutStageResult(workflowID, runID, stageName, correlationID string, stageValue []byte) (Bindable, error)
 	}
 )
 
