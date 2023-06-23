@@ -26,6 +26,7 @@ type Config struct {
 	Log        *configLog      `yaml:"logging"`
 	App        *configApp      `yaml:"app"`
 	Temporal   *configTemporal `yaml:"temporal"`
+	IOServer   *ioServer       `yaml:"io_server"`
 }
 
 type configHealth struct {
@@ -38,6 +39,11 @@ type configServer struct {
 	Bind    string `env:"SERVER_BIND" yaml:"bind"`
 	Port    int    `env:"SERVER_PORT" yaml:"port"`
 	Enabled bool   `env:"SERVER_ENABLED" yaml:"enabled"`
+}
+
+type ioServer struct {
+	Url    string `env:"IO_SERVER_URL" yaml:"url"`
+	ApiKey string `env:"IO_SERVER_API_KEY" yaml:"api_key"`
 }
 
 type configLog struct {

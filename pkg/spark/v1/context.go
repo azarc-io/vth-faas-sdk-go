@@ -122,7 +122,7 @@ func (sc stageContext) Input(name string) Input {
 }
 
 func (sc stageContext) StageResult(name string) Bindable {
-	result, err := sc.sparkDataIO.GetStageResult(sc.workflowId, sc.runId, name)
+	result, err := sc.sparkDataIO.GetStageResult(sc.workflowId, sc.runId, name, sc.CorrelationId)
 	if err != nil {
 		return NewBindableError(err)
 	}
