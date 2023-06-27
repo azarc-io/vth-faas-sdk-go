@@ -58,6 +58,8 @@ dockers:
     build_flag_templates:
       - --platform=linux/amd64
     use: buildx
+    extra_files:
+      - entrypoint.sh
 
 snapshot:
   name_template: "{{ incpatch .Version }}-next"
