@@ -140,7 +140,7 @@ type temporalDataProvider struct {
 	provider *testsuite.TestWorkflowEnvironment
 }
 
-func (tdp *temporalDataProvider) GetStageResult(workflowId, runId, stageName string) (sparkv1.Bindable, error) {
+func (tdp *temporalDataProvider) GetStageResult(workflowID, runID, stageName, correlationID string) (sparkv1.Bindable, error) {
 	res, err := tdp.provider.QueryWorkflow(sparkv1.JobGetStageResultQuery, stageName)
 	if err != nil {
 		return nil, err
@@ -156,4 +156,11 @@ func (tdp *temporalDataProvider) GetStageResult(workflowId, runId, stageName str
 	}
 
 	return sparkv1.NewBindable(val), nil
+}
+
+func (tdp *temporalDataProvider) PutStageResult(workflowID, runID, stageName, correlationID string, stageValue []byte) (sparkv1.Bindable, error) {
+	return sparkv1.NewBindable(sparkv1.Value{
+		Value:    stageValue,
+		MimeType: string(codec.MimeTypeJson),
+	}), nil
 }

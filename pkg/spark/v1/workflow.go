@@ -193,7 +193,11 @@ func (w *jobWorkflow) ExecuteStageActivity(ctx context.Context, req *ExecuteStag
 		return getTransferableError(err2), nil
 	}
 
-	return &bindable{Value: stageValue, MimeType: string(codec.MimeTypeJson)}, nil
+	res, err2 := w.sparkDataIO.PutStageResult(req.WorkflowId, req.RunId, req.StageName, req.CorrelationId, stageValue)
+	if err2 != nil {
+		return getTransferableError(err2), nil
+	}
+	return res, nil
 }
 
 func (w *jobWorkflow) ExecuteCompleteActivity(ctx context.Context, req *ExecuteStageRequest) (*ExecuteSparkOutput, StageError) {

@@ -3,6 +3,7 @@ package sparkv1
 import (
 	"context"
 	"errors"
+	"github.com/azarc-io/vth-faas-sdk-go/pkg/codec"
 	"github.com/google/uuid"
 	"github.com/hashicorp/go-plugin"
 	"github.com/rs/zerolog/log"
@@ -43,7 +44,16 @@ func (s *sparkPlugin) start() error {
 
 	s.wrk = worker.New(tc, s.config.QueueGroup, worker.Options{})
 
-	wf := NewJobWorkflow(s.ctx, &temporalDataProvider{ctx: s.ctx, c: tc}, uuid.NewString(), s.chain)
+	var sparkIO SparkDataIO
+	if s.config.IOServer != nil {
+		log.Info().Msgf("IO Data Provider Enabled")
+		sparkIO = &ioDataProvider{ctx: s.ctx, baseUrl: s.config.IOServer.Url, apiKey: s.config.IOServer.ApiKey}
+	} else {
+		log.Info().Msgf("Temporal Data Provider Enabled")
+		sparkIO = &temporalDataProvider{ctx: s.ctx, c: tc}
+	}
+
+	wf := NewJobWorkflow(s.ctx, sparkIO, uuid.NewString(), s.chain)
 	s.wrk.RegisterActivity(wf.ExecuteStageActivity)
 	s.wrk.RegisterActivity(wf.ExecuteCompleteActivity)
 	s.wrk.RegisterWorkflowWithOptions(wf.Run, workflow.RegisterOptions{
@@ -106,8 +116,8 @@ type temporalDataProvider struct {
 	c   client.Client
 }
 
-func (tdp *temporalDataProvider) GetStageResult(workflowId, runId, stageName string) (Bindable, error) {
-	res, err := tdp.c.QueryWorkflow(tdp.ctx, workflowId, runId, JobGetStageResultQuery, stageName)
+func (tdp *temporalDataProvider) GetStageResult(workflowID, runID, stageName, correlationID string) (Bindable, error) {
+	res, err := tdp.c.QueryWorkflow(tdp.ctx, workflowID, runID, JobGetStageResultQuery, stageName)
 	if err != nil {
 		return nil, err
 	}
@@ -122,4 +132,8 @@ func (tdp *temporalDataProvider) GetStageResult(workflowId, runId, stageName str
 	}
 
 	return NewBindable(val), nil
+}
+
+func (tdp *temporalDataProvider) PutStageResult(workflowID, runID, stageName, correlationID string, stageValue []byte) (Bindable, error) {
+	return &bindable{Value: stageValue, MimeType: string(codec.MimeTypeJson)}, nil
 }

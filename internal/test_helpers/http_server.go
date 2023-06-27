@@ -58,11 +58,12 @@ func GetTestHttpServer(responses map[string][]byte, expects ...ExpectedRequest) 
 }
 
 type Request struct {
-	Method      string
-	Status      int
-	Url         string
-	Result      []byte
-	ExpectInput interface{}
+	Method       string
+	Status       int
+	Url          string
+	Result       []byte
+	ExpectInput  interface{}
+	ValidateCall func(t *testing.T, req *http.Request)
 }
 
 func GetTestHttpServerWithRequests(t *testing.T, reqs []Request) (server *httptest.Server) {
@@ -84,6 +85,10 @@ func GetTestHttpServerWithRequests(t *testing.T, reqs []Request) (server *httpte
 			})
 			res.Write(d)
 			return
+		}
+
+		if r.ValidateCall != nil {
+			r.ValidateCall(t, req)
 		}
 
 		//check requests

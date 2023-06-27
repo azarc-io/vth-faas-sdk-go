@@ -39,11 +39,11 @@ var example1_stage_error_with_retry []byte
 
 func TestShouldInitialiseSparkAndRunMultiStages(t *testing.T) {
 	svr := helpers.GetTestHttpServerWithRequests(t, []helpers.Request{
-		{http.MethodGet, 200, "/basepath/spec", example1_Spec, nil},
-		{http.MethodPost, 200, "/basepath/init", nil, []byte(`{"Foo":"my-bar-from-config"}`)},
-		{http.MethodPost, 200, "/basepath/stages/My-Stage-1", example1_s1_result, example1_s1_expected_input},
-		{http.MethodPost, 200, "/basepath/stages/My-Stage-2", example1_s2_result, example1_s2_expected_input},
-		{http.MethodPost, 200, "/basepath/complete/My-Complete", example1_c1_result, example1_c1_expected_input},
+		{http.MethodGet, 200, "/basepath/spec", example1_Spec, nil, nil},
+		{http.MethodPost, 200, "/basepath/init", nil, []byte(`{"Foo":"my-bar-from-config"}`), nil},
+		{http.MethodPost, 200, "/basepath/stages/My-Stage-1", example1_s1_result, example1_s1_expected_input, nil},
+		{http.MethodPost, 200, "/basepath/stages/My-Stage-2", example1_s2_result, example1_s2_expected_input, nil},
+		{http.MethodPost, 200, "/basepath/complete/My-Complete", example1_c1_result, example1_c1_expected_input, nil},
 	})
 
 	ctx := module_test_runner.NewTestJobContext(context.Background(), "test", "cid", "tid", module_test_runner.Inputs{
@@ -100,9 +100,9 @@ func TestShouldInitialiseSparkAndRunMultiStages(t *testing.T) {
 func TestShouldErrorOnStage1(t *testing.T) {
 	t.Run("User Error: 500", func(t *testing.T) {
 		svr := helpers.GetTestHttpServerWithRequests(t, []helpers.Request{
-			{http.MethodGet, 200, "/basepath/spec", example1_Spec, nil},
-			{http.MethodPost, 200, "/basepath/init", nil, nil},
-			{http.MethodPost, 500, "/basepath/stages/My-Stage-1", example1_stage_error_with_retry, nil},
+			{http.MethodGet, 200, "/basepath/spec", example1_Spec, nil, nil},
+			{http.MethodPost, 200, "/basepath/init", nil, nil, nil},
+			{http.MethodPost, 500, "/basepath/stages/My-Stage-1", example1_stage_error_with_retry, nil, nil},
 		})
 
 		ctx := module_test_runner.NewTestJobContext(context.Background(), "test", "cid", "tid", module_test_runner.Inputs{})
@@ -124,9 +124,9 @@ func TestShouldErrorOnStage1(t *testing.T) {
 
 	t.Run("Server Error: 502", func(t *testing.T) {
 		svr := helpers.GetTestHttpServerWithRequests(t, []helpers.Request{
-			{http.MethodGet, 200, "/basepath/spec", example1_Spec, nil},
-			{http.MethodPost, 200, "/basepath/init", nil, nil},
-			{http.MethodPost, 502, "/basepath/stages/My-Stage-1", []byte("dummy timeout issue"), nil},
+			{http.MethodGet, 200, "/basepath/spec", example1_Spec, nil, nil},
+			{http.MethodPost, 200, "/basepath/init", nil, nil, nil},
+			{http.MethodPost, 502, "/basepath/stages/My-Stage-1", []byte("dummy timeout issue"), nil, nil},
 		})
 
 		ctx := module_test_runner.NewTestJobContext(context.Background(), "test", "cid", "tid", module_test_runner.Inputs{})
@@ -148,11 +148,11 @@ func TestShouldErrorOnStage1(t *testing.T) {
 
 func TestShouldErrorOnStageComplete(t *testing.T) {
 	svr := helpers.GetTestHttpServerWithRequests(t, []helpers.Request{
-		{http.MethodGet, 200, "/basepath/spec", example1_Spec, nil},
-		{http.MethodPost, 200, "/basepath/init", nil, nil},
-		{http.MethodPost, 200, "/basepath/stages/My-Stage-1", example1_s1_result, nil},
-		{http.MethodPost, 200, "/basepath/stages/My-Stage-2", example1_s2_result, nil},
-		{http.MethodPost, 500, "/basepath/complete/My-Complete", example1_stage_error_with_retry, nil},
+		{http.MethodGet, 200, "/basepath/spec", example1_Spec, nil, nil},
+		{http.MethodPost, 200, "/basepath/init", nil, nil, nil},
+		{http.MethodPost, 200, "/basepath/stages/My-Stage-1", example1_s1_result, nil, nil},
+		{http.MethodPost, 200, "/basepath/stages/My-Stage-2", example1_s2_result, nil, nil},
+		{http.MethodPost, 500, "/basepath/complete/My-Complete", example1_stage_error_with_retry, nil, nil},
 	})
 
 	ctx := module_test_runner.NewTestJobContext(context.Background(), "test", "cid", "tid", module_test_runner.Inputs{})
