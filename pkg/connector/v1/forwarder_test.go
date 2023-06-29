@@ -42,7 +42,7 @@ func TestForward(t *testing.T) {
 	mockClient := mockHttpDoer{DoFunc: func(req *http.Request) (*http.Response, error) {
 		assert.Equal(t, "http://test.agent:8080/forward", req.URL.String())
 		assert.Equal(t, "application/json", req.Header.Get("Content-Type"))
-		assert.Equal(t, agentConfig.Token, req.Header.Get("X-Dev-Token"))
+		assert.Equal(t, agentConfig.Token, req.Header.Get("X-Token"))
 
 		body, err := io.ReadAll(req.Body)
 		assert.NoError(t, err)
