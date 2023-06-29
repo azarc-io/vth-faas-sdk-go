@@ -8,7 +8,7 @@ import (
 	"net/http"
 )
 
-const agentTokenHeader = "X-Dev-Token"
+const agentTokenHeader = "X-Token"
 
 type requestDoer interface {
 	Do(req *http.Request) (*http.Response, error)
