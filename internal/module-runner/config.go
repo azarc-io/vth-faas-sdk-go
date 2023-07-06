@@ -20,6 +20,7 @@ type config struct {
 	Log         *configLog      `yaml:"logging"`
 	Sparks      []*configSpark  `yaml:"sparks"`
 	Temporal    *configTemporal `yaml:"temporal"`
+	IOServer    *ioServer       `yaml:"io_server"`
 }
 
 func defaultConfig() *config {
@@ -55,6 +56,11 @@ type configLog struct {
 type configTemporal struct {
 	Address   string `yaml:"address"`
 	Namespace string `yaml:"namespace"`
+}
+
+type ioServer struct {
+	Url    string `env:"IO_SERVER_URL" yaml:"url"`
+	ApiKey string `env:"IO_SERVER_API_KEY" yaml:"api_key"`
 }
 
 func (m *config) healthBindTo() string {
