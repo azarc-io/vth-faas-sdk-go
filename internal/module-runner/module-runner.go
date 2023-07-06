@@ -106,6 +106,8 @@ func RunModule(cfg *config) (Runner, error) {
 			"name":        s.Name,
 			"queue_group": s.QueueGroup,
 			"temporal":    cfg.Temporal,
+			"logging":     cfg.Log,
+			"io_server":   cfg.IOServer,
 		})
 
 		cmd.Env = append(cmd.Env, "SPARK_SECRET="+base64.StdEncoding.EncodeToString(m))
