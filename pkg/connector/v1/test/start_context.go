@@ -94,6 +94,6 @@ func (f *InboundResponse) Headers() connectorv1.Headers {
 	return f.HeadersMap
 }
 
-func (c *startContext) MockForward(messageName string, body []byte, headers connectorv1.Headers, response *InboundResponse, responseErr error) {
+func (c *startContext) MockForward(messageName string, body any, headers any, response *InboundResponse, responseErr error) {
 	c.ForwarderMock.EXPECT().Forward(messageName, body, headers).Return(response, responseErr)
 }
