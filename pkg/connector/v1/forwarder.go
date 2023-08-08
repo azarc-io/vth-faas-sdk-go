@@ -53,6 +53,9 @@ func (f *forwarder) Forward(name string, body []byte, headers Headers) (InboundR
 			return nil, errors.New("request body must be a valid json object")
 		}
 	}
+	if headers == nil {
+		headers = Headers{}
+	}
 	req := forwardData{
 		Tenant:        f.config.Tenant,
 		MsgName:       name,

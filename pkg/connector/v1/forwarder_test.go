@@ -86,3 +86,53 @@ func TestForward(t *testing.T) {
 	assert.Equal(t, "response-value", resp.Headers()["response-header"])
 	assert.Equal(t, dummyResponseBody, respData)
 }
+
+func TestForwardWithNilHeader(t *testing.T) {
+	dummyEmptyBody := []byte(`{}`)
+	agentConfig := &agent{
+		Host:  "test.agent",
+		Port:  8080,
+		Token: "test-token",
+		Forwarder: struct {
+			Path string `yaml:"path"`
+		}{
+			Path: "/forward",
+		},
+	}
+	connectorConfig := &connectorConfig{
+		Id:            "connector-id",
+		Name:          "connector-name",
+		Tenant:        "connector-tenant",
+		ArcID:         "arc-id",
+		EnvironmentID: "env-id",
+		StageID:       "stage-id",
+		Agent:         agentConfig,
+	}
+	mockClient := mockHttpDoer{DoFunc: func(req *http.Request) (*http.Response, error) {
+		body, err := io.ReadAll(req.Body)
+		assert.NoError(t, err)
+		var data forwardData
+		err = json.Unmarshal(body, &data)
+		assert.NoError(t, err)
+		assert.Equal(t, Headers{}, data.HeadersMap)
+
+		resp := forwardData{
+			Payload: dummyEmptyBody,
+		}
+		respBytes, _ := json.Marshal(resp)
+		return &http.Response{
+			Status:     http.StatusText(http.StatusOK),
+			StatusCode: http.StatusOK,
+			Body:       io.NopCloser(bytes.NewReader(respBytes)),
+		}, nil
+	}}
+	fwd := newForwarder(connectorConfig, withRequestDoer(mockClient))
+
+	resp, err := fwd.Forward("test-name", dummyEmptyBody, nil)
+	assert.NoError(t, err)
+
+	respData, err := resp.Body().Raw()
+	assert.NoError(t, err)
+
+	assert.Equal(t, dummyEmptyBody, respData)
+}
