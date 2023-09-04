@@ -53,6 +53,11 @@ type runnerTest struct {
 	t        *testing.T
 }
 
+type runnerTestOutput struct {
+	Outputs map[string]*sparkv1.BindableValue `json:"outputs,omitempty"`
+	Error   *sparkv1.ExecuteSparkError        `json:"error,omitempty"`
+}
+
 func (r *runnerTest) Execute(ctx *sparkv1.JobContext, opts ...sparkv1.Option) (*Outputs, error) {
 	// Execute new workflow using test client
 	wts := testsuite.WorkflowTestSuite{}
@@ -93,7 +98,7 @@ func (r *runnerTest) Execute(ctx *sparkv1.JobContext, opts ...sparkv1.Option) (*
 		return nil, err
 	}
 
-	res := sparkv1.ExecuteSparkOutput{}
+	res := runnerTestOutput{}
 	if err := env.GetWorkflowResult(&res); err != nil {
 		return nil, err
 	}
@@ -102,7 +107,16 @@ func (r *runnerTest) Execute(ctx *sparkv1.JobContext, opts ...sparkv1.Option) (*
 		return nil, res.Error
 	}
 
-	return &Outputs{res}, nil
+	output := sparkv1.ExecuteSparkOutput{
+		Outputs: make(sparkv1.BindableMap),
+		Error:   res.Error,
+	}
+
+	for k, v := range res.Outputs {
+		output.Outputs[k] = v
+	}
+
+	return &Outputs{ExecuteSparkOutput: output}, nil
 }
 
 func NewTestRunner(t *testing.T, spark sparkv1.Spark, options ...Option) (RunnerTest, error) {
@@ -138,6 +152,17 @@ Temporal Data Provider which wraps the temporal testsuite.TestWorkflowEnvironmen
 
 type temporalDataProvider struct {
 	provider *testsuite.TestWorkflowEnvironment
+}
+
+func (tdp *temporalDataProvider) NewInput(_ string, value *sparkv1.BindableValue) sparkv1.Bindable {
+	return value
+}
+
+func (tdp *temporalDataProvider) NewOutput(_ string, value *sparkv1.BindableValue) (sparkv1.Bindable, error) {
+	if value.Reference != "" {
+		return nil, errors.New("references not supported")
+	}
+	return value, nil
 }
 
 func (tdp *temporalDataProvider) GetStageResult(workflowID, runID, stageName, correlationID string) (sparkv1.Bindable, error) {
