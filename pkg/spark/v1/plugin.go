@@ -15,6 +15,7 @@ import (
 
 var (
 	ErrInvalidStageResultMimeType = errors.New("stage result expects mime-type of application/json")
+	ErrTemporalIoNotSupported     = errors.New("temporal IO provider does not support input/output referencing")
 )
 
 /************************************************************************/
@@ -74,7 +75,7 @@ func (s *sparkPlugin) start() error {
 		}
 		_, err := tc.ExecuteWorkflow(context.Background(), o, s.config.Id, &JobMetadata{
 			SparkId: s.config.Id,
-			Inputs: map[string]*bindable{
+			Inputs: map[string]*BindableValue{
 				"name": NewBindableValue("Jono", "application/text"),
 			},
 		})
@@ -116,6 +117,17 @@ type temporalDataProvider struct {
 	c   client.Client
 }
 
+func (tdp *temporalDataProvider) NewInput(_ string, value *BindableValue) Bindable {
+	return value
+}
+
+func (tdp *temporalDataProvider) NewOutput(_ string, value *BindableValue) (Bindable, error) {
+	if value.Reference != "" {
+		return nil, ErrTemporalIoNotSupported
+	}
+	return value, nil
+}
+
 func (tdp *temporalDataProvider) GetStageResult(workflowID, runID, stageName, correlationID string) (Bindable, error) {
 	res, err := tdp.c.QueryWorkflow(tdp.ctx, workflowID, runID, JobGetStageResultQuery, stageName)
 	if err != nil {
@@ -135,5 +147,5 @@ func (tdp *temporalDataProvider) GetStageResult(workflowID, runID, stageName, co
 }
 
 func (tdp *temporalDataProvider) PutStageResult(workflowID, runID, stageName, correlationID string, stageValue []byte) (Bindable, error) {
-	return &bindable{Value: stageValue, MimeType: string(codec.MimeTypeJson)}, nil
+	return &BindableValue{Value: stageValue, MimeType: string(codec.MimeTypeJson)}, nil
 }

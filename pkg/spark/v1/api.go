@@ -129,10 +129,10 @@ type (
 		Get(name string) Bindable
 	}
 
-	bindable    Value
-	BindableMap map[string]*bindable
+	BindableValue Value
+	BindableMap   map[string]Bindable
 
-	ExecuteSparkInputs BindableMap
+	ExecuteSparkInputs map[string]*BindableValue
 	ExecuteSparkOutput struct {
 		Outputs BindableMap        `json:"outputs,omitempty"`
 		Error   *ExecuteSparkError `json:"error,omitempty"`
@@ -146,12 +146,14 @@ type (
 	}
 
 	SparkDataIO interface {
+		NewInput(correlationID string, value *BindableValue) Bindable
+		NewOutput(correlationID string, value *BindableValue) (Bindable, error)
 		GetStageResult(workflowID, runID, stageName, correlationID string) (Bindable, error)
 		PutStageResult(workflowID, runID, stageName, correlationID string, stageValue []byte) (Bindable, error)
 	}
 )
 
-func (b *bindable) Bind(a any) error {
+func (b *BindableValue) Bind(a any) error {
 	if b == nil || b.Value == nil {
 		return nil
 	}
@@ -163,26 +165,26 @@ func (b *bindable) Bind(a any) error {
 	return nil
 }
 
-func (b *bindable) GetValue() ([]byte, error) {
+func (b *BindableValue) GetValue() ([]byte, error) {
 	return b.Value, nil
 }
-func (b *bindable) GetMimeType() string {
+func (b *BindableValue) GetMimeType() string {
 	return b.MimeType
 }
-func (b *bindable) String() string {
-	// Note: This function will return empty string if the bindable value is not a string
+func (b *BindableValue) String() string {
+	// Note: This function will return empty string if the BindableValue value is not a string
 	var val string
 	_ = b.Bind(&val)
 	return val
 }
 
-func NewBindable(value Value) *bindable {
-	return &bindable{MimeType: value.MimeType, Value: value.Value}
+func NewBindable(value Value) *BindableValue {
+	return &BindableValue{MimeType: value.MimeType, Value: value.Value}
 }
 
-func NewBindableValue(value any, mimeType string) *bindable {
+func NewBindableValue(value any, mimeType string) *BindableValue {
 	val, _ := codec.Encode(value)
-	return &bindable{MimeType: mimeType, Value: val}
+	return &BindableValue{MimeType: mimeType, Value: val}
 }
 
 type errorBindable struct {

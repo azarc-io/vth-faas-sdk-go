@@ -88,15 +88,15 @@ type stageContext struct {
 	runId       string
 	logger      Logger
 	name        string
-	inputs      ExecuteSparkInputs
+	inputs      map[string]Bindable
 	sparkDataIO SparkDataIO
 }
 
-func NewCompleteContext(ctx context.Context, req *ExecuteStageRequest, sparkDataIO SparkDataIO, workflowId, runId, name string, logger Logger, inputs ExecuteSparkInputs) CompleteContext {
+func NewCompleteContext(ctx context.Context, req *ExecuteStageRequest, sparkDataIO SparkDataIO, workflowId, runId, name string, logger Logger, inputs map[string]Bindable) CompleteContext {
 	return &completeContext{stageContext: stageContext{Context: ctx, ExecuteStageRequest: req, name: name, logger: logger, inputs: inputs, sparkDataIO: sparkDataIO, workflowId: workflowId, runId: runId}}
 }
 
-func NewStageContext(ctx context.Context, req *ExecuteStageRequest, sparkDataIO SparkDataIO, workflowId, runId, name string, logger Logger, inputs ExecuteSparkInputs) StageContext {
+func NewStageContext(ctx context.Context, req *ExecuteStageRequest, sparkDataIO SparkDataIO, workflowId, runId, name string, logger Logger, inputs map[string]Bindable) StageContext {
 	return stageContext{Context: ctx, ExecuteStageRequest: req, sparkDataIO: sparkDataIO, name: name, logger: logger, inputs: inputs, workflowId: workflowId, runId: runId}
 }
 
@@ -115,7 +115,7 @@ func (sc stageContext) TransactionID() string {
 func (sc stageContext) Input(name string) Input {
 	in, ok := sc.inputs[name]
 	if !ok {
-		return &bindable{}
+		return &BindableValue{}
 	}
 
 	return in
