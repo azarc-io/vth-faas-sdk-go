@@ -43,8 +43,9 @@ type (
 	}
 
 	Value struct {
-		Value    []byte `json:"value"`
-		MimeType string `json:"mime_type"`
+		Value     []byte `json:"value"`
+		MimeType  string `json:"mime_type"`
+		Reference string `json:"reference,omitempty"` // if reference is present, use this to retrieve the value
 	}
 )
 

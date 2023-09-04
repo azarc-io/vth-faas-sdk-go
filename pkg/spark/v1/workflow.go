@@ -19,6 +19,11 @@ type RetryConfig struct {
 	BackoffMultiplier uint          `json:"backoff_multiplier" yaml:"backoff_multiplier"`
 }
 
+type sparkOutput struct {
+	Outputs map[string]*BindableValue `json:"outputs,omitempty"`
+	Error   *ExecuteSparkError        `json:"error,omitempty"`
+}
+
 type jobWorkflow struct {
 	Chain        *SparkChain
 	SparkId      string
@@ -93,7 +98,7 @@ func (w *jobWorkflow) Run(ctx workflow.Context, jmd *JobMetadata) (*ExecuteSpark
 }
 
 func (w *jobWorkflow) executeStageActivity(ctx workflow.Context, stageName string, info *workflow.Info, state *JobState) (Bindable, error) {
-	var sr bindable // stage result
+	var sr BindableValue // stage result
 
 	options := DefaultActivityOptions.GetTemporalActivityOptions()
 	options.ActivityID = stageName
@@ -152,8 +157,6 @@ func (w *jobWorkflow) executeStageActivity(ctx workflow.Context, stageName strin
 }
 
 func (w *jobWorkflow) executeCompleteActivity(ctx workflow.Context, stageName string, info *workflow.Info, state *JobState) (*ExecuteSparkOutput, error) {
-	var res ExecuteSparkOutput // stage result
-
 	options := DefaultActivityOptions.GetTemporalActivityOptions()
 	options.ActivityID = stageName
 	options.RetryPolicy = DefaultRetryPolicy.GetTemporalPolicy()
@@ -168,9 +171,21 @@ func (w *jobWorkflow) executeCompleteActivity(ctx workflow.Context, stageName st
 		TransactionId: state.JobContext.TransactionIdValue,
 		CorrelationId: state.JobContext.CorrelationIdValue,
 	})
-	if err := f.Get(ctx, &res); err != nil {
+
+	// TODO: note that the sparkOutput is a typed output due to ExecuteSparkOutput containing interfaces
+	//  We should look at cleaning up the API interface with marshalled data being concrete types.
+	var out sparkOutput
+	if err := f.Get(ctx, &out); err != nil {
 		// TODO ctx.Compensate()
 		return nil, err
+	}
+
+	res := ExecuteSparkOutput{
+		Outputs: make(BindableMap),
+		Error:   out.Error,
+	}
+	for k, v := range out.Outputs {
+		res.Outputs[k] = v
 	}
 
 	return &res, nil
@@ -178,7 +193,13 @@ func (w *jobWorkflow) executeCompleteActivity(ctx workflow.Context, stageName st
 
 func (w *jobWorkflow) ExecuteStageActivity(ctx context.Context, req *ExecuteStageRequest) (Bindable, StageError) {
 	fn := w.Chain.GetStageFunc(req.StageName)
-	sc := NewStageContext(ctx, req, w.sparkDataIO, req.WorkflowId, req.RunId, req.StageName, NewLogger(), req.Inputs)
+
+	newInputs := make(map[string]Bindable)
+	for k, v := range req.Inputs {
+		newInputs[k] = w.sparkDataIO.NewInput(req.CorrelationId, v)
+	}
+
+	sc := NewStageContext(ctx, req, w.sparkDataIO, req.WorkflowId, req.RunId, req.StageName, NewLogger(), newInputs)
 
 	var err StageError
 	out := w.executeFn(func() (any, StageError) {
@@ -202,7 +223,13 @@ func (w *jobWorkflow) ExecuteStageActivity(ctx context.Context, req *ExecuteStag
 
 func (w *jobWorkflow) ExecuteCompleteActivity(ctx context.Context, req *ExecuteStageRequest) (*ExecuteSparkOutput, StageError) {
 	fn := w.Chain.GetStageCompleteFunc(req.StageName)
-	cc := NewCompleteContext(ctx, req, w.sparkDataIO, req.WorkflowId, req.RunId, req.StageName, NewLogger(), req.Inputs)
+
+	newInputs := make(map[string]Bindable)
+	for k, v := range req.Inputs {
+		newInputs[k] = w.sparkDataIO.NewInput(req.CorrelationId, v)
+	}
+
+	cc := NewCompleteContext(ctx, req, w.sparkDataIO, req.WorkflowId, req.RunId, req.StageName, NewLogger(), newInputs)
 
 	var err StageError
 	_ = w.executeFn(func() (any, StageError) {
@@ -222,11 +249,15 @@ func (w *jobWorkflow) ExecuteCompleteActivity(ctx context.Context, req *ExecuteS
 	}
 
 	res := &ExecuteSparkOutput{
-		Outputs: map[string]*bindable{},
+		Outputs: map[string]Bindable{},
 	}
 	for _, output := range cc.(*completeContext).outputs {
-		res.Outputs[output.Name] = &bindable{Value: output.Value, MimeType: string(output.MimeType)}
+		var err error
+		if res.Outputs[output.Name], err = w.sparkDataIO.NewOutput(req.CorrelationId, &BindableValue{Value: output.Value, MimeType: string(output.MimeType)}); err != nil {
+			return nil, NewStageError(fmt.Errorf("error occured setting output: %w", err))
+		}
 	}
+
 	return res, err
 }
 
