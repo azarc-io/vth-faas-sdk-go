@@ -54,12 +54,16 @@ func (b *bindableInput) GetMimeType() string {
 	return b.mimeType
 }
 
+// deprecated
+// todo: Must deprecate this as it can lead to unexpected issues
 func (b *bindableInput) String() string {
-	data, err := b.GetValue()
+	d, _ := b.GetValue()
+	var s string
+	err := json.Unmarshal(d, &s)
 	if err != nil {
-		return err.Error()
+		return string(d)
 	}
-	return string(data)
+	return s
 }
 
 func (iodp *ioDataProvider) NewInput(correlationID string, value *BindableValue) Bindable {
