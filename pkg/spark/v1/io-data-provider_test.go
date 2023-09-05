@@ -58,7 +58,7 @@ func TestIoDataProvider(t *testing.T) {
 	t.Run("Spark IO", func(t *testing.T) {
 		entryData := []byte(`{"reference":"my output reference"}`)
 		svr := helpers.GetTestHttpServerWithRequests(t, []helpers.Request{
-			{http.MethodGet, 200, "/input/c789/my-input-ref", []byte("foo bar"), nil, func(t *testing.T, req *http.Request) {
+			{http.MethodGet, 200, "/input/c789/my-input-ref", []byte(`"foo bar"`), nil, func(t *testing.T, req *http.Request) {
 				assert.Equal(t, "dummy-token", req.Header.Get("X-Token"))
 			}},
 			{http.MethodPost, 200, "/output/c789", entryData, []byte("some data"), func(t *testing.T, req *http.Request) {
