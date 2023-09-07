@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	http2 "github.com/azarc-io/vth-faas-sdk-go/internal/http"
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/codec"
 	"io"
 	"net/http"
@@ -87,7 +88,7 @@ func (iodp *ioDataProvider) NewOutput(correlationID string, value *BindableValue
 	}
 	req.Header.Set("X-Token", iodp.apiKey)
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := http2.GetDefaultClient().Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -127,7 +128,7 @@ func (iodp *ioDataProvider) GetStageResult(workflowID, runID, stageName, correla
 	}
 	req.Header.Set("X-Token", iodp.apiKey)
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := http2.GetDefaultClient().Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -170,7 +171,7 @@ func (iodp *ioDataProvider) PutStageResult(workflowID, runID, stageName, correla
 	req.Header.Set("X-Token", iodp.apiKey)
 	req.Header.Set("Content-Type", string(codec.MimeTypeJson))
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := http2.GetDefaultClient().Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -199,7 +200,7 @@ func (iodp *ioDataProvider) fetchInputData(correlationID, reference string) ([]b
 	}
 	req.Header.Set("X-Token", iodp.apiKey)
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := http2.GetDefaultClient().Do(req)
 	if err != nil {
 		return nil, err
 	}
