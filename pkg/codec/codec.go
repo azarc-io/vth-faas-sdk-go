@@ -24,7 +24,7 @@ const (
 	MimeTypeText        MimeType = "application/text"
 	MimeTypeOctetStream MimeType = "application/octet-stream"
 	MimeTypeImageJpeg   MimeType = "image/jpeg"
-	MimeTypeImagePng    MimeType = "image/jpeg"
+	MimeTypeImagePng    MimeType = "image/png"
 	MimeTypeImageGif    MimeType = "image/gif"
 	MimeTypeImageSvg    MimeType = "image/svg"
 
