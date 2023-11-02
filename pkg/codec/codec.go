@@ -23,6 +23,13 @@ const (
 	MimeTypeJson        MimeType = "application/json"
 	MimeTypeText        MimeType = "application/text"
 	MimeTypeOctetStream MimeType = "application/octet-stream"
+	MimeTypeImageJpeg   MimeType = "image/jpeg"
+	MimeTypeImagePng    MimeType = "image/jpeg"
+	MimeTypeImageGif    MimeType = "image/gif"
+	MimeTypeImageSvg    MimeType = "image/svg"
+
+	TypeApplication = "application"
+	TypeImage       = "image"
 )
 
 // isBase64Characters checks if a string contains only valid base64 characters
@@ -35,6 +42,10 @@ func (mt MimeType) WithType(subType string) MimeType {
 func (mt MimeType) BaseType() MimeType {
 	v := strings.Split(string(mt), "+")[0]
 	return MimeType(v)
+}
+
+func (mt MimeType) Type() string {
+	return strings.Split(string(mt), "/")[0]
 }
 
 func Encode(v any) ([]byte, error) {
@@ -62,7 +73,7 @@ func DecodeAndBind(input []byte, mime MimeType, target any) error {
 
 	// allow binding of raw bytes
 	_, ok := target.(*[]byte)
-	if mime.BaseType() == MimeTypeOctetStream || ok {
+	if mime.BaseType() == MimeTypeOctetStream || mime.BaseType().Type() == TypeImage || ok {
 		elem.Set(reflect.ValueOf(input))
 		return nil
 	}
