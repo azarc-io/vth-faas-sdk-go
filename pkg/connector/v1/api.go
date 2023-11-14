@@ -51,9 +51,11 @@ type HealthCheckFunc func() error
 // Forwarding
 /************************************************************************/
 
+type ForwardOption func(*forwardData)
+
 type (
 	Forwarder interface {
-		Forward(name string, body []byte, headers Headers) (InboundResponse, error)
+		Forward(name string, body []byte, headers Headers, opts ...ForwardOption) (InboundResponse, error)
 	}
 )
 

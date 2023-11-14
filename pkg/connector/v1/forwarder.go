@@ -23,14 +23,15 @@ type forwarder struct {
 }
 
 type forwardData struct {
-	Tenant        string            `json:"tenant"`
-	MsgName       string            `json:"message_name"`
-	ConnectorID   string            `json:"connector_id"`
-	ArcID         string            `json:"arc_id"`
-	EnvironmentID string            `json:"environment_id"`
-	StageID       string            `json:"stage_id"`
-	HeadersMap    map[string]string `json:"headers"`
-	Payload       json.RawMessage   `json:"payload"`
+	Tenant           string            `json:"tenant"`
+	MsgName          string            `json:"message_name"`
+	ConnectorID      string            `json:"connector_id"`
+	ArcID            string            `json:"arc_id"`
+	EnvironmentID    string            `json:"environment_id"`
+	StageID          string            `json:"stage_id"`
+	RequestTimeoutMs int               `json:"request_timeout_ms"`
+	HeadersMap       map[string]string `json:"headers"`
+	Payload          json.RawMessage   `json:"payload"`
 }
 
 func (f forwardData) Body() Bindable {
@@ -45,7 +46,7 @@ func (f forwardData) MessageName() string {
 	return f.MsgName
 }
 
-func (f *forwarder) Forward(name string, body []byte, headers Headers) (InboundResponse, error) {
+func (f *forwarder) Forward(name string, body []byte, headers Headers, opts ...ForwardOption) (InboundResponse, error) {
 	// TODO: Body must be JSON object for now but we must change to bytes after agent update
 	if len(body) > 0 {
 		if err := json.Unmarshal(body, &map[string]any{}); err != nil {
@@ -65,6 +66,10 @@ func (f *forwarder) Forward(name string, body []byte, headers Headers) (InboundR
 		StageID:       f.config.StageID,
 		HeadersMap:    headers,
 		Payload:       body,
+	}
+
+	for _, o := range opts {
+		o(&req)
 	}
 
 	data, err := json.Marshal(req)
@@ -122,6 +127,8 @@ func newForwarder(config *connectorConfig, opts ...forwarderOption) Forwarder {
 	return &fwd
 }
 
+// forwarder Options
+
 func withRequestDoer(doer requestDoer) forwarderOption {
 	return func(f forwarder) forwarder {
 		f.httpClient = doer
@@ -133,5 +140,14 @@ func withLogger(logger Logger) forwarderOption {
 	return func(f forwarder) forwarder {
 		f.logger = logger
 		return f
+	}
+}
+
+// forward options
+
+// WithRequestTimeout with the timeout in ms
+func WithRequestTimeout(t int) ForwardOption {
+	return func(data *forwardData) {
+		data.RequestTimeoutMs = t
 	}
 }

@@ -54,6 +54,7 @@ func TestForward(t *testing.T) {
 		assert.Equal(t, connectorConfig.EnvironmentID, data.EnvironmentID)
 		assert.Equal(t, connectorConfig.StageID, data.StageID)
 		assert.Equal(t, connectorConfig.Tenant, data.Tenant)
+		assert.Equal(t, 234, data.RequestTimeoutMs)
 		assert.Equal(t, "test-name", data.MsgName)
 		assert.Equal(t, 1, len(data.HeadersMap))
 		assert.Equal(t, "test-value", data.HeadersMap["test-header"])
@@ -64,6 +65,7 @@ func TestForward(t *testing.T) {
 			HeadersMap: map[string]string{
 				"response-header": "response-value",
 			},
+			RequestTimeoutMs: 234,
 		}
 		respBytes, _ := json.Marshal(resp)
 		return &http.Response{
@@ -76,7 +78,7 @@ func TestForward(t *testing.T) {
 
 	resp, err := fwd.Forward("test-name", dummyRequestBody, map[string]string{
 		"test-header": "test-value",
-	})
+	}, WithRequestTimeout(234))
 	assert.NoError(t, err)
 
 	respData, err := resp.Body().Raw()
