@@ -2,12 +2,18 @@ package module_test_runner
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/codec"
 	sparkv1 "github.com/azarc-io/vth-faas-sdk-go/pkg/spark/v1"
 	"github.com/google/uuid"
-	"go.temporal.io/sdk/testsuite"
+	gnats "github.com/nats-io/nats-server/v2/server"
+	gnatsTest "github.com/nats-io/nats-server/v2/test"
+	"github.com/nats-io/nats.go"
+	"github.com/nats-io/nats.go/jetstream"
+	"github.com/rs/zerolog/log"
+	"net"
 	"testing"
 	"time"
 )
@@ -59,15 +65,60 @@ type runnerTestOutput struct {
 }
 
 func (r *runnerTest) Execute(ctx *sparkv1.JobContext, opts ...sparkv1.Option) (*Outputs, error) {
-	// Execute new workflow using test client
-	wts := testsuite.WorkflowTestSuite{}
-	env := wts.NewTestWorkflowEnvironment()
-	env.SetTestTimeout(10 * time.Minute)
-
 	// Create the spark chain
 	builder := sparkv1.NewBuilder()
 	r.spark.BuildChain(builder)
 	chain := builder.BuildChain()
+
+	tmpDir := r.t.TempDir()
+	log.Info().Msgf("tmp dir %s %s", ctx.Metadata.JobKeyValue, tmpDir)
+
+	port, err := GetFreeTCPPort()
+	if err != nil {
+		return nil, err
+	}
+
+	s, err := RunServerOnPort(port, tmpDir)
+	if err != nil {
+		return nil, err
+	}
+	defer s.Shutdown()
+	s.Start()
+
+	sUrl := fmt.Sprintf("nats://127.0.0.1:%d", port)
+	nc, err := nats.Connect(sUrl)
+	if err != nil {
+		return nil, err
+	}
+	defer nc.Close()
+
+	if !nc.IsConnected() {
+		errorMsg := fmt.Errorf("could not establish connection to nats-server")
+		return nil, errorMsg
+	}
+
+	js, err := jetstream.New(nc)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = js.CreateOrUpdateStream(context.Background(), jetstream.StreamConfig{
+		Name:      "AGENT_JOB_RES",
+		Retention: jetstream.WorkQueuePolicy,
+		Subjects: []string{
+			fmt.Sprintf("agent.v1.job.a.b.%s.%s", "test", ctx.Metadata.JobKeyValue),
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	c, err := js.CreateOrUpdateConsumer(ctx, "AGENT_JOB_RES", jetstream.ConsumerConfig{
+		FilterSubject: fmt.Sprintf("agent.v1.job.a.b.%s.%s", "test", ctx.Metadata.JobKeyValue),
+	})
+	if err != nil {
+		return nil, err
+	}
 
 	//Initialise spark
 	so := new(sparkv1.SparkOpts)
@@ -79,28 +130,34 @@ func (r *runnerTest) Execute(ctx *sparkv1.JobContext, opts ...sparkv1.Option) (*
 	}
 
 	// Create new workflow
-	wf := sparkv1.NewJobWorkflow(ctx, &temporalDataProvider{provider: env}, uuid.NewString(), chain, sparkv1.WithStageTracker(r.InternalStageTracker))
+	wf := sparkv1.NewJobWorkflow(
+		ctx, uuid.NewString(), chain,
+		sparkv1.WithStageTracker(r.InternalStageTracker),
+		sparkv1.WithNatsClient(nc),
+		sparkv1.WithConfig(&sparkv1.Config{
+			NatsResponseSubject: "agent.v1.job.a.b.test." + ctx.Metadata.JobKeyValue,
+		}),
+	)
 
-	env.RegisterActivity(wf.ExecuteStageActivity)
-	env.RegisterActivity(wf.ExecuteCompleteActivity)
+	b, _ := json.Marshal(ctx.Metadata)
+	wf.Run(&nats.Msg{
+		Data: b,
+	})
 
-	// check for cancel
-	go func() {
-		<-ctx.Done()
-		if !env.IsWorkflowCompleted() {
-			env.CancelWorkflow()
-		}
-	}()
-
-	env.ExecuteWorkflow(wf.Run, ctx.Metadata)
-
-	if err := env.GetWorkflowError(); err != nil {
+	msgs, err := c.Fetch(1, jetstream.FetchMaxWait(time.Second*5))
+	if err != nil {
 		return nil, err
 	}
 
-	res := runnerTestOutput{}
-	if err := env.GetWorkflowResult(&res); err != nil {
-		return nil, err
+	var res *runnerTestOutput
+	for msg := range msgs.Messages() {
+		if err := json.Unmarshal(msg.Data(), &res); err != nil {
+			return nil, err
+		}
+	}
+
+	if res == nil {
+		return nil, errors.New("timed out")
 	}
 
 	if res.Error != nil {
@@ -146,46 +203,25 @@ func NewTestJobContext(ctx context.Context, jobKey, correlationId, transactionId
 	}
 }
 
-/*********
-Temporal Data Provider which wraps the temporal testsuite.TestWorkflowEnvironment
-*/
-
-type temporalDataProvider struct {
-	provider *testsuite.TestWorkflowEnvironment
+func RunServerOnPort(port int, dir string) (*gnats.Server, error) {
+	opts := gnatsTest.DefaultTestOptions
+	opts.Port = port
+	opts.JetStream = true
+	opts.StoreDir = dir
+	return RunServerWithOptions(&opts)
 }
 
-func (tdp *temporalDataProvider) NewInput(_ string, value *sparkv1.BindableValue) sparkv1.Bindable {
-	return value
+func RunServerWithOptions(opts *gnats.Options) (*gnats.Server, error) {
+	return gnats.NewServer(opts)
 }
 
-func (tdp *temporalDataProvider) NewOutput(_ string, value *sparkv1.BindableValue) (sparkv1.Bindable, error) {
-	if value.Reference != "" {
-		return nil, errors.New("references not supported")
-	}
-	return value, nil
-}
-
-func (tdp *temporalDataProvider) GetStageResult(workflowID, runID, stageName, correlationID string) (sparkv1.Bindable, error) {
-	res, err := tdp.provider.QueryWorkflow(sparkv1.JobGetStageResultQuery, stageName)
+// GetFreeTCPPort returns free open TCP port
+func GetFreeTCPPort() (port int, err error) {
+	ln, err := net.Listen("tcp", "[::]:0")
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
-
-	var val sparkv1.Value
-	if err := res.Get(&val); err != nil {
-		return nil, err
-	}
-
-	if val.MimeType != "application/json" {
-		return nil, ErrInvalidStageResultMimeType
-	}
-
-	return sparkv1.NewBindable(val), nil
-}
-
-func (tdp *temporalDataProvider) PutStageResult(workflowID, runID, stageName, correlationID string, stageValue []byte) (sparkv1.Bindable, error) {
-	return sparkv1.NewBindable(sparkv1.Value{
-		Value:    stageValue,
-		MimeType: string(codec.MimeTypeJson),
-	}), nil
+	port = ln.Addr().(*net.TCPAddr).Port
+	err = ln.Close()
+	return
 }

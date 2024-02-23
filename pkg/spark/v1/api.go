@@ -146,10 +146,10 @@ type (
 	}
 
 	SparkDataIO interface {
-		NewInput(correlationID string, value *BindableValue) Bindable
-		NewOutput(correlationID string, value *BindableValue) (Bindable, error)
-		GetStageResult(workflowID, runID, stageName, correlationID string) (Bindable, error)
-		PutStageResult(workflowID, runID, stageName, correlationID string, stageValue []byte) (Bindable, error)
+		NewInput(stageName string, value *BindableValue) Bindable
+		NewOutput(stageName string, value *BindableValue) (Bindable, error)
+		GetStageResult(stageName string) (Bindable, error)
+		PutStageResult(stageName string, stageValue []byte) (Bindable, error)
 	}
 )
 
@@ -217,7 +217,11 @@ func (ese *ExecuteSparkError) Error() string {
 	for _, t := range ese.StackTrace {
 		stack = append(stack, fmt.Sprintf("%s\n\t%s\n", t.Type, t.Filepath))
 	}
-	return fmt.Sprintf("%s\n%s", ese.ErrorMessage, stack)
+	if len(stack) > 0 {
+		return fmt.Sprintf("%s\n%s", ese.ErrorMessage, stack)
+	}
+
+	return fmt.Sprintf("%s", ese.ErrorMessage)
 }
 
 /************************************************************************/

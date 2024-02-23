@@ -11,6 +11,7 @@ import (
 	"path"
 	"reflect"
 	"strings"
+	"time"
 )
 
 /************************************************************************/
@@ -18,15 +19,22 @@ import (
 /************************************************************************/
 
 type Config struct {
-	Id         string          `yaml:"id"`
-	Name       string          `yaml:"Name"`
-	QueueGroup string          `yaml:"queue_group"`
-	Health     *configHealth   `yaml:"health"`
-	Server     *configServer   `yaml:"plugin"`
-	Log        *configLog      `yaml:"logging"`
-	App        *configApp      `yaml:"app"`
-	Temporal   *configTemporal `yaml:"temporal"`
-	IOServer   *ioServer       `yaml:"io_server"`
+	Id                     string        `yaml:"id"`
+	Name                   string        `yaml:"Name"`
+	NatsRequestSubject     string        `yaml:"nats_request_subject"`
+	NatsResponseSubject    string        `yaml:"nats_response_subject"`
+	NatsRequestStreamName  string        `yaml:"nats_request_stream_name"`
+	NatsResponseStreamName string        `yaml:"nats_response_stream_name"`
+	RetryCount             uint          `yaml:"retry_count"`
+	RetryBackoff           time.Duration `yaml:"retry_backoff"`
+	RetryBackoffMultiplier uint          `yaml:"retry_backoff_multiplier"`
+	Timeout                time.Duration `yaml:"timeout"`
+	Health                 *configHealth `yaml:"health"`
+	Server                 *configServer `yaml:"plugin"`
+	Log                    *configLog    `yaml:"logging"`
+	App                    *configApp    `yaml:"app"`
+	Nats                   *configNats   `yaml:"nats"`
+	NatsBucket             string        `yaml:"nats_bucket"`
 }
 
 type configHealth struct {
@@ -41,11 +49,6 @@ type configServer struct {
 	Enabled bool   `env:"SERVER_ENABLED" yaml:"enabled"`
 }
 
-type ioServer struct {
-	Url    string `env:"IO_SERVER_URL" yaml:"url"`
-	ApiKey string `env:"IO_SERVER_API_KEY" yaml:"api_key"`
-}
-
 type configLog struct {
 	Level string `env:"LOG_LEVEL" yaml:"level"`
 }
@@ -56,9 +59,8 @@ type configApp struct {
 	InstanceID  string `env:"APP_INSTANCE_ID" yaml:"instanceId"`
 }
 
-type configTemporal struct {
-	Address   string `yaml:"address"`
-	Namespace string `yaml:"namespace"`
+type configNats struct {
+	Address string `yaml:"address"`
 }
 
 func (m *Config) serverAddress() string {

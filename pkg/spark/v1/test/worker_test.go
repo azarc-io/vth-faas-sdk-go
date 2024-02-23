@@ -93,7 +93,7 @@ func (s *slowSpark) BuildChain(b sparkv1.Builder) sparkv1.Chain {
 /************************************************************************/
 
 func (s *WorkerSuite) Test_Should_Call_BuildChain_On_Registration() {
-	jobKey := "test"
+	jobKey := "call_buildchain_on_register"
 	spark := new(basicSpark)
 	worker := s.createWorker(spark)
 	ctx := NewTestJobContext(context.Background(), jobKey, "cid", "tid", Inputs{})
@@ -109,7 +109,7 @@ func (s *WorkerSuite) Test_Should_Call_BuildChain_On_Registration() {
 
 func (s *WorkerSuite) Test_Should_Drain_Running_Stages_During_Shutdown_When_Context_Is_Cancelled() {
 	oc, cancel := context.WithCancel(context.Background())
-	jobKey := "test"
+	jobKey := "drain_during_shutdown"
 
 	spark := new(slowSpark)
 	worker := s.createWorker(spark)

@@ -2,6 +2,7 @@ package sparkv1
 
 import (
 	"encoding/json"
+	"github.com/nats-io/nats.go"
 	"github.com/rs/zerolog/log"
 )
 
@@ -58,6 +59,8 @@ func WithSparkConfig(cfg any) Option {
 /************************************************************************/
 type workflowOpts struct {
 	stageTracker InternalStageTracker
+	config       *Config
+	nc           *nats.Conn
 }
 
 type WorkflowOption = func(je *workflowOpts) *workflowOpts
@@ -65,6 +68,20 @@ type WorkflowOption = func(je *workflowOpts) *workflowOpts
 func WithStageTracker(ist InternalStageTracker) WorkflowOption {
 	return func(jw *workflowOpts) *workflowOpts {
 		jw.stageTracker = ist
+		return jw
+	}
+}
+
+func WithConfig(cfg *Config) WorkflowOption {
+	return func(jw *workflowOpts) *workflowOpts {
+		jw.config = cfg
+		return jw
+	}
+}
+
+func WithNatsClient(nc *nats.Conn) WorkflowOption {
+	return func(jw *workflowOpts) *workflowOpts {
+		jw.nc = nc
 		return jw
 	}
 }

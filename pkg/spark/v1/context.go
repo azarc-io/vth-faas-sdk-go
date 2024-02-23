@@ -84,20 +84,18 @@ func NewSparkMetadata(jobKey, correlationID, transactionID string, logger Logger
 type stageContext struct {
 	context.Context
 	*ExecuteStageRequest
-	workflowId  string
-	runId       string
 	logger      Logger
 	name        string
 	inputs      map[string]Bindable
 	sparkDataIO SparkDataIO
 }
 
-func NewCompleteContext(ctx context.Context, req *ExecuteStageRequest, sparkDataIO SparkDataIO, workflowId, runId, name string, logger Logger, inputs map[string]Bindable) CompleteContext {
-	return &completeContext{stageContext: stageContext{Context: ctx, ExecuteStageRequest: req, name: name, logger: logger, inputs: inputs, sparkDataIO: sparkDataIO, workflowId: workflowId, runId: runId}}
+func NewCompleteContext(ctx context.Context, req *ExecuteStageRequest, sparkDataIO SparkDataIO, name string, logger Logger, inputs map[string]Bindable) CompleteContext {
+	return &completeContext{stageContext: stageContext{Context: ctx, ExecuteStageRequest: req, name: name, logger: logger, inputs: inputs, sparkDataIO: sparkDataIO}}
 }
 
-func NewStageContext(ctx context.Context, req *ExecuteStageRequest, sparkDataIO SparkDataIO, workflowId, runId, name string, logger Logger, inputs map[string]Bindable) StageContext {
-	return stageContext{Context: ctx, ExecuteStageRequest: req, sparkDataIO: sparkDataIO, name: name, logger: logger, inputs: inputs, workflowId: workflowId, runId: runId}
+func NewStageContext(ctx context.Context, req *ExecuteStageRequest, sparkDataIO SparkDataIO, name string, logger Logger, inputs map[string]Bindable) StageContext {
+	return stageContext{Context: ctx, ExecuteStageRequest: req, sparkDataIO: sparkDataIO, name: name, logger: logger, inputs: inputs}
 }
 
 func (sc stageContext) JobKey() string {
@@ -122,7 +120,7 @@ func (sc stageContext) Input(name string) Input {
 }
 
 func (sc stageContext) StageResult(name string) Bindable {
-	result, err := sc.sparkDataIO.GetStageResult(sc.workflowId, sc.runId, name, sc.CorrelationId)
+	result, err := sc.sparkDataIO.GetStageResult(name)
 	if err != nil {
 		return NewBindableError(err)
 	}

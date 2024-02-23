@@ -30,12 +30,19 @@ func defaultConfig() *config {
 }
 
 type configSpark struct {
-	Id             string         `yaml:"id"`              // Id is unique hash to identify this combination of Name and Config
-	Name           string         `yaml:"name"`            // Name of the binary to execute
-	QueueGroup     string         `yaml:"queue_group"`     // QueueGroup name of execution group
-	Config         string         `yaml:"config"`          // Config Deprecated: will be JSON string with config details
-	ConfigServer   *configServer  `yaml:"config_server"`   // ConfigServer which is used to retrieve startup config
-	StartupTimeout *time.Duration `yaml:"startup_timeout"` // StartupTimeout amount of time to wait for spark to start before error
+	Id                     string         `yaml:"id"`   // Id is unique hash to identify this combination of Name and Config
+	Name                   string         `yaml:"name"` // Name of the binary to execute
+	NatsRequestSubject     string         `yaml:"nats_request_subject"`
+	NatsResponseSubject    string         `yaml:"nats_response_subject"`
+	NatsRequestStreamName  string         `yaml:"nats_request_stream_name"`
+	NatsResponseStreamName string         `yaml:"nats_response_stream_name"`
+	RetryCount             uint           `yaml:"retry_count"`
+	RetryBackoff           time.Duration  `yaml:"retry_backoff"`
+	RetryBackoffMultiplier uint           `yaml:"retry_backoff_multiplier"`
+	Timeout                time.Duration  `yaml:"timeout"`
+	Config                 string         `yaml:"config"`          // Config Deprecated: will be JSON string with config details
+	ConfigServer           *configServer  `yaml:"config_server"`   // ConfigServer which is used to retrieve startup config
+	StartupTimeout         *time.Duration `yaml:"startup_timeout"` // StartupTimeout amount of time to wait for spark to start before error
 }
 
 type configServer struct {
