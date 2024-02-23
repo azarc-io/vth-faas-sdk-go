@@ -112,9 +112,9 @@ func RunModule(cfg *config) (Runner, error) {
 			"retry_backoff":             s.RetryBackoff,
 			"retry_backoff_multiplier":  s.RetryBackoffMultiplier,
 			"timeout":                   s.Timeout,
-			"temporal":                  cfg.Temporal,
 			"logging":                   cfg.Log,
 			"io_server":                 cfg.IOServer,
+			"nats":                      cfg.Nats,
 		})
 
 		cmd.Env = append(cmd.Env, "SPARK_SECRET="+base64.StdEncoding.EncodeToString(m))

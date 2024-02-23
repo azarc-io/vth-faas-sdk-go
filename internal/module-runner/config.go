@@ -15,12 +15,12 @@ import (
 /************************************************************************/
 
 type config struct {
-	BinBasePath string          `yaml:"bin_base_path"`
-	Health      *configHealth   `yaml:"health"`
-	Log         *configLog      `yaml:"logging"`
-	Sparks      []*configSpark  `yaml:"sparks"`
-	Temporal    *configTemporal `yaml:"temporal"`
-	IOServer    *ioServer       `yaml:"io_server"`
+	BinBasePath string         `yaml:"bin_base_path"`
+	Health      *configHealth  `yaml:"health"`
+	Log         *configLog     `yaml:"logging"`
+	Sparks      []*configSpark `yaml:"sparks"`
+	Nats        *configNats    `yaml:"nats"`
+	IOServer    *ioServer      `yaml:"io_server"`
 }
 
 func defaultConfig() *config {
@@ -60,9 +60,8 @@ type configLog struct {
 	Level string `env:"LOG_LEVEL" yaml:"level"`
 }
 
-type configTemporal struct {
-	Address   string `yaml:"address"`
-	Namespace string `yaml:"namespace"`
+type configNats struct {
+	Address string `yaml:"address"`
 }
 
 type ioServer struct {
