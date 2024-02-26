@@ -41,7 +41,20 @@ func (s *sparkPlugin) start() error {
 	}
 	s.nc = nc
 
-	wf := NewJobWorkflow(s.ctx, uuid.NewString(), s.chain, WithConfig(s.config), WithNatsClient(nc))
+	js, err := nc.JetStream()
+	if err != nil {
+		return err
+	}
+	store, err := js.ObjectStore(s.config.NatsBucket)
+	if err != nil {
+		return err
+	}
+
+	wf, err := NewJobWorkflow(s.ctx, uuid.NewString(), s.chain,
+		WithConfig(s.config), WithNatsClient(nc), WithObjectStore(store))
+	if err != nil {
+		return err
+	}
 
 	if _, err := nc.Subscribe(s.config.NatsRequestSubject, func(msg *nats.Msg) {
 		wf.Run(msg)

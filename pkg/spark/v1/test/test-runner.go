@@ -130,7 +130,7 @@ func (r *runnerTest) Execute(ctx *sparkv1.JobContext, opts ...sparkv1.Option) (*
 	}
 
 	// Create new workflow
-	wf := sparkv1.NewJobWorkflow(
+	wf, _ := sparkv1.NewJobWorkflow(
 		ctx, uuid.NewString(), chain,
 		sparkv1.WithStageTracker(r.InternalStageTracker),
 		sparkv1.WithNatsClient(nc),

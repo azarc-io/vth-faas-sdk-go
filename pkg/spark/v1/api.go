@@ -134,8 +134,9 @@ type (
 
 	ExecuteSparkInputs map[string]*BindableValue
 	ExecuteSparkOutput struct {
-		Outputs BindableMap        `json:"outputs,omitempty"`
-		Error   *ExecuteSparkError `json:"error,omitempty"`
+		Error        *ExecuteSparkError `json:"error,omitempty"`
+		JobPid       *JobPid            `json:"job_pid,omitempty"`
+		VariablesKey string             `json:"variables_key,omitempty"`
 	}
 	ExecuteSparkError struct {
 		StageName    string           `json:"stage_name"`
@@ -150,6 +151,8 @@ type (
 		NewOutput(stageName string, value *BindableValue) (Bindable, error)
 		GetStageResult(stageName string) (Bindable, error)
 		PutStageResult(stageName string, stageValue []byte) (Bindable, error)
+		LoadVariables(key string) error
+		GetInputValue(name string) (*BindableValue, bool)
 	}
 )
 

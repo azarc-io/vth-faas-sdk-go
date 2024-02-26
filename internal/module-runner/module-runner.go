@@ -108,6 +108,7 @@ func RunModule(cfg *config) (Runner, error) {
 			"nats_response_subject":     s.NatsResponseSubject,
 			"nats_request_stream_name":  s.NatsRequestStreamName,
 			"nats_response_stream_name": s.NatsResponseStreamName,
+			"nats_bucket":               s.NatsBucket,
 			"retry_count":               s.RetryCount,
 			"retry_backoff":             s.RetryBackoff,
 			"retry_backoff_multiplier":  s.RetryBackoffMultiplier,

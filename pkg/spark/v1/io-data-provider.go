@@ -10,9 +10,22 @@ import (
 
 type ioDataProvider struct {
 	ctx          context.Context
-	bucket       string
-	nc           *nats.Conn
 	stageResults map[string]*BindableValue
+	inputs       map[string]*BindableValue
+	store        nats.ObjectStore
+}
+
+func (iodp *ioDataProvider) GetInputValue(name string) (*BindableValue, bool) {
+	v, ok := iodp.inputs[name]
+	return v, ok
+}
+
+func (iodp *ioDataProvider) LoadVariables(key string) error {
+	b, err := iodp.store.GetBytes(key)
+	if err != nil {
+		return err
+	}
+	return json.Unmarshal(b, &iodp.inputs)
 }
 
 type bindableInput struct {
@@ -20,6 +33,15 @@ type bindableInput struct {
 	stageName string
 	mimeType  string
 	data      []byte
+}
+
+func NewIoDataProvider(ctx context.Context, store nats.ObjectStore) SparkDataIO {
+	return &ioDataProvider{
+		ctx:          ctx,
+		store:        store,
+		stageResults: make(map[string]*BindableValue),
+		inputs:       make(map[string]*BindableValue),
+	}
 }
 
 func (b *bindableInput) Bind(a any) error {
@@ -56,8 +78,8 @@ func (b *bindableInput) String() string {
 }
 
 func (iodp *ioDataProvider) NewInput(stageName string, value *BindableValue) Bindable {
+
 	return &bindableInput{
-		data:      value.Value,
 		iodp:      iodp,
 		stageName: stageName,
 		mimeType:  value.MimeType,

@@ -18,7 +18,7 @@ type (
 	JobWorkflow interface {
 		Run(msg *nats.Msg)
 		ExecuteStageActivity(ctx context.Context, req *ExecuteStageRequest, io SparkDataIO) (Bindable, StageError)
-		ExecuteCompleteActivity(ctx context.Context, req *ExecuteStageRequest, io SparkDataIO) (*ExecuteSparkOutput, StageError)
+		ExecuteCompleteActivity(ctx context.Context, req *ExecuteStageRequest, io SparkDataIO) (*ExecuteStageResponse, StageError)
 	}
 
 	StageTracker interface {
@@ -34,10 +34,14 @@ type (
 
 	ExecuteStageRequest struct {
 		StageName     string
-		Inputs        ExecuteSparkInputs
 		TransactionId string
 		CorrelationId string
 		JobKey        string
+	}
+
+	ExecuteStageResponse struct {
+		Outputs BindableMap        `json:"outputs,omitempty"`
+		Error   *ExecuteSparkError `json:"error,omitempty"`
 	}
 
 	Value struct {

@@ -3,6 +3,7 @@ package module_runner
 import (
 	"context"
 	"fmt"
+	"github.com/rs/zerolog/log"
 	"github.com/sethvargo/go-envconfig"
 	"gopkg.in/yaml.v3"
 	"os"
@@ -36,6 +37,7 @@ type configSpark struct {
 	NatsResponseSubject    string         `yaml:"nats_response_subject"`
 	NatsRequestStreamName  string         `yaml:"nats_request_stream_name"`
 	NatsResponseStreamName string         `yaml:"nats_response_stream_name"`
+	NatsBucket             string         `yaml:"nats_bucket"`
 	RetryCount             uint           `yaml:"retry_count"`
 	RetryBackoff           time.Duration  `yaml:"retry_backoff"`
 	RetryBackoffMultiplier uint           `yaml:"retry_backoff_multiplier"`
@@ -81,6 +83,7 @@ func LoadModuleConfig(opts ...ModuleOption) (*config, error) {
 		if err != nil {
 			return nil, err
 		}
+		log.Info().Msgf("CONFIG %s", string(b))
 		if err := yaml.Unmarshal(b, &config); err != nil {
 			return nil, err
 		}

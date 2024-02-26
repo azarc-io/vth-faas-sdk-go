@@ -20,6 +20,14 @@ type JobMetadata struct {
 	RetryCount             uint               `yaml:"retry_count"`
 	RetryBackoff           time.Duration      `yaml:"retry_backoff"`
 	RetryBackoffMultiplier uint               `yaml:"retry_backoff_multiplier"`
+	JobPid                 *JobPid            `json:"job_pid,omitempty"`
+	VariablesBucket        string             `json:"variables_bucket"`
+	VariablesKey           string             `json:"variables_key"`
+}
+
+type JobPid struct {
+	Address string `json:"Address"`
+	Id      string `json:"Id"`
 }
 
 type JobContext struct {

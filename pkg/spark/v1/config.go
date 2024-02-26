@@ -25,6 +25,7 @@ type Config struct {
 	NatsResponseSubject    string        `yaml:"nats_response_subject"`
 	NatsRequestStreamName  string        `yaml:"nats_request_stream_name"`
 	NatsResponseStreamName string        `yaml:"nats_response_stream_name"`
+	NatsBucket             string        `yaml:"nats_bucket"`
 	RetryCount             uint          `yaml:"retry_count"`
 	RetryBackoff           time.Duration `yaml:"retry_backoff"`
 	RetryBackoffMultiplier uint          `yaml:"retry_backoff_multiplier"`
@@ -34,7 +35,6 @@ type Config struct {
 	Log                    *configLog    `yaml:"logging"`
 	App                    *configApp    `yaml:"app"`
 	Nats                   *configNats   `yaml:"nats"`
-	NatsBucket             string        `yaml:"nats_bucket"`
 }
 
 type configHealth struct {

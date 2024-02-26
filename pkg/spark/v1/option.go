@@ -61,6 +61,7 @@ type workflowOpts struct {
 	stageTracker InternalStageTracker
 	config       *Config
 	nc           *nats.Conn
+	os           nats.ObjectStore
 }
 
 type WorkflowOption = func(je *workflowOpts) *workflowOpts
@@ -82,6 +83,13 @@ func WithConfig(cfg *Config) WorkflowOption {
 func WithNatsClient(nc *nats.Conn) WorkflowOption {
 	return func(jw *workflowOpts) *workflowOpts {
 		jw.nc = nc
+		return jw
+	}
+}
+
+func WithObjectStore(os nats.ObjectStore) WorkflowOption {
+	return func(jw *workflowOpts) *workflowOpts {
+		jw.os = os
 		return jw
 	}
 }
