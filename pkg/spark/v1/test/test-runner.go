@@ -9,6 +9,7 @@ import (
 	sparkv1 "github.com/azarc-io/vth-faas-sdk-go/pkg/spark/v1"
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/spark/v1/util"
 	"github.com/google/uuid"
+	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
 	"github.com/rs/zerolog/log"
 	"testing"
