@@ -3,6 +3,7 @@ module github.com/azarc-io/vth-faas-sdk-go
 go 1.21
 
 require (
+	github.com/cenkalti/backoff/v4 v4.2.1
 	github.com/deepmap/oapi-codegen v1.12.4
 	github.com/getkin/kin-openapi v0.115.0
 	github.com/golang/mock v1.6.0
@@ -10,6 +11,7 @@ require (
 	github.com/hashicorp/go-hclog v1.4.0
 	github.com/hashicorp/go-plugin v1.4.8
 	github.com/labstack/echo/v4 v4.10.2
+	github.com/nats-io/nats-server/v2 v2.10.11
 	github.com/nats-io/nats.go v1.33.1
 	github.com/pkg/errors v0.9.1
 	github.com/rs/zerolog v1.28.0
@@ -21,7 +23,6 @@ require (
 
 require (
 	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
-	github.com/cenkalti/backoff/v4 v4.2.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/facebookgo/clock v0.0.0-20150410010913-600d898af40a // indirect
 	github.com/fatih/color v1.13.0 // indirect
@@ -43,10 +44,7 @@ require (
 	github.com/minio/highwayhash v1.0.2 // indirect
 	github.com/mitchellh/go-testing-interface v0.0.0-20171004221916-a61a99592b77 // indirect
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826 // indirect
-	github.com/nats-io/gnatsd v1.4.1 // indirect
 	github.com/nats-io/jwt/v2 v2.5.3 // indirect
-	github.com/nats-io/nats-server v1.4.1 // indirect
-	github.com/nats-io/nats-server/v2 v2.10.11 // indirect
 	github.com/nats-io/nkeys v0.4.7 // indirect
 	github.com/nats-io/nuid v1.0.1 // indirect
 	github.com/oklog/run v1.0.0 // indirect
@@ -59,7 +57,6 @@ require (
 	github.com/valyala/fasttemplate v1.2.2 // indirect
 	go.temporal.io/api v1.13.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
-	go.uber.org/automaxprocs v1.5.3 // indirect
 	golang.org/x/crypto v0.19.0 // indirect
 	golang.org/x/net v0.10.0 // indirect
 	golang.org/x/sys v0.17.0 // indirect
