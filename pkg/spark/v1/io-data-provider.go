@@ -16,6 +16,12 @@ type ioDataProvider struct {
 	store        jetstream.ObjectStore
 }
 
+func (iodp *ioDataProvider) SetInitialInputs(inputs ExecuteSparkInputs) {
+	if inputs != nil {
+		iodp.inputs = inputs
+	}
+}
+
 func (iodp *ioDataProvider) GetInputValue(name string) (*BindableValue, bool) {
 	v, ok := iodp.inputs[name]
 	return v, ok
@@ -25,7 +31,9 @@ func (iodp *ioDataProvider) LoadVariables(key string) error {
 	b, err := iodp.store.GetBytes(iodp.ctx, key)
 	if err != nil {
 		if errors.Is(err, jetstream.ErrObjectNotFound) {
-			iodp.inputs = make(map[string]*BindableValue)
+			if iodp.inputs == nil {
+				iodp.inputs = make(map[string]*BindableValue)
+			}
 			return nil
 		}
 		return err

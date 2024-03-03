@@ -63,6 +63,7 @@ type workflowOpts struct {
 	config       *Config
 	nc           *nats.Conn
 	os           jetstream.ObjectStore
+	inputs       ExecuteSparkInputs
 }
 
 type WorkflowOption = func(je *workflowOpts) *workflowOpts
@@ -91,6 +92,13 @@ func WithNatsClient(nc *nats.Conn) WorkflowOption {
 func WithObjectStore(os jetstream.ObjectStore) WorkflowOption {
 	return func(jw *workflowOpts) *workflowOpts {
 		jw.os = os
+		return jw
+	}
+}
+
+func WithInputs(inputs ExecuteSparkInputs) WorkflowOption {
+	return func(jw *workflowOpts) *workflowOpts {
+		jw.inputs = inputs
 		return jw
 	}
 }

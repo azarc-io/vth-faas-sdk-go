@@ -58,8 +58,13 @@ type runnerTest struct {
 }
 
 type runnerTestOutput struct {
-	Outputs map[string]*sparkv1.BindableValue `json:"outputs,omitempty"`
-	Error   *sparkv1.ExecuteSparkError        `json:"error,omitempty"`
+	VariablesKey  string                            `json:"variables_key,omitempty"`
+	JobKey        string                            `json:"job_key,omitempty"`
+	CorrelationId string                            `json:"correlation_id,omitempty"`
+	TransactionId string                            `json:"transaction_id,omitempty"`
+	Model         string                            `json:"model,omitempty"`
+	Outputs       map[string]*sparkv1.BindableValue `json:"outputs,omitempty"`
+	Error         *sparkv1.ExecuteSparkError        `json:"error,omitempty"`
 }
 
 func (r *runnerTest) Execute(ctx *sparkv1.JobContext, opts ...sparkv1.Option) (*Outputs, error) {
@@ -112,6 +117,7 @@ func (r *runnerTest) Execute(ctx *sparkv1.JobContext, opts ...sparkv1.Option) (*
 		sparkv1.WithStageTracker(r.InternalStageTracker),
 		sparkv1.WithNatsClient(nc),
 		sparkv1.WithObjectStore(store),
+		sparkv1.WithInputs(ctx.Metadata.Inputs),
 		sparkv1.WithConfig(&sparkv1.Config{
 			NatsResponseSubject: "agent.v1.job.a.b.test." + ctx.Metadata.JobKeyValue,
 		}),
@@ -161,6 +167,17 @@ func (r *runnerTest) Execute(ctx *sparkv1.JobContext, opts ...sparkv1.Option) (*
 		CorrelationId: jmd.CorrelationIdValue,
 		TransactionId: jmd.TransactionIdValue,
 		Model:         jmd.Model,
+	}
+
+	ob, err := store.GetBytes(ctx, res.VariablesKey)
+	if err != nil {
+		if !errors.Is(err, jetstream.ErrObjectNotFound) {
+			return nil, err
+		}
+	} else {
+		if err := json.Unmarshal(ob, &res.Outputs); err != nil {
+			return nil, err
+		}
 	}
 
 	for k, v := range res.Outputs {

@@ -32,6 +32,7 @@ type jobWorkflow struct {
 	cfg          *Config
 	nc           *nats.Conn
 	store        jetstream.ObjectStore
+	inputs       ExecuteSparkInputs
 }
 
 func (w *jobWorkflow) Run(msg jetstream.Msg) {
@@ -53,6 +54,7 @@ func (w *jobWorkflow) Run(msg jetstream.Msg) {
 	}
 
 	var sparkIO = NewIoDataProvider(w.ctx, w.store)
+	sparkIO.SetInitialInputs(w.inputs)
 	if err := sparkIO.LoadVariables(jmd.VariablesKey); err != nil {
 		w.publishError(err)
 		return
@@ -337,6 +339,7 @@ func NewJobWorkflow(ctx context.Context, sparkId string, chain *SparkChain, opts
 		cfg:          wo.config,
 		nc:           wo.nc,
 		store:        wo.os,
+		inputs:       wo.inputs,
 	}, nil
 }
 

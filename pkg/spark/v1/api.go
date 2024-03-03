@@ -157,6 +157,7 @@ type (
 		PutStageResult(stageName string, stageValue []byte) (Bindable, error)
 		LoadVariables(key string) error
 		GetInputValue(name string) (*BindableValue, bool)
+		SetInitialInputs(inputs ExecuteSparkInputs)
 	}
 )
 
