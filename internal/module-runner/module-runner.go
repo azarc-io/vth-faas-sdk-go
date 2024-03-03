@@ -102,12 +102,20 @@ func RunModule(cfg *config) (Runner, error) {
 
 		// Create the config options for the spark runner
 		m, _ := yaml.Marshal(map[string]any{
-			"id":          s.Id,
-			"name":        s.Name,
-			"queue_group": s.QueueGroup,
-			"temporal":    cfg.Temporal,
-			"logging":     cfg.Log,
-			"io_server":   cfg.IOServer,
+			"id":                        s.Id,
+			"name":                      s.Name,
+			"nats_request_subject":      s.NatsRequestSubject,
+			"nats_response_subject":     s.NatsResponseSubject,
+			"nats_request_stream_name":  s.NatsRequestStreamName,
+			"nats_response_stream_name": s.NatsResponseStreamName,
+			"nats_bucket":               s.NatsBucket,
+			"retry_count":               s.RetryCount,
+			"retry_backoff":             s.RetryBackoff,
+			"retry_backoff_multiplier":  s.RetryBackoffMultiplier,
+			"timeout":                   s.Timeout,
+			"logging":                   cfg.Log,
+			"io_server":                 cfg.IOServer,
+			"nats":                      cfg.Nats,
 		})
 
 		cmd.Env = append(cmd.Env, "SPARK_SECRET="+base64.StdEncoding.EncodeToString(m))

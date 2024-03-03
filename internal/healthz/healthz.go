@@ -211,7 +211,7 @@ func (c *Checker) Status() Status {
 	}
 }
 
-func (c *Checker) handle(w http.ResponseWriter, r *http.Request) {
+func (c *Checker) handle(w http.ResponseWriter, _ *http.Request) {
 	status := c.Status()
 
 	code := http.StatusOK
