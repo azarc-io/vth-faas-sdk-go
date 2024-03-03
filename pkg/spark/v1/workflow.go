@@ -12,7 +12,6 @@ import (
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
 	"github.com/rs/zerolog/log"
-	"runtime"
 	"time"
 )
 
@@ -192,7 +191,6 @@ func (w *jobWorkflow) executeStageActivity(ctx context.Context, stageName string
 			}
 
 			log.Info().Msgf("stage error occurred, sleeping %s before retry attempt %d", waitTime, attempts)
-			runtime.Gosched()
 			time.Sleep(*waitTime)
 		} else {
 			return sr, nil
@@ -222,7 +220,15 @@ func (w *jobWorkflow) executeCompleteActivity(ctx context.Context, stageName str
 func (w *jobWorkflow) ExecuteStageActivity(ctx context.Context, req *ExecuteStageRequest, io SparkDataIO) (Bindable, StageError) {
 	fn := w.Chain.GetStageFunc(req.StageName)
 
-	sc := NewStageContext(ctx, req, io, req.StageName, NewLogger())
+	newInputs := make(map[string]Bindable)
+	for k, v := range req.Inputs {
+		nv, err := v.GetValue()
+		if err == nil {
+			newInputs[k] = io.NewInput(k, req.StageName, NewBindableValue(nv, v.GetMimeType()))
+		}
+	}
+
+	sc := NewStageContext(ctx, req, io, req.StageName, NewLogger(), make(map[string]Bindable))
 
 	var err StageError
 	out := w.executeFn(func() (any, StageError) {
@@ -246,7 +252,7 @@ func (w *jobWorkflow) ExecuteStageActivity(ctx context.Context, req *ExecuteStag
 
 func (w *jobWorkflow) ExecuteCompleteActivity(ctx context.Context, req *ExecuteStageRequest, io SparkDataIO) (*ExecuteStageResponse, StageError) {
 	fn := w.Chain.GetStageCompleteFunc(req.StageName)
-	cc := NewCompleteContext(ctx, req, io, req.StageName, NewLogger())
+	cc := NewCompleteContext(ctx, req, io, req.StageName, NewLogger(), make(map[string]Bindable))
 
 	var err StageError
 	_ = w.executeFn(func() (any, StageError) {

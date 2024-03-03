@@ -141,6 +141,7 @@ type (
 		CorrelationId string             `json:"correlation_id,omitempty"`
 		TransactionId string             `json:"transaction_id,omitempty"`
 		Model         string             `json:"model,omitempty"`
+		Outputs       BindableMap        `json:"outputs,omitempty"`
 	}
 	ExecuteSparkError struct {
 		StageName    string           `json:"stage_name"`

@@ -37,6 +37,7 @@ type (
 		TransactionId string
 		CorrelationId string
 		JobKey        string
+		Inputs        map[string]Bindable
 	}
 
 	ExecuteStageResponse struct {

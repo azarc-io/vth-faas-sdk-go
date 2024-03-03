@@ -94,6 +94,9 @@ func (s *stageError) StageName() string {
 }
 
 func (s *stageError) Error() string {
+	if s.err == nil {
+		return ""
+	}
 	return s.err.Error()
 }
 

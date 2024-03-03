@@ -33,7 +33,6 @@ type Inputs map[string]*Input
 
 type Outputs struct {
 	sparkv1.ExecuteSparkOutput
-	Outputs sparkv1.BindableMap
 }
 
 func (o *Outputs) Bind(varName string, target any) error {
@@ -140,7 +139,7 @@ func (r *runnerTest) Execute(ctx *sparkv1.JobContext, opts ...sparkv1.Option) (*
 		return nil, err
 	}
 
-	msgs, err := responseConsumer.Fetch(1, jetstream.FetchMaxWait(time.Second*5))
+	msgs, err := responseConsumer.Fetch(1, jetstream.FetchMaxWait(time.Second*120))
 	if err != nil {
 		return nil, err
 	}
@@ -184,9 +183,10 @@ func (r *runnerTest) Execute(ctx *sparkv1.JobContext, opts ...sparkv1.Option) (*
 		outputs[k] = v
 	}
 
+	output.Outputs = outputs
+
 	return &Outputs{
 		ExecuteSparkOutput: output,
-		Outputs:            outputs,
 	}, nil
 }
 
@@ -207,7 +207,7 @@ func (r *runnerTest) startRequestConsumer(ctx *sparkv1.JobContext, js jetstream.
 	consumer, err := js.CreateOrUpdateConsumer(context.Background(), "AGENT_JOB_REQ", jetstream.ConsumerConfig{
 		FilterSubject: subject,
 		AckPolicy:     jetstream.AckExplicitPolicy,
-		AckWait:       time.Second * 5,
+		AckWait:       time.Second * 120,
 		MaxDeliver:    15,
 		MaxAckPending: 15,
 	})
@@ -227,7 +227,9 @@ func (r *runnerTest) startRequestConsumer(ctx *sparkv1.JobContext, js jetstream.
 			default:
 				batch, err := consumer.Fetch(15, jetstream.FetchMaxWait(time.Second*15))
 				if err != nil {
-					log.Error().Err(err).Msgf("failed to fetch job request messages, will retry shortly")
+					if errors.Is(err, nats.ErrConnectionClosed) {
+						break loop
+					}
 					continue
 				}
 

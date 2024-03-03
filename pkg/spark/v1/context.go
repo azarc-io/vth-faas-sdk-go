@@ -87,14 +87,19 @@ type stageContext struct {
 	logger      Logger
 	name        string
 	sparkDataIO SparkDataIO
+	inputs      map[string]Bindable
 }
 
-func NewCompleteContext(ctx context.Context, req *ExecuteStageRequest, sparkDataIO SparkDataIO, name string, logger Logger) CompleteContext {
-	return &completeContext{stageContext: stageContext{Context: ctx, ExecuteStageRequest: req, name: name, logger: logger, sparkDataIO: sparkDataIO}}
+func NewCompleteContext(ctx context.Context, req *ExecuteStageRequest, sparkDataIO SparkDataIO, name string, logger Logger, inputs map[string]Bindable) CompleteContext {
+	return &completeContext{stageContext: stageContext{
+		Context: ctx, ExecuteStageRequest: req, name: name, logger: logger, sparkDataIO: sparkDataIO, inputs: inputs,
+	}}
 }
 
-func NewStageContext(ctx context.Context, req *ExecuteStageRequest, sparkDataIO SparkDataIO, name string, logger Logger) StageContext {
-	return stageContext{Context: ctx, ExecuteStageRequest: req, sparkDataIO: sparkDataIO, name: name, logger: logger}
+func NewStageContext(ctx context.Context, req *ExecuteStageRequest, sparkDataIO SparkDataIO, name string, logger Logger, inputs map[string]Bindable) StageContext {
+	return stageContext{
+		Context: ctx, ExecuteStageRequest: req, sparkDataIO: sparkDataIO, name: name, logger: logger, inputs: inputs,
+	}
 }
 
 func (sc stageContext) JobKey() string {
@@ -110,6 +115,9 @@ func (sc stageContext) TransactionID() string {
 }
 
 func (sc stageContext) Input(name string) Input {
+	if sc.sparkDataIO == nil {
+		return &BindableValue{}
+	}
 	in, ok := sc.sparkDataIO.GetInputValue(name)
 	if !ok {
 		return &BindableValue{}
