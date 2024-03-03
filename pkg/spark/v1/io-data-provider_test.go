@@ -2,16 +2,42 @@ package sparkv1
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/codec"
+	"github.com/azarc-io/vth-faas-sdk-go/pkg/spark/v1/util"
+	"github.com/nats-io/nats.go/jetstream"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
 func TestIoDataProvider(t *testing.T) {
+	port, err := util.GetFreeTCPPort()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	s, err := util.RunServerOnPort(port, t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Shutdown()
+	s.Start()
+
+	nc, js := util.GetNatsClient(port)
+	defer nc.Close()
+
+	store, err := js.CreateObjectStore(context.Background(), jetstream.ObjectStoreConfig{
+		Bucket: "test",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	t.Run("Stage IO", func(t *testing.T) {
 		iop := &ioDataProvider{
 			ctx:          context.Background(),
 			stageResults: map[string]*BindableValue{},
+			store:        store,
 		}
 		input, _ := codec.Encode("hello world")
 
@@ -31,9 +57,8 @@ func TestIoDataProvider(t *testing.T) {
 		})
 
 		t.Run("get stage result: fail", func(t *testing.T) {
-			t.SkipNow()
 			_, err := iop.GetStageResult("dummy-error")
-			assert.ErrorContains(t, err, "error getting stage result (500): foo bar error")
+			assert.ErrorContains(t, err, "stage result not found")
 		})
 	})
 
@@ -41,27 +66,44 @@ func TestIoDataProvider(t *testing.T) {
 		iop := &ioDataProvider{
 			ctx:          context.Background(),
 			stageResults: map[string]*BindableValue{},
+			store:        store,
 		}
 
 		t.Run("get input: success", func(t *testing.T) {
-			sr := iop.NewInput("c789", &BindableValue{
+			b, err := json.Marshal(map[string]any{
+				"test": &BindableValue{
+					MimeType: string(codec.MimeTypeJson),
+					Value:    []byte(`"foo bar"`),
+				},
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			if _, err := store.PutBytes(context.Background(), "test", b); err != nil {
+				t.Fatal(err)
+			}
+
+			if err := iop.LoadVariables("test"); err != nil {
+				t.Fatal(err)
+			}
+
+			sr := iop.NewInput("test", "c789", &BindableValue{
 				MimeType: string(codec.MimeTypeJson),
-				Value:    []byte(`"foo bar"`),
 			})
 
 			assert.Equal(t, "foo bar", sr.String())
 		})
 
 		t.Run("get input: fail", func(t *testing.T) {
-			t.SkipNow()
-			sr := iop.NewInput("c567", &BindableValue{
+			sr := iop.NewInput("missing", "c567", &BindableValue{
 				MimeType: string(codec.MimeTypeJson),
 				Value:    []byte("foo bar"),
 			})
 
 			var a any
 			err := sr.Bind(&a)
-			assert.ErrorContains(t, err, "error retrieving input data (400): correlationID (c567), reference (my-input-ref): foo bar")
+			assert.ErrorContains(t, err, "variable not found: error retrieving input data: stage (c567), name (missing)")
 			assert.Nil(t, a)
 		})
 
@@ -77,7 +119,7 @@ func TestIoDataProvider(t *testing.T) {
 		})
 
 		t.Run("post output: fail", func(t *testing.T) {
-			t.SkipNow()
+			t.Skipf("no longer fails because outputs are stored in memory until the spark completed")
 			sr, err := iop.NewOutput("c567", &BindableValue{
 				MimeType: string(codec.MimeTypeJson),
 				Value:    []byte("some data"),

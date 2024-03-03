@@ -3,7 +3,7 @@ package sparkv1
 import (
 	"context"
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/codec"
-	"github.com/nats-io/nats.go"
+	"github.com/nats-io/nats.go/jetstream"
 )
 
 /************************************************************************/
@@ -16,7 +16,7 @@ type (
 	}
 
 	JobWorkflow interface {
-		Run(msg *nats.Msg)
+		Run(msg jetstream.Msg)
 		ExecuteStageActivity(ctx context.Context, req *ExecuteStageRequest, io SparkDataIO) (Bindable, StageError)
 		ExecuteCompleteActivity(ctx context.Context, req *ExecuteStageRequest, io SparkDataIO) (*ExecuteStageResponse, StageError)
 	}

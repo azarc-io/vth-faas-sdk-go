@@ -4,15 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/codec"
-	"github.com/nats-io/nats.go"
+	"github.com/nats-io/nats.go/jetstream"
 )
 
 type ioDataProvider struct {
 	ctx          context.Context
 	stageResults map[string]*BindableValue
 	inputs       map[string]*BindableValue
-	store        nats.ObjectStore
+	store        jetstream.ObjectStore
 }
 
 func (iodp *ioDataProvider) GetInputValue(name string) (*BindableValue, bool) {
@@ -21,8 +22,12 @@ func (iodp *ioDataProvider) GetInputValue(name string) (*BindableValue, bool) {
 }
 
 func (iodp *ioDataProvider) LoadVariables(key string) error {
-	b, err := iodp.store.GetBytes(key)
+	b, err := iodp.store.GetBytes(iodp.ctx, key)
 	if err != nil {
+		if errors.Is(err, jetstream.ErrObjectNotFound) {
+			iodp.inputs = make(map[string]*BindableValue)
+			return nil
+		}
 		return err
 	}
 	return json.Unmarshal(b, &iodp.inputs)
@@ -33,9 +38,10 @@ type bindableInput struct {
 	stageName string
 	mimeType  string
 	data      []byte
+	name      string
 }
 
-func NewIoDataProvider(ctx context.Context, store nats.ObjectStore) SparkDataIO {
+func NewIoDataProvider(ctx context.Context, store jetstream.ObjectStore) SparkDataIO {
 	return &ioDataProvider{
 		ctx:          ctx,
 		store:        store,
@@ -58,6 +64,20 @@ func (b *bindableInput) Bind(a any) error {
 }
 
 func (b *bindableInput) GetValue() ([]byte, error) {
+	if len(b.data) == 0 {
+		// first fetch data
+		if bv, ok := b.iodp.GetInputValue(b.name); ok {
+			b.data = bv.Value
+			return b.data, nil
+		} else {
+			return nil, fmt.Errorf("%w: error retrieving input data: stage (%s), name (%s)",
+				ErrVariableNotFound,
+				b.stageName,
+				b.name,
+			)
+		}
+	}
+
 	return b.data, nil
 }
 
@@ -77,13 +97,15 @@ func (b *bindableInput) String() string {
 	return s
 }
 
-func (iodp *ioDataProvider) NewInput(stageName string, value *BindableValue) Bindable {
-
-	return &bindableInput{
+func (iodp *ioDataProvider) NewInput(name, stageName string, value *BindableValue) Bindable {
+	bi := &bindableInput{
 		iodp:      iodp,
 		stageName: stageName,
+		name:      name,
 		mimeType:  value.MimeType,
 	}
+
+	return bi
 }
 
 func (iodp *ioDataProvider) NewOutput(stageName string, value *BindableValue) (Bindable, error) {

@@ -41,6 +41,7 @@ var (
 	ErrStageNotFoundInNodeChain = errors.New("stage not found in the Node SparkChain")
 	ErrConditionalStageSkipped  = errors.New("conditional Stage execution")
 	ErrChainIsNotValid          = errors.New("SparkChain is not valid")
+	ErrVariableNotFound         = errors.New("variable not found")
 )
 
 var (

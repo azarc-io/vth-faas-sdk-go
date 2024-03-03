@@ -3,6 +3,7 @@ package sparkv1
 import (
 	"encoding/json"
 	"github.com/nats-io/nats.go"
+	"github.com/nats-io/nats.go/jetstream"
 	"github.com/rs/zerolog/log"
 )
 
@@ -61,7 +62,7 @@ type workflowOpts struct {
 	stageTracker InternalStageTracker
 	config       *Config
 	nc           *nats.Conn
-	os           nats.ObjectStore
+	os           jetstream.ObjectStore
 }
 
 type WorkflowOption = func(je *workflowOpts) *workflowOpts
@@ -87,7 +88,7 @@ func WithNatsClient(nc *nats.Conn) WorkflowOption {
 	}
 }
 
-func WithObjectStore(os nats.ObjectStore) WorkflowOption {
+func WithObjectStore(os jetstream.ObjectStore) WorkflowOption {
 	return func(jw *workflowOpts) *workflowOpts {
 		jw.os = os
 		return jw

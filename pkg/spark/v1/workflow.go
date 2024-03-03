@@ -10,6 +10,7 @@ import (
 	"github.com/cenkalti/backoff/v4"
 	"github.com/google/uuid"
 	"github.com/nats-io/nats.go"
+	"github.com/nats-io/nats.go/jetstream"
 	"github.com/rs/zerolog/log"
 	"runtime"
 	"time"
@@ -30,12 +31,19 @@ type jobWorkflow struct {
 	stageTracker InternalStageTracker
 	cfg          *Config
 	nc           *nats.Conn
-	store        nats.ObjectStore
+	store        jetstream.ObjectStore
 }
 
-func (w *jobWorkflow) Run(msg *nats.Msg) {
+func (w *jobWorkflow) Run(msg jetstream.Msg) {
+	defer func(msg jetstream.Msg) {
+		err := msg.Ack()
+		if err != nil {
+			log.Error().Err(err).Msgf("failed to ack message, it will be replayed...")
+		}
+	}(msg)
+
 	var jmd *JobMetadata
-	if err := json.Unmarshal(msg.Data, &jmd); err != nil {
+	if err := json.Unmarshal(msg.Data(), &jmd); err != nil {
 		w.publishError(err)
 		return
 	}
@@ -106,8 +114,12 @@ func (w *jobWorkflow) Run(msg *nats.Msg) {
 	out := doNext(w.Chain.RootNode)
 
 	result := &ExecuteSparkOutput{
-		Error:  out.Error,
-		JobPid: jmd.JobPid,
+		Error:         out.Error,
+		JobPid:        jmd.JobPid,
+		JobKey:        jmd.JobKeyValue,
+		CorrelationId: jmd.CorrelationIdValue,
+		TransactionId: jmd.TransactionIdValue,
+		Model:         jmd.Model,
 	}
 
 	// output
@@ -118,7 +130,7 @@ func (w *jobWorkflow) Run(msg *nats.Msg) {
 			w.publishError(err)
 			return
 		}
-		if _, err := w.store.PutBytes(result.VariablesKey, ob); err != nil {
+		if _, err := w.store.PutBytes(w.ctx, result.VariablesKey, ob); err != nil {
 			w.publishError(err)
 			return
 		}

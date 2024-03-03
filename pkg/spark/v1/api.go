@@ -134,9 +134,13 @@ type (
 
 	ExecuteSparkInputs map[string]*BindableValue
 	ExecuteSparkOutput struct {
-		Error        *ExecuteSparkError `json:"error,omitempty"`
-		JobPid       *JobPid            `json:"job_pid,omitempty"`
-		VariablesKey string             `json:"variables_key,omitempty"`
+		Error         *ExecuteSparkError `json:"error,omitempty"`
+		JobPid        *JobPid            `json:"job_pid,omitempty"`
+		VariablesKey  string             `json:"variables_key,omitempty"`
+		JobKey        string             `json:"job_key,omitempty"`
+		CorrelationId string             `json:"correlation_id,omitempty"`
+		TransactionId string             `json:"transaction_id,omitempty"`
+		Model         string             `json:"model,omitempty"`
 	}
 	ExecuteSparkError struct {
 		StageName    string           `json:"stage_name"`
@@ -147,7 +151,7 @@ type (
 	}
 
 	SparkDataIO interface {
-		NewInput(stageName string, value *BindableValue) Bindable
+		NewInput(name, stageName string, value *BindableValue) Bindable
 		NewOutput(stageName string, value *BindableValue) (Bindable, error)
 		GetStageResult(stageName string) (Bindable, error)
 		PutStageResult(stageName string, stageValue []byte) (Bindable, error)

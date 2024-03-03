@@ -7,7 +7,10 @@ import (
 	"github.com/google/uuid"
 	"github.com/hashicorp/go-plugin"
 	"github.com/nats-io/nats.go"
+	"github.com/nats-io/nats.go/jetstream"
+	"github.com/rs/zerolog/log"
 	"go.temporal.io/sdk/client"
+	"time"
 )
 
 var (
@@ -41,11 +44,11 @@ func (s *sparkPlugin) start() error {
 	}
 	s.nc = nc
 
-	js, err := nc.JetStream()
+	js, err := jetstream.New(nc)
 	if err != nil {
 		return err
 	}
-	store, err := js.ObjectStore(s.config.NatsBucket)
+	store, err := js.ObjectStore(s.ctx, s.config.NatsBucket)
 	if err != nil {
 		return err
 	}
@@ -56,11 +59,47 @@ func (s *sparkPlugin) start() error {
 		return err
 	}
 
-	if _, err := nc.Subscribe(s.config.NatsRequestSubject, func(msg *nats.Msg) {
-		wf.Run(msg)
-	}); err != nil {
+	stream, err := js.Stream(s.ctx, s.config.NatsRequestStreamName)
+	if err != nil {
 		return err
 	}
+
+	consumer, err := stream.CreateOrUpdateConsumer(context.Background(), jetstream.ConsumerConfig{
+		Name:          s.config.Id,
+		FilterSubject: s.config.NatsRequestSubject,
+		AckPolicy:     jetstream.AckExplicitPolicy,
+		AckWait:       s.config.Timeout,
+		MaxDeliver:    15,
+		MaxAckPending: 15,
+	})
+	if err != nil {
+		log.Error().Err(err).Msgf("could not create consumer for subject %s", s.config.NatsRequestSubject)
+		return err
+	}
+
+	go func() {
+	loop:
+		for {
+			select {
+			// on consumer stopped
+			case <-s.ctx.Done():
+				log.Info().Msgf("stopping consumer")
+				break loop
+			default:
+				batch, err := consumer.Fetch(15, jetstream.FetchMaxWait(time.Second*15))
+				if err != nil {
+					log.Error().Err(err).Msgf("failed to fetch job request messages, will retry shortly")
+					continue
+				}
+
+				for msg := range batch.Messages() {
+					go func(m jetstream.Msg) {
+						wf.Run(m)
+					}(msg)
+				}
+			}
+		}
+	}()
 
 	plugin.Serve(&plugin.ServeConfig{
 		HandshakeConfig: plugin.HandshakeConfig{

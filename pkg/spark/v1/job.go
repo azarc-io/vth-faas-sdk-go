@@ -23,11 +23,13 @@ type JobMetadata struct {
 	JobPid                 *JobPid            `json:"job_pid,omitempty"`
 	VariablesBucket        string             `json:"variables_bucket"`
 	VariablesKey           string             `json:"variables_key"`
+	Model                  string             `json:"model,omitempty"`
 }
 
 type JobPid struct {
-	Address string `json:"Address"`
-	Id      string `json:"Id"`
+	Address   string `json:"Address"`
+	Id        string `json:"Id"`
+	RequestId uint32 `json:"request_id"`
 }
 
 type JobContext struct {
