@@ -6,10 +6,10 @@ import (
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/codec"
 	"github.com/google/uuid"
 	"github.com/hashicorp/go-plugin"
+	"github.com/nats-io/nats.go"
+	"github.com/nats-io/nats.go/jetstream"
 	"github.com/rs/zerolog/log"
 	"go.temporal.io/sdk/client"
-	"go.temporal.io/sdk/worker"
-	"go.temporal.io/sdk/workflow"
 	"time"
 )
 
@@ -26,7 +26,7 @@ type sparkPlugin struct {
 	config *Config
 	chain  *SparkChain
 	ctx    context.Context
-	wrk    worker.Worker
+	nc     *nats.Conn
 }
 
 /************************************************************************/
@@ -38,49 +38,67 @@ func newSparkPlugin(ctx context.Context, cfg *Config, chain *SparkChain) *sparkP
 }
 
 func (s *sparkPlugin) start() error {
-	tc, err := s.createTemporalClient()
+	nc, err := s.createNatsClient()
+	if err != nil {
+		return err
+	}
+	s.nc = nc
+
+	js, err := jetstream.New(nc)
+	if err != nil {
+		return err
+	}
+	store, err := js.ObjectStore(s.ctx, s.config.NatsBucket)
 	if err != nil {
 		return err
 	}
 
-	s.wrk = worker.New(tc, s.config.QueueGroup, worker.Options{})
-
-	var sparkIO SparkDataIO
-	if s.config.IOServer != nil {
-		log.Info().Msgf("IO Data Provider Enabled")
-		sparkIO = &ioDataProvider{ctx: s.ctx, baseUrl: s.config.IOServer.Url, apiKey: s.config.IOServer.ApiKey}
-	} else {
-		log.Info().Msgf("Temporal Data Provider Enabled")
-		sparkIO = &temporalDataProvider{ctx: s.ctx, c: tc}
-	}
-
-	wf := NewJobWorkflow(s.ctx, sparkIO, uuid.NewString(), s.chain)
-	s.wrk.RegisterActivity(wf.ExecuteStageActivity)
-	s.wrk.RegisterActivity(wf.ExecuteCompleteActivity)
-	s.wrk.RegisterWorkflowWithOptions(wf.Run, workflow.RegisterOptions{
-		Name: s.config.Id,
-	})
-
-	if err := s.wrk.Start(); err != nil {
+	wf, err := NewJobWorkflow(s.ctx, uuid.NewString(), s.chain,
+		WithConfig(s.config), WithNatsClient(nc), WithObjectStore(store))
+	if err != nil {
 		return err
 	}
 
-	// TODO Remove once this is deployed. Testing the workflow runs
-	go func() {
-		return
+	stream, err := js.Stream(s.ctx, s.config.NatsRequestStreamName)
+	if err != nil {
+		return err
+	}
 
-		time.Sleep(3 * time.Second)
-		o := client.StartWorkflowOptions{
-			TaskQueue: s.config.QueueGroup,
-		}
-		_, err := tc.ExecuteWorkflow(context.Background(), o, s.config.Id, &JobMetadata{
-			SparkId: s.config.Id,
-			Inputs: map[string]*BindableValue{
-				"name": NewBindableValue("Jono", "application/text"),
-			},
-		})
-		if err != nil {
-			log.Error().Err(err).Msgf("workflow run errored")
+	consumer, err := stream.CreateOrUpdateConsumer(context.Background(), jetstream.ConsumerConfig{
+		Name:          s.config.Id,
+		FilterSubject: s.config.NatsRequestSubject,
+		AckPolicy:     jetstream.AckExplicitPolicy,
+		AckWait:       s.config.Timeout,
+		MaxDeliver:    1,
+		MaxAckPending: 1,
+	})
+	if err != nil {
+		log.Error().Err(err).Msgf("could not create consumer for subject %s", s.config.NatsRequestSubject)
+		return err
+	}
+
+	go func() {
+	loop:
+		for {
+			select {
+			// on consumer stopped
+			case <-s.ctx.Done():
+				log.Info().Msgf("stopping consumer")
+				break loop
+			default:
+				batch, err := consumer.Fetch(15, jetstream.FetchMaxWait(time.Second*15))
+				if err != nil {
+					log.Error().Err(err).Msgf("failed to fetch job request messages, will retry shortly")
+					continue
+				}
+
+				for msg := range batch.Messages() {
+					go func(m jetstream.Msg) {
+						m.Ack()
+						wf.Run(m)
+					}(msg)
+				}
+			}
 		}
 	}()
 
@@ -97,19 +115,13 @@ func (s *sparkPlugin) start() error {
 }
 
 func (s *sparkPlugin) stop() {
-	s.wrk.Stop()
+	if s.nc != nil {
+		_ = s.nc.Drain()
+	}
 }
 
-func (s *sparkPlugin) createTemporalClient() (client.Client, error) {
-	opts := client.Options{
-		HostPort:  s.config.Temporal.Address,
-		Namespace: s.config.Temporal.Namespace,
-		//TODO Create logger
-		Logger:   &TemporalLogger{},
-		Identity: s.config.Id,
-	}
-
-	return client.Dial(opts)
+func (s *sparkPlugin) createNatsClient() (*nats.Conn, error) {
+	return nats.Connect(s.config.Nats.Address)
 }
 
 type temporalDataProvider struct {
@@ -122,9 +134,6 @@ func (tdp *temporalDataProvider) NewInput(_ string, value *BindableValue) Bindab
 }
 
 func (tdp *temporalDataProvider) NewOutput(_ string, value *BindableValue) (Bindable, error) {
-	if value.Reference != "" {
-		return nil, ErrTemporalIoNotSupported
-	}
 	return value, nil
 }
 
