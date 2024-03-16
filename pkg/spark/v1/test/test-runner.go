@@ -208,9 +208,9 @@ func (r *runnerTest) startRequestConsumer(ctx *sparkv1.JobContext, js jetstream.
 	consumer, err := js.CreateOrUpdateConsumer(context.Background(), "AGENT_JOB_REQ", jetstream.ConsumerConfig{
 		FilterSubject: subject,
 		AckPolicy:     jetstream.AckExplicitPolicy,
-		AckWait:       time.Second * 120,
-		MaxDeliver:    15,
-		MaxAckPending: 15,
+		AckWait:       time.Second * 240,
+		MaxDeliver:    3,
+		MaxAckPending: 3,
 	})
 
 	if err != nil {
