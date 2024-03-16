@@ -12,18 +12,17 @@ import (
 // JobMetadata the context for the spark we want to execute on a module
 // TODO this type should come from the Module Library
 type JobMetadata struct {
-	SparkId                string             `json:"spark_id"` // id of the spark to execute
-	Inputs                 ExecuteSparkInputs `json:"inputs"`   // all inputs for the given spark id
-	JobKeyValue            string             `json:"job_key"`
-	CorrelationIdValue     string             `json:"correlation_id"`
-	TransactionIdValue     string             `json:"transaction_id"`
-	RetryCount             uint               `yaml:"retry_count"`
-	RetryBackoff           time.Duration      `yaml:"retry_backoff"`
-	RetryBackoffMultiplier uint               `yaml:"retry_backoff_multiplier"`
-	JobPid                 *JobPid            `json:"job_pid,omitempty"`
-	VariablesBucket        string             `json:"variables_bucket"`
-	VariablesKey           string             `json:"variables_key"`
-	Model                  string             `json:"model,omitempty"`
+	SparkId                string        `json:"spark_id"` // id of the spark to execute
+	JobKeyValue            string        `json:"job_key"`
+	CorrelationIdValue     string        `json:"correlation_id"`
+	TransactionIdValue     string        `json:"transaction_id"`
+	RetryCount             uint          `json:"retry_count"`
+	RetryBackoff           time.Duration `json:"retry_backoff"`
+	RetryBackoffMultiplier uint          `json:"retry_backoff_multiplier"`
+	JobPid                 *JobPid       `json:"job_pid,omitempty"`
+	VariablesBucket        string        `json:"variables_bucket"`
+	VariablesKey           string        `json:"variables_key"`
+	Model                  string        `json:"model,omitempty"`
 }
 
 type JobPid struct {

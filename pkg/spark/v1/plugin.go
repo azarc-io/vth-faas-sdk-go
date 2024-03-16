@@ -69,8 +69,8 @@ func (s *sparkPlugin) start() error {
 		FilterSubject: s.config.NatsRequestSubject,
 		AckPolicy:     jetstream.AckExplicitPolicy,
 		AckWait:       s.config.Timeout,
-		MaxDeliver:    15,
-		MaxAckPending: 15,
+		MaxDeliver:    3,
+		MaxAckPending: 3,
 	})
 	if err != nil {
 		log.Error().Err(err).Msgf("could not create consumer for subject %s", s.config.NatsRequestSubject)
