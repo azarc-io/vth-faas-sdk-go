@@ -35,13 +35,6 @@ type jobWorkflow struct {
 }
 
 func (w *jobWorkflow) Run(msg jetstream.Msg) {
-	defer func(msg jetstream.Msg) {
-		err := msg.Ack()
-		if err != nil {
-			log.Error().Err(err).Msgf("failed to ack message, it will be replayed...")
-		}
-	}(msg)
-
 	var jmd *JobMetadata
 	if err := json.Unmarshal(msg.Data(), &jmd); err != nil {
 		w.publishError(err)

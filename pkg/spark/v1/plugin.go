@@ -69,8 +69,8 @@ func (s *sparkPlugin) start() error {
 		FilterSubject: s.config.NatsRequestSubject,
 		AckPolicy:     jetstream.AckExplicitPolicy,
 		AckWait:       s.config.Timeout,
-		MaxDeliver:    3,
-		MaxAckPending: 3,
+		MaxDeliver:    1,
+		MaxAckPending: 1,
 	})
 	if err != nil {
 		log.Error().Err(err).Msgf("could not create consumer for subject %s", s.config.NatsRequestSubject)
@@ -94,6 +94,7 @@ func (s *sparkPlugin) start() error {
 
 				for msg := range batch.Messages() {
 					go func(m jetstream.Msg) {
+						m.Ack()
 						wf.Run(m)
 					}(msg)
 				}
