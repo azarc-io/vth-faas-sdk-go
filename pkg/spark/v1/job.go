@@ -1,6 +1,9 @@
 package sparkv1
 
-import "context"
+import (
+	"context"
+	"time"
+)
 
 //********************************************************************************************
 // INBOUND JOB METADATA
@@ -9,16 +12,24 @@ import "context"
 // JobMetadata the context for the spark we want to execute on a module
 // TODO this type should come from the Module Library
 type JobMetadata struct {
-	SparkId            string             `json:"spark_id"` // id of the spark to execute
-	Inputs             ExecuteSparkInputs `json:"inputs"`   // all inputs for the given spark id
-	JobKeyValue        string             `json:"job_key"`
-	CorrelationIdValue string             `json:"correlation_id"`
-	TransactionIdValue string             `json:"transaction_id"`
+	SparkId                string             `json:"spark_id"` // id of the spark to execute
+	JobKeyValue            string             `json:"job_key"`
+	CorrelationIdValue     string             `json:"correlation_id"`
+	TransactionIdValue     string             `json:"transaction_id"`
+	RetryCount             uint               `json:"retry_count"`
+	RetryBackoff           time.Duration      `json:"retry_backoff"`
+	RetryBackoffMultiplier uint               `json:"retry_backoff_multiplier"`
+	JobPid                 *JobPid            `json:"job_pid,omitempty"`
+	VariablesBucket        string             `json:"variables_bucket"`
+	VariablesKey           string             `json:"variables_key"`
+	Model                  string             `json:"model,omitempty"`
+	Inputs                 ExecuteSparkInputs `json:"-"`
+}
 
-	RootExecutionWorkflowId string `json:"execution_workflow_id"`     // workflow id of the root execution to query
-	RootExecutionRunId      string `json:"execution_run_id"`          // run id of the root execution to query
-	JobExecutionWorkflowId  string `json:"job_execution_workflow_id"` // workflow id of the root job workflow
-	JobExecutionRunId       string `json:"job_execution_run_id"`      // run id of the root job workflow
+type JobPid struct {
+	Address   string `json:"Address"`
+	Id        string `json:"Id"`
+	RequestId uint32 `json:"request_id"`
 }
 
 type JobContext struct {
