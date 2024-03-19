@@ -76,13 +76,12 @@ func (s *sparkPlugin) start() error {
 	}
 
 	go func() {
-	loop:
 		for {
 			select {
 			// on consumer stopped
 			case <-s.ctx.Done():
 				log.Info().Msgf("stopping consumer")
-				break loop
+				return
 			default:
 				batch, err := consumer.Fetch(15, jetstream.FetchMaxWait(time.Second*15))
 				if err != nil {
