@@ -134,8 +134,14 @@ type (
 
 	ExecuteSparkInputs map[string]*BindableValue
 	ExecuteSparkOutput struct {
-		Outputs BindableMap        `json:"outputs,omitempty"`
-		Error   *ExecuteSparkError `json:"error,omitempty"`
+		Error         *ExecuteSparkError `json:"error,omitempty"`
+		JobPid        *JobPid            `json:"job_pid,omitempty"`
+		VariablesKey  string             `json:"variables_key,omitempty"`
+		JobKey        string             `json:"job_key,omitempty"`
+		CorrelationId string             `json:"correlation_id,omitempty"`
+		TransactionId string             `json:"transaction_id,omitempty"`
+		Model         string             `json:"model,omitempty"`
+		Outputs       BindableMap        `json:"outputs,omitempty"`
 	}
 	ExecuteSparkError struct {
 		StageName    string           `json:"stage_name"`
@@ -146,10 +152,13 @@ type (
 	}
 
 	SparkDataIO interface {
-		NewInput(correlationID string, value *BindableValue) Bindable
-		NewOutput(correlationID string, value *BindableValue) (Bindable, error)
-		GetStageResult(workflowID, runID, stageName, correlationID string) (Bindable, error)
-		PutStageResult(workflowID, runID, stageName, correlationID string, stageValue []byte) (Bindable, error)
+		NewInput(name, stageName string, value *BindableValue) Bindable
+		NewOutput(stageName string, value *BindableValue) (Bindable, error)
+		GetStageResult(stageName string) (Bindable, error)
+		PutStageResult(stageName string, stageValue []byte) (Bindable, error)
+		LoadVariables(key string) error
+		GetInputValue(name string) (*BindableValue, bool)
+		SetInitialInputs(inputs ExecuteSparkInputs)
 	}
 )
 
@@ -217,7 +226,11 @@ func (ese *ExecuteSparkError) Error() string {
 	for _, t := range ese.StackTrace {
 		stack = append(stack, fmt.Sprintf("%s\n\t%s\n", t.Type, t.Filepath))
 	}
-	return fmt.Sprintf("%s\n%s", ese.ErrorMessage, stack)
+	if len(stack) > 0 {
+		return fmt.Sprintf("%s\n%s", ese.ErrorMessage, stack)
+	}
+
+	return fmt.Sprintf("%s", ese.ErrorMessage)
 }
 
 /************************************************************************/

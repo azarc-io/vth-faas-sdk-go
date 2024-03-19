@@ -3,6 +3,7 @@ package module_runner
 import (
 	"context"
 	"fmt"
+	"github.com/rs/zerolog/log"
 	"github.com/sethvargo/go-envconfig"
 	"gopkg.in/yaml.v3"
 	"os"
@@ -15,12 +16,12 @@ import (
 /************************************************************************/
 
 type config struct {
-	BinBasePath string          `yaml:"bin_base_path"`
-	Health      *configHealth   `yaml:"health"`
-	Log         *configLog      `yaml:"logging"`
-	Sparks      []*configSpark  `yaml:"sparks"`
-	Temporal    *configTemporal `yaml:"temporal"`
-	IOServer    *ioServer       `yaml:"io_server"`
+	BinBasePath string         `yaml:"bin_base_path"`
+	Health      *configHealth  `yaml:"health"`
+	Log         *configLog     `yaml:"logging"`
+	Sparks      []*configSpark `yaml:"sparks"`
+	Nats        *configNats    `yaml:"nats"`
+	IOServer    *ioServer      `yaml:"io_server"`
 }
 
 func defaultConfig() *config {
@@ -30,12 +31,20 @@ func defaultConfig() *config {
 }
 
 type configSpark struct {
-	Id             string         `yaml:"id"`              // Id is unique hash to identify this combination of Name and Config
-	Name           string         `yaml:"name"`            // Name of the binary to execute
-	QueueGroup     string         `yaml:"queue_group"`     // QueueGroup name of execution group
-	Config         string         `yaml:"config"`          // Config Deprecated: will be JSON string with config details
-	ConfigServer   *configServer  `yaml:"config_server"`   // ConfigServer which is used to retrieve startup config
-	StartupTimeout *time.Duration `yaml:"startup_timeout"` // StartupTimeout amount of time to wait for spark to start before error
+	Id                     string         `yaml:"id"`   // Id is unique hash to identify this combination of Name and Config
+	Name                   string         `yaml:"name"` // Name of the binary to execute
+	NatsRequestSubject     string         `yaml:"nats_request_subject"`
+	NatsResponseSubject    string         `yaml:"nats_response_subject"`
+	NatsRequestStreamName  string         `yaml:"nats_request_stream_name"`
+	NatsResponseStreamName string         `yaml:"nats_response_stream_name"`
+	NatsBucket             string         `yaml:"nats_bucket"`
+	RetryCount             uint           `yaml:"retry_count"`
+	RetryBackoff           time.Duration  `yaml:"retry_backoff"`
+	RetryBackoffMultiplier uint           `yaml:"retry_backoff_multiplier"`
+	Timeout                time.Duration  `yaml:"timeout"`
+	Config                 string         `yaml:"config"`          // Config Deprecated: will be JSON string with config details
+	ConfigServer           *configServer  `yaml:"config_server"`   // ConfigServer which is used to retrieve startup config
+	StartupTimeout         *time.Duration `yaml:"startup_timeout"` // StartupTimeout amount of time to wait for spark to start before error
 }
 
 type configServer struct {
@@ -53,9 +62,8 @@ type configLog struct {
 	Level string `env:"LOG_LEVEL" yaml:"level"`
 }
 
-type configTemporal struct {
-	Address   string `yaml:"address"`
-	Namespace string `yaml:"namespace"`
+type configNats struct {
+	Address string `yaml:"address"`
 }
 
 type ioServer struct {
@@ -75,6 +83,7 @@ func LoadModuleConfig(opts ...ModuleOption) (*config, error) {
 		if err != nil {
 			return nil, err
 		}
+		log.Info().Msgf("CONFIG %s", string(b))
 		if err := yaml.Unmarshal(b, &config); err != nil {
 			return nil, err
 		}

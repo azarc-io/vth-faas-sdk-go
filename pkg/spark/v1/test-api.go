@@ -3,7 +3,7 @@ package sparkv1
 import (
 	"context"
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/codec"
-	"go.temporal.io/sdk/workflow"
+	"github.com/nats-io/nats.go/jetstream"
 )
 
 /************************************************************************/
@@ -16,9 +16,9 @@ type (
 	}
 
 	JobWorkflow interface {
-		Run(ctx workflow.Context, jmd *JobMetadata) (*ExecuteSparkOutput, error)
-		ExecuteStageActivity(ctx context.Context, req *ExecuteStageRequest) (Bindable, StageError)
-		ExecuteCompleteActivity(ctx context.Context, req *ExecuteStageRequest) (*ExecuteSparkOutput, StageError)
+		Run(msg jetstream.Msg)
+		ExecuteStageActivity(ctx context.Context, req *ExecuteStageRequest, io SparkDataIO) (Bindable, StageError)
+		ExecuteCompleteActivity(ctx context.Context, req *ExecuteStageRequest, io SparkDataIO) (*ExecuteStageResponse, StageError)
 	}
 
 	StageTracker interface {
@@ -34,18 +34,20 @@ type (
 
 	ExecuteStageRequest struct {
 		StageName     string
-		Inputs        ExecuteSparkInputs
-		WorkflowId    string
-		RunId         string
 		TransactionId string
 		CorrelationId string
 		JobKey        string
+		Inputs        map[string]Bindable
+	}
+
+	ExecuteStageResponse struct {
+		Outputs BindableMap        `json:"outputs,omitempty"`
+		Error   *ExecuteSparkError `json:"error,omitempty"`
 	}
 
 	Value struct {
-		Value     []byte `json:"value"`
-		MimeType  string `json:"mime_type"`
-		Reference string `json:"reference,omitempty"` // if reference is present, use this to retrieve the value
+		Value    []byte `json:"value"`
+		MimeType string `json:"mime_type"`
 	}
 )
 

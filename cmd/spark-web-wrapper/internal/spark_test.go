@@ -105,7 +105,7 @@ func TestShouldErrorOnStage1(t *testing.T) {
 			{http.MethodPost, 500, "/basepath/stages/My-Stage-1", example1_stage_error_with_retry, nil, nil},
 		})
 
-		ctx := module_test_runner.NewTestJobContext(context.Background(), "test", "cid", "tid", module_test_runner.Inputs{})
+		ctx := module_test_runner.NewTestJobContext(context.Background(), "error_stage_1", "cid", "tid", module_test_runner.Inputs{})
 		worker, err := module_test_runner.NewTestRunner(t, spark.NewSpark(svr.URL+"/basepath"))
 		assert.Nil(t, err)
 
