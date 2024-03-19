@@ -3,13 +3,11 @@ package sparkv1
 import (
 	"context"
 	"errors"
-	"github.com/azarc-io/vth-faas-sdk-go/pkg/codec"
 	"github.com/google/uuid"
 	"github.com/hashicorp/go-plugin"
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
 	"github.com/rs/zerolog/log"
-	"go.temporal.io/sdk/client"
 	"time"
 )
 
@@ -122,39 +120,4 @@ func (s *sparkPlugin) stop() {
 
 func (s *sparkPlugin) createNatsClient() (*nats.Conn, error) {
 	return nats.Connect(s.config.Nats.Address)
-}
-
-type temporalDataProvider struct {
-	ctx context.Context
-	c   client.Client
-}
-
-func (tdp *temporalDataProvider) NewInput(_ string, value *BindableValue) Bindable {
-	return value
-}
-
-func (tdp *temporalDataProvider) NewOutput(_ string, value *BindableValue) (Bindable, error) {
-	return value, nil
-}
-
-func (tdp *temporalDataProvider) GetStageResult(workflowID, runID, stageName, correlationID string) (Bindable, error) {
-	res, err := tdp.c.QueryWorkflow(tdp.ctx, workflowID, runID, JobGetStageResultQuery, stageName)
-	if err != nil {
-		return nil, err
-	}
-
-	var val Value
-	if err := res.Get(&val); err != nil {
-		return nil, err
-	}
-
-	if val.MimeType != "application/json" {
-		return nil, ErrInvalidStageResultMimeType
-	}
-
-	return NewBindable(val), nil
-}
-
-func (tdp *temporalDataProvider) PutStageResult(workflowID, runID, stageName, correlationID string, stageValue []byte) (Bindable, error) {
-	return &BindableValue{Value: stageValue, MimeType: string(codec.MimeTypeJson)}, nil
 }
