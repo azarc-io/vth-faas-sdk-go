@@ -99,10 +99,7 @@ func (w *sparkWorker) initIfRequired() {
 /************************************************************************/
 
 func NewSparkWorker(ctx context.Context, spark Spark, options ...Option) (Worker, error) {
-	wrappedCtx, cancel := context.WithCancel(ctx)
 	var jw = &sparkWorker{
-		ctx:       wrappedCtx,
-		cancel:    cancel,
 		opts:      &SparkOpts{},
 		createdAt: time.Now(),
 		spark:     spark,
@@ -113,6 +110,8 @@ func NewSparkWorker(ctx context.Context, spark Spark, options ...Option) (Worker
 
 	// load the configuration if available
 	jw.loadConfiguration(jw.opts)
+
+	jw.ctx, jw.cancel = context.WithTimeout(ctx, jw.config.Timeout)
 
 	// build the SparkChain
 	builder := NewBuilder()

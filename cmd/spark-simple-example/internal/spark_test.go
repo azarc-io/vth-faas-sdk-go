@@ -11,17 +11,20 @@ import (
 )
 
 func Test_Should_Say_Hello_World(t *testing.T) {
-	ctx := module_test_runner.NewTestJobContext(context.Background(), "test", "cid", "tid", module_test_runner.Inputs{
-		"myKey": {
-			Value:    nil,
-			MimeType: "",
-		},
-	})
+	ctx := module_test_runner.NewTestJobContext(context.Background(),
+		"say-hello-world", "cid", "tid", module_test_runner.Inputs{
+			"myKey": {
+				Value:    nil,
+				MimeType: "",
+			},
+		})
 
 	worker, err := module_test_runner.NewTestRunner(t, spark.NewSpark())
 	assert.Nil(t, err)
 
-	result, err := worker.Execute(ctx, sparkv1.WithSparkConfig(spark.Config{Foo: "my-bar-from-config"}))
+	result, err := worker.Execute(
+		ctx,
+		sparkv1.WithSparkConfig(spark.Config{Foo: "my-bar-from-config"}))
 	if !assert.Nil(t, err) {
 		return
 	}
@@ -37,12 +40,12 @@ func Test_Should_Say_Hello_World(t *testing.T) {
 	worker.AssertStageCompleted("chain-1_complete")
 	worker.AssertStageOrder("stage-1", "stage-2", "stage-3", "stage-4", "stage-5")
 	worker.AssertStageResult("stage-4", "my-bar-from-config")
-	worker.AssertStageResult("stage-5", "JobKey:test; TransactionId:tid; CorrelationId:cid")
+	worker.AssertStageResult("stage-5", "JobKey:say-hello-world; TransactionId:tid; CorrelationId:cid")
 }
 
 func Test_Should_Cancel(t *testing.T) {
 	bCtx, cancel := context.WithCancel(context.Background())
-	ctx := module_test_runner.NewTestJobContext(bCtx, "test", "cid", "tid", module_test_runner.Inputs{
+	ctx := module_test_runner.NewTestJobContext(bCtx, "should_cancel", "cid", "tid", module_test_runner.Inputs{
 		"myKey": {
 			Value:    nil,
 			MimeType: "",

@@ -2,12 +2,16 @@ package sparkv1
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	module_runner2 "github.com/azarc-io/vth-faas-sdk-go/internal/module-runner"
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/codec"
+	"github.com/cenkalti/backoff/v4"
+	"github.com/google/uuid"
+	"github.com/nats-io/nats.go"
+	"github.com/nats-io/nats.go/jetstream"
 	"github.com/rs/zerolog/log"
-	"go.temporal.io/sdk/workflow"
 	"time"
 )
 
@@ -19,69 +23,76 @@ type RetryConfig struct {
 	BackoffMultiplier uint          `json:"backoff_multiplier" yaml:"backoff_multiplier"`
 }
 
-type sparkOutput struct {
-	Outputs map[string]*BindableValue `json:"outputs,omitempty"`
-	Error   *ExecuteSparkError        `json:"error,omitempty"`
-}
-
 type jobWorkflow struct {
 	Chain        *SparkChain
 	SparkId      string
 	ctx          context.Context
-	sparkDataIO  SparkDataIO
 	stageTracker InternalStageTracker
+	cfg          *Config
+	nc           *nats.Conn
+	store        jetstream.ObjectStore
+	inputs       ExecuteSparkInputs
 }
 
-func (w *jobWorkflow) Run(ctx workflow.Context, jmd *JobMetadata) (*ExecuteSparkOutput, error) {
+func (w *jobWorkflow) Run(msg jetstream.Msg) {
+	var jmd *JobMetadata
+	if err := json.Unmarshal(msg.Data(), &jmd); err != nil {
+		w.publishError(err)
+		return
+	}
+
 	state := &JobState{
 		JobContext: jmd,
 	}
 
-	info := workflow.GetInfo(ctx)
-
-	// handles queries to fetch a stage result
-	err := workflow.SetQueryHandler(ctx, JobGetStageResultQuery, func(stageName string) (interface{}, error) {
-		if v, ok := state.StageResults[stageName]; ok {
-			return v, nil
-		}
-
-		return nil, module_runner2.ErrStageResultNotFound
-	})
-
-	if err != nil {
-		return nil, err
+	var sparkIO = NewIoDataProvider(w.ctx, w.store)
+	sparkIO.SetInitialInputs(w.inputs)
+	if err := sparkIO.LoadVariables(jmd.VariablesKey); err != nil {
+		w.publishError(err)
+		return
 	}
 
-	var doNext func(next *Node) *ExecuteSparkOutput
+	var doNext func(next *Node) *ExecuteStageResponse
 
-	doNext = func(next *Node) *ExecuteSparkOutput {
+	doNext = func(next *Node) *ExecuteStageResponse {
 		if next == nil {
 			return nil
 		}
 
 		for _, stage := range next.Stages {
-			w.setStageStatus(stage.Name, StageStatus_STAGE_STARTED)
-			res, err := w.executeStageActivity(ctx, stage.Name, info, state)
-			if err != nil {
+			select {
+			case <-w.ctx.Done():
 				w.setStageStatus(stage.Name, StageStatus_STAGE_FAILED)
-				return getSparkErrorOutput(err)
-			}
+				return getSparkErrorOutput(errors.New("canceled"))
+			default:
+				w.setStageStatus(stage.Name, StageStatus_STAGE_STARTED)
+				res, err := w.executeStageActivity(w.ctx, stage.Name, state, sparkIO)
+				if err != nil {
+					w.setStageStatus(stage.Name, StageStatus_STAGE_FAILED)
+					return getSparkErrorOutput(err)
+				}
 
-			w.setStageStatus(stage.Name, StageStatus_STAGE_COMPLETED)
+				select {
+				case <-w.ctx.Done():
+					w.setStageStatus(stage.Name, StageStatus_STAGE_FAILED)
+				default:
+					w.setStageStatus(stage.Name, StageStatus_STAGE_COMPLETED)
 
-			if state.StageResults == nil {
-				state.StageResults = make(map[string]Bindable)
-			}
+					if state.StageResults == nil {
+						state.StageResults = make(map[string]Bindable)
+					}
 
-			state.StageResults[stage.Name] = res
-			if w.stageTracker != nil {
-				w.stageTracker.SetStageResult(stage.Name, res)
+					state.StageResults[stage.Name] = res
+					if w.stageTracker != nil {
+						w.stageTracker.SetStageResult(stage.Name, res)
+					}
+				}
 			}
 		}
 
 		if next.Complete != nil {
 			w.setStageStatus(next.Complete.Name, StageStatus_STAGE_STARTED)
-			v, err := w.executeCompleteActivity(ctx, next.Complete.Name, info, state)
+			v, err := w.executeCompleteActivity(w.ctx, next.Complete.Name, state, sparkIO)
 			if err != nil {
 				w.setStageStatus(next.Complete.Name, StageStatus_STAGE_FAILED)
 				return getSparkErrorOutput(err)
@@ -94,35 +105,61 @@ func (w *jobWorkflow) Run(ctx workflow.Context, jmd *JobMetadata) (*ExecuteSpark
 		return getSparkErrorOutput(module_runner2.ErrChainDoesNotHaveACompleteStage)
 	}
 
-	return doNext(w.Chain.RootNode), nil
+	out := doNext(w.Chain.RootNode)
+
+	result := &ExecuteSparkOutput{
+		Error:         out.Error,
+		JobPid:        jmd.JobPid,
+		JobKey:        jmd.JobKeyValue,
+		CorrelationId: jmd.CorrelationIdValue,
+		TransactionId: jmd.TransactionIdValue,
+		Model:         jmd.Model,
+	}
+
+	// output
+	if out.Outputs != nil {
+		result.VariablesKey = uuid.NewString()
+		ob, err := json.Marshal(out.Outputs)
+		if err != nil {
+			w.publishError(err)
+			return
+		}
+		if _, err := w.store.PutBytes(w.ctx, result.VariablesKey, ob); err != nil {
+			w.publishError(err)
+			return
+		}
+	}
+
+	// response
+	rb, err := json.Marshal(result)
+	if err != nil {
+		w.publishError(err)
+		return
+	}
+
+	w.publish(rb)
 }
 
-func (w *jobWorkflow) executeStageActivity(ctx workflow.Context, stageName string, info *workflow.Info, state *JobState) (Bindable, error) {
-	var sr BindableValue // stage result
-
-	options := DefaultActivityOptions.GetTemporalActivityOptions()
-	options.ActivityID = stageName
-	options.RetryPolicy = DefaultRetryPolicy.GetTemporalPolicy()
+func (w *jobWorkflow) executeStageActivity(ctx context.Context, stageName string, state *JobState, io SparkDataIO) (Bindable, error) {
+	var (
+		sr  Bindable // stage result
+		err error
+	)
 
 	var attempts uint = 0
 	var waitTime *time.Duration
 	for {
-		c := workflow.WithActivityOptions(ctx, options)
-		f := workflow.ExecuteActivity(c, w.ExecuteStageActivity, &ExecuteStageRequest{
+		sr, err = w.ExecuteStageActivity(ctx, &ExecuteStageRequest{
 			StageName:     stageName,
-			Inputs:        state.JobContext.Inputs,
-			WorkflowId:    info.WorkflowExecution.ID,
-			RunId:         info.WorkflowExecution.RunID,
 			JobKey:        state.JobContext.JobKeyValue,
 			TransactionId: state.JobContext.TransactionIdValue,
 			CorrelationId: state.JobContext.CorrelationIdValue,
-		})
-		if err := f.Get(ctx, &sr); err != nil {
-			//TODO Compensate()
+		}, io)
+		if err != nil {
 			return nil, err
 		}
 
-		if codec.MimeType(sr.MimeType) == codec.MimeTypeJson.WithType("error") {
+		if codec.MimeType(sr.GetMimeType()) == codec.MimeTypeJson.WithType("error") {
 			attempts++
 			se := errorWrap{StageName: stageName}
 			if err := sr.Bind(&se); err != nil {
@@ -147,59 +184,44 @@ func (w *jobWorkflow) executeStageActivity(ctx workflow.Context, stageName strin
 			}
 
 			log.Info().Msgf("stage error occurred, sleeping %s before retry attempt %d", waitTime, attempts)
-			if err := workflow.Sleep(ctx, *waitTime); err != nil {
-				return nil, err
-			}
+			time.Sleep(*waitTime)
 		} else {
-			return &sr, nil
+			return sr, nil
 		}
 	}
 }
 
-func (w *jobWorkflow) executeCompleteActivity(ctx workflow.Context, stageName string, info *workflow.Info, state *JobState) (*ExecuteSparkOutput, error) {
-	options := DefaultActivityOptions.GetTemporalActivityOptions()
-	options.ActivityID = stageName
-	options.RetryPolicy = DefaultRetryPolicy.GetTemporalPolicy()
+func (w *jobWorkflow) executeCompleteActivity(ctx context.Context, stageName string, state *JobState, io SparkDataIO) (*ExecuteStageResponse, error) {
+	var (
+		out *ExecuteStageResponse
+		err error
+	)
 
-	c := workflow.WithActivityOptions(ctx, options)
-	f := workflow.ExecuteActivity(c, w.ExecuteCompleteActivity, &ExecuteStageRequest{
+	out, err = w.ExecuteCompleteActivity(ctx, &ExecuteStageRequest{
 		StageName:     stageName,
-		Inputs:        state.JobContext.Inputs,
-		WorkflowId:    info.WorkflowExecution.ID,
-		RunId:         info.WorkflowExecution.RunID,
 		JobKey:        state.JobContext.JobKeyValue,
 		TransactionId: state.JobContext.TransactionIdValue,
 		CorrelationId: state.JobContext.CorrelationIdValue,
-	})
-
-	// TODO: note that the sparkOutput is a typed output due to ExecuteSparkOutput containing interfaces
-	//  We should look at cleaning up the API interface with marshalled data being concrete types.
-	var out sparkOutput
-	if err := f.Get(ctx, &out); err != nil {
-		// TODO ctx.Compensate()
+	}, io)
+	if err != nil {
 		return nil, err
 	}
 
-	res := ExecuteSparkOutput{
-		Outputs: make(BindableMap),
-		Error:   out.Error,
-	}
-	for k, v := range out.Outputs {
-		res.Outputs[k] = v
-	}
-
-	return &res, nil
+	return out, nil
 }
 
-func (w *jobWorkflow) ExecuteStageActivity(ctx context.Context, req *ExecuteStageRequest) (Bindable, StageError) {
+func (w *jobWorkflow) ExecuteStageActivity(ctx context.Context, req *ExecuteStageRequest, io SparkDataIO) (Bindable, StageError) {
 	fn := w.Chain.GetStageFunc(req.StageName)
 
 	newInputs := make(map[string]Bindable)
 	for k, v := range req.Inputs {
-		newInputs[k] = w.sparkDataIO.NewInput(req.CorrelationId, v)
+		nv, err := v.GetValue()
+		if err == nil {
+			newInputs[k] = io.NewInput(k, req.StageName, NewBindableValue(nv, v.GetMimeType()))
+		}
 	}
 
-	sc := NewStageContext(ctx, req, w.sparkDataIO, req.WorkflowId, req.RunId, req.StageName, NewLogger(), newInputs)
+	sc := NewStageContext(ctx, req, io, req.StageName, NewLogger(), make(map[string]Bindable))
 
 	var err StageError
 	out := w.executeFn(func() (any, StageError) {
@@ -214,22 +236,16 @@ func (w *jobWorkflow) ExecuteStageActivity(ctx context.Context, req *ExecuteStag
 		return getTransferableError(err2), nil
 	}
 
-	res, err2 := w.sparkDataIO.PutStageResult(req.WorkflowId, req.RunId, req.StageName, req.CorrelationId, stageValue)
+	res, err2 := io.PutStageResult(req.StageName, stageValue)
 	if err2 != nil {
 		return getTransferableError(err2), nil
 	}
 	return res, nil
 }
 
-func (w *jobWorkflow) ExecuteCompleteActivity(ctx context.Context, req *ExecuteStageRequest) (*ExecuteSparkOutput, StageError) {
+func (w *jobWorkflow) ExecuteCompleteActivity(ctx context.Context, req *ExecuteStageRequest, io SparkDataIO) (*ExecuteStageResponse, StageError) {
 	fn := w.Chain.GetStageCompleteFunc(req.StageName)
-
-	newInputs := make(map[string]Bindable)
-	for k, v := range req.Inputs {
-		newInputs[k] = w.sparkDataIO.NewInput(req.CorrelationId, v)
-	}
-
-	cc := NewCompleteContext(ctx, req, w.sparkDataIO, req.WorkflowId, req.RunId, req.StageName, NewLogger(), newInputs)
+	cc := NewCompleteContext(ctx, req, io, req.StageName, NewLogger(), make(map[string]Bindable))
 
 	var err StageError
 	_ = w.executeFn(func() (any, StageError) {
@@ -237,7 +253,7 @@ func (w *jobWorkflow) ExecuteCompleteActivity(ctx context.Context, req *ExecuteS
 		return nil, err
 	}, &err)
 	if err != nil {
-		return &ExecuteSparkOutput{
+		return &ExecuteStageResponse{
 			Error: &ExecuteSparkError{
 				StageName:    req.StageName,
 				ErrorCode:    err.ErrorCode(),
@@ -248,12 +264,12 @@ func (w *jobWorkflow) ExecuteCompleteActivity(ctx context.Context, req *ExecuteS
 		}, nil
 	}
 
-	res := &ExecuteSparkOutput{
+	res := &ExecuteStageResponse{
 		Outputs: map[string]Bindable{},
 	}
 	for _, output := range cc.(*completeContext).outputs {
 		var err error
-		if res.Outputs[output.Name], err = w.sparkDataIO.NewOutput(req.CorrelationId, &BindableValue{Value: output.Value, MimeType: string(output.MimeType)}); err != nil {
+		if res.Outputs[output.Name], err = io.NewOutput(req.StageName, &BindableValue{Value: output.Value, MimeType: string(output.MimeType)}); err != nil {
 			return nil, NewStageError(fmt.Errorf("error occured setting output: %w", err))
 		}
 	}
@@ -286,12 +302,44 @@ func (w *jobWorkflow) setStageStatus(name string, status StageStatus) {
 	}
 }
 
-func NewJobWorkflow(ctx context.Context, sparkDataIO SparkDataIO, sparkId string, chain *SparkChain, opts ...WorkflowOption) JobWorkflow {
+func (w *jobWorkflow) publish(b []byte) {
+	pb := backoff.NewExponentialBackOff()
+	if err := backoff.Retry(func() error {
+		if err := w.nc.Publish(w.cfg.NatsResponseSubject, b); err != nil {
+			log.Error().Err(err).Msgf("failed to publish result to broker, will retry")
+			return err
+		}
+		return nil
+	}, backoff.WithContext(pb, context.Background())); err != nil {
+		log.Error().Err(err).Msgf("failed to publish result to broker, result is lost")
+	}
+}
+
+func (w *jobWorkflow) publishError(err error) {
+	result := getSparkErrorOutput(err)
+	b, err := json.Marshal(result)
+	if err != nil {
+		log.Error().Err(err).Msgf("spark errored but could not marshal error response, result will be lost")
+	}
+	w.publish(b)
+}
+
+func NewJobWorkflow(ctx context.Context, sparkId string, chain *SparkChain, opts ...WorkflowOption) (JobWorkflow, error) {
 	wo := new(workflowOpts)
 	for _, opt := range opts {
 		wo = opt(wo)
 	}
-	return &jobWorkflow{ctx: ctx, sparkDataIO: sparkDataIO, SparkId: sparkId, Chain: chain, stageTracker: wo.stageTracker}
+
+	return &jobWorkflow{
+		ctx:          ctx,
+		SparkId:      sparkId,
+		Chain:        chain,
+		stageTracker: wo.stageTracker,
+		cfg:          wo.config,
+		nc:           wo.nc,
+		store:        wo.os,
+		inputs:       wo.inputs,
+	}, nil
 }
 
 // errorWrap used to marshal errors between workflow and activities
@@ -329,9 +377,9 @@ func getTransferableError(err error) Bindable {
 	return NewBindable(Value{Value: ew, MimeType: string(MimeJsonError)})
 }
 
-func getSparkErrorOutput(err error) *ExecuteSparkOutput {
+func getSparkErrorOutput(err error) *ExecuteStageResponse {
 	if e, ok := err.(errorWrap); ok {
-		return &ExecuteSparkOutput{
+		return &ExecuteStageResponse{
 			Error: &ExecuteSparkError{
 				StageName:    e.StageName,
 				ErrorCode:    e.ErrorCode,
@@ -347,7 +395,7 @@ func getSparkErrorOutput(err error) *ExecuteSparkOutput {
 		stackTrace = getStackTrace(st)
 	}
 
-	return &ExecuteSparkOutput{
+	return &ExecuteStageResponse{
 		Error: &ExecuteSparkError{
 			ErrorMessage: err.Error(),
 			StackTrace:   stackTrace,

@@ -23,9 +23,9 @@ func TestSparkErrorWithRetries(t *testing.T) {
 		BackoffMultiplier uint
 		Panic             bool
 	}{
-		{"recover after x retries", "finally I can pass after 10 failures", "", 15, 10 * time.Second, 2, false},
-		{"fail after x retries", "", "failures 5 of 10", 5, 10 * time.Second, 2, false},
-		{"fail gracefully after panic", "", "i was forced to panic :)", 10, 10 * time.Second, 2, true},
+		{"recover after x retries", "finally I can pass after 10 failures", "", 15, 10 * time.Millisecond, 1, false},
+		{"fail after x retries", "", "failures 5 of 10", 5, 15 * time.Millisecond, 2, false},
+		{"fail gracefully after panic", "", "i was forced to panic :)", 10, 15 * time.Millisecond, 2, true},
 	}
 
 	for _, test := range tests {

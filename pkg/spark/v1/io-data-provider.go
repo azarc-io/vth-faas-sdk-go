@@ -1,29 +1,61 @@
 package sparkv1
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
-	http2 "github.com/azarc-io/vth-faas-sdk-go/internal/http"
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/codec"
-	"io"
-	"net/http"
-	"net/url"
+	"github.com/nats-io/nats.go/jetstream"
 )
 
 type ioDataProvider struct {
-	ctx     context.Context
-	baseUrl string
-	apiKey  string
+	ctx          context.Context
+	stageResults map[string]*BindableValue
+	inputs       map[string]*BindableValue
+	store        jetstream.ObjectStore
+}
+
+func (iodp *ioDataProvider) SetInitialInputs(inputs ExecuteSparkInputs) {
+	if inputs != nil {
+		iodp.inputs = inputs
+	}
+}
+
+func (iodp *ioDataProvider) GetInputValue(name string) (*BindableValue, bool) {
+	v, ok := iodp.inputs[name]
+	return v, ok
+}
+
+func (iodp *ioDataProvider) LoadVariables(key string) error {
+	b, err := iodp.store.GetBytes(iodp.ctx, key)
+	if err != nil {
+		if errors.Is(err, jetstream.ErrObjectNotFound) {
+			if iodp.inputs == nil {
+				iodp.inputs = make(map[string]*BindableValue)
+			}
+			return nil
+		}
+		return err
+	}
+	return json.Unmarshal(b, &iodp.inputs)
 }
 
 type bindableInput struct {
-	iodp          *ioDataProvider
-	correlationID string
-	reference     string
-	mimeType      string
-	data          []byte
+	iodp      *ioDataProvider
+	stageName string
+	mimeType  string
+	data      []byte
+	name      string
+}
+
+func NewIoDataProvider(ctx context.Context, store jetstream.ObjectStore) SparkDataIO {
+	return &ioDataProvider{
+		ctx:          ctx,
+		store:        store,
+		stageResults: make(map[string]*BindableValue),
+		inputs:       make(map[string]*BindableValue),
+	}
 }
 
 func (b *bindableInput) Bind(a any) error {
@@ -42,9 +74,15 @@ func (b *bindableInput) Bind(a any) error {
 func (b *bindableInput) GetValue() ([]byte, error) {
 	if len(b.data) == 0 {
 		// first fetch data
-		var err error
-		if b.data, err = b.iodp.fetchInputData(b.correlationID, b.reference); err != nil {
-			return b.data, err
+		if bv, ok := b.iodp.GetInputValue(b.name); ok {
+			b.data = bv.Value
+			return b.data, nil
+		} else {
+			return nil, fmt.Errorf("%w: error retrieving input data: stage (%s), name (%s)",
+				ErrVariableNotFound,
+				b.stageName,
+				b.name,
+			)
 		}
 	}
 
@@ -67,176 +105,38 @@ func (b *bindableInput) String() string {
 	return s
 }
 
-func (iodp *ioDataProvider) NewInput(correlationID string, value *BindableValue) Bindable {
-	return &bindableInput{
-		iodp:          iodp,
-		correlationID: correlationID,
-		reference:     value.Reference,
-		mimeType:      value.MimeType,
+func (iodp *ioDataProvider) NewInput(name, stageName string, value *BindableValue) Bindable {
+	bi := &bindableInput{
+		iodp:      iodp,
+		stageName: stageName,
+		name:      name,
+		mimeType:  value.MimeType,
 	}
+
+	return bi
 }
 
-func (iodp *ioDataProvider) NewOutput(correlationID string, value *BindableValue) (Bindable, error) {
-	url, err := iodp.getOutputServiceUrl(correlationID)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest(http.MethodPost, url.String(), bytes.NewReader(value.Value))
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("X-Token", iodp.apiKey)
-
-	resp, err := http2.GetDefaultClient().Do(req)
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		bd, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("error setting output (%d): %s", resp.StatusCode, string(bd))
-	}
-
-	bd, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	var val Value
-	err = codec.DecodeAndBind(bd, codec.MimeTypeJson, &val)
-	if err != nil {
-		return nil, err
-	}
-
-	// override the reference and remove the data
-	value.Reference = val.Reference
-	value.Value = nil
-
+func (iodp *ioDataProvider) NewOutput(stageName string, value *BindableValue) (Bindable, error) {
+	iodp.stageResults[stageName] = value
 	return value, nil
 }
 
-func (iodp *ioDataProvider) GetStageResult(workflowID, runID, stageName, correlationID string) (Bindable, error) {
-	url, err := iodp.getStageResultServiceUrl(workflowID, runID, correlationID, stageName)
-	if err != nil {
-		return nil, err
+func (iodp *ioDataProvider) GetStageResult(stageName string) (Bindable, error) {
+	if v, ok := iodp.stageResults[stageName]; !ok {
+		return nil, errors.New("stage result not found")
+	} else {
+		return NewBindable(Value{
+			Value:    v.Value,
+			MimeType: v.MimeType,
+		}), nil
 	}
-
-	req, err := http.NewRequest(http.MethodGet, url.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("X-Token", iodp.apiKey)
-
-	resp, err := http2.GetDefaultClient().Do(req)
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		bd, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("error getting stage result (%d): %s", resp.StatusCode, string(bd))
-	}
-
-	bd, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	var val Value
-	err = codec.DecodeAndBind(bd, codec.MimeTypeJson, &val)
-	if err != nil {
-		return nil, err
-	}
-
-	return NewBindable(val), nil
 }
 
-func (iodp *ioDataProvider) PutStageResult(workflowID, runID, stageName, correlationID string, stageValue []byte) (Bindable, error) {
-	url, err := iodp.getStageResultServiceUrl(workflowID, runID, correlationID, stageName)
-	if err != nil {
-		return nil, err
-	}
-
-	d, _ := json.Marshal(Value{
+func (iodp *ioDataProvider) PutStageResult(stageName string, stageValue []byte) (Bindable, error) {
+	iodp.stageResults[stageName] = NewBindable(Value{
 		Value:    stageValue,
-		MimeType: "application/json",
+		MimeType: string(codec.MimeTypeText),
 	})
 
-	req, err := http.NewRequest(http.MethodPost, url.String(), bytes.NewReader(d))
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Set("X-Token", iodp.apiKey)
-	req.Header.Set("Content-Type", string(codec.MimeTypeJson))
-
-	resp, err := http2.GetDefaultClient().Do(req)
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		bd, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("error putting stage result (%d): %s", resp.StatusCode, string(bd))
-	}
-
-	val, _ := codec.Encode(iodp.getKey(workflowID, runID, stageName))
-	return NewBindable(Value{
-		Value:    val,
-		MimeType: string(codec.MimeTypeText),
-	}), nil
-}
-
-func (iodp *ioDataProvider) fetchInputData(correlationID, reference string) ([]byte, error) {
-	url, err := iodp.getInputServiceUrl(correlationID, reference)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest(http.MethodGet, url.String(), nil)
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("X-Token", iodp.apiKey)
-
-	resp, err := http2.GetDefaultClient().Do(req)
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		bd, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf(
-			"error retrieving input data (%d): correlationID (%s), reference (%s): %s",
-			resp.StatusCode,
-			correlationID,
-			reference,
-			string(bd),
-		)
-	}
-
-	bd, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	return bd, nil
-}
-
-func (iodp *ioDataProvider) getKey(workflowID, runID, stageName string) string {
-	return fmt.Sprintf("%s-%s-%s", workflowID, runID, stageName)
-}
-
-func (iodp *ioDataProvider) getStageResultServiceUrl(workflowID, runID, correlationID, stageName string) (*url.URL, error) {
-	stageEntryID := iodp.getKey(workflowID, runID, stageName)
-	return url.Parse(fmt.Sprintf("%s/%s/%s/%s", iodp.baseUrl, "stage-results", correlationID, stageEntryID))
-}
-
-func (iodp *ioDataProvider) getInputServiceUrl(correlationID, reference string) (*url.URL, error) {
-	return url.Parse(fmt.Sprintf("%s/%s/%s/%s", iodp.baseUrl, "input", correlationID, reference))
-}
-
-func (iodp *ioDataProvider) getOutputServiceUrl(correlationID string) (*url.URL, error) {
-	return url.Parse(fmt.Sprintf("%s/%s/%s", iodp.baseUrl, "output", correlationID))
+	return iodp.stageResults[stageName], nil
 }
