@@ -3,6 +3,7 @@ package sparkv1
 import (
 	"context"
 	"errors"
+	"github.com/cenkalti/backoff/v4"
 	"github.com/google/uuid"
 	"github.com/hashicorp/go-plugin"
 	"github.com/nats-io/nats.go"
@@ -57,18 +58,39 @@ func (s *sparkPlugin) start() error {
 		return err
 	}
 
-	stream, err := js.Stream(s.ctx, s.config.NatsRequestStreamName)
+	err = s.createEventConsumer(js, wf)
+	if err != nil {
+		return err
+	}
+
+	plugin.Serve(&plugin.ServeConfig{
+		HandshakeConfig: plugin.HandshakeConfig{
+			ProtocolVersion:  1,
+			MagicCookieKey:   "BASIC_PLUGIN",
+			MagicCookieValue: s.config.Id,
+		},
+		Plugins: make(map[string]plugin.Plugin),
+	})
+
+	return nil
+}
+
+func (s *sparkPlugin) createEventConsumer(js jetstream.JetStream, wf JobWorkflow) error {
+	stream, err := js.CreateOrUpdateStream(s.ctx, jetstream.StreamConfig{
+		Name: s.config.NatsRequestStreamName,
+	})
 	if err != nil {
 		return err
 	}
 
 	consumer, err := stream.CreateOrUpdateConsumer(context.Background(), jetstream.ConsumerConfig{
-		Name:          s.config.Id,
-		FilterSubject: s.config.NatsRequestSubject,
-		AckPolicy:     jetstream.AckExplicitPolicy,
-		AckWait:       s.config.Timeout,
-		MaxDeliver:    1,
-		MaxAckPending: 1,
+		Name:              s.config.Id,
+		FilterSubject:     s.config.NatsRequestSubject,
+		AckPolicy:         jetstream.AckExplicitPolicy,
+		AckWait:           s.config.Timeout,
+		MaxDeliver:        1,
+		MaxAckPending:     1,
+		InactiveThreshold: time.Hour,
 	})
 	if err != nil {
 		log.Error().Err(err).Msgf("could not create consumer for subject %s", s.config.NatsRequestSubject)
@@ -76,6 +98,8 @@ func (s *sparkPlugin) start() error {
 	}
 
 	go func() {
+		var lastConsumedTime = time.Now()
+	loop:
 		for {
 			select {
 			// on consumer stopped
@@ -89,24 +113,32 @@ func (s *sparkPlugin) start() error {
 					continue
 				}
 
+				var received bool
 				for msg := range batch.Messages() {
+					received = true
 					go func(m jetstream.Msg) {
 						m.Ack()
 						wf.Run(m)
 					}(msg)
 				}
+
+				if received {
+					lastConsumedTime = time.Now()
+				} else if time.Since(lastConsumedTime) > time.Minute*45 {
+					err := backoff.Retry(func() error {
+						return s.createEventConsumer(js, wf)
+					}, backoff.WithMaxRetries(backoff.NewExponentialBackOff(), 3))
+
+					if err != nil {
+						log.Error().Err(err).Msgf(
+							"failed to re-subscribe audit event consumer after it became idle for too long")
+					}
+
+					break loop
+				}
 			}
 		}
 	}()
-
-	plugin.Serve(&plugin.ServeConfig{
-		HandshakeConfig: plugin.HandshakeConfig{
-			ProtocolVersion:  1,
-			MagicCookieKey:   "BASIC_PLUGIN",
-			MagicCookieValue: s.config.Id,
-		},
-		Plugins: make(map[string]plugin.Plugin),
-	})
 
 	return nil
 }
