@@ -88,8 +88,8 @@ func (s *sparkPlugin) createEventConsumer(js jetstream.JetStream, wf JobWorkflow
 		FilterSubject:     s.config.NatsRequestSubject,
 		AckPolicy:         jetstream.AckExplicitPolicy,
 		AckWait:           s.config.Timeout,
-		MaxDeliver:        1,
-		MaxAckPending:     1,
+		MaxDeliver:        maxConsumerDeliver,
+		MaxAckPending:     maxConsumerAckPending,
 		InactiveThreshold: maxInactiveConsumerDuration,
 	})
 	if err != nil {
@@ -107,7 +107,7 @@ func (s *sparkPlugin) createEventConsumer(js jetstream.JetStream, wf JobWorkflow
 				log.Info().Msgf("stopping consumer")
 				return
 			default:
-				batch, err := consumer.Fetch(15, jetstream.FetchMaxWait(maxConsumerFetchWait))
+				batch, err := consumer.Fetch(ConsumerBatch, jetstream.FetchMaxWait(maxConsumerFetchWait))
 				if err != nil {
 					log.Error().Err(err).Msgf("failed to fetch job request messages, will retry shortly")
 					continue
@@ -127,7 +127,7 @@ func (s *sparkPlugin) createEventConsumer(js jetstream.JetStream, wf JobWorkflow
 				} else if time.Since(lastConsumedTime) > maxInactiveResetConsumerDuration {
 					err := backoff.Retry(func() error {
 						return s.createEventConsumer(js, wf)
-					}, backoff.WithMaxRetries(backoff.NewExponentialBackOff(), 3))
+					}, backoff.WithMaxRetries(backoff.NewExponentialBackOff(), maxConsumerCreationRetries))
 
 					if err != nil {
 						log.Error().Err(err).Msgf(
