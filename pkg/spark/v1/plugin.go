@@ -76,9 +76,7 @@ func (s *sparkPlugin) start() error {
 }
 
 func (s *sparkPlugin) createEventConsumer(js jetstream.JetStream, wf JobWorkflow) error {
-	stream, err := js.CreateOrUpdateStream(s.ctx, jetstream.StreamConfig{
-		Name: s.config.NatsRequestStreamName,
-	})
+	stream, err := js.Stream(s.ctx, s.config.NatsRequestStreamName)
 	if err != nil {
 		return err
 	}
