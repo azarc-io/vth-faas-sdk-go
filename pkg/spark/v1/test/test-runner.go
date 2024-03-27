@@ -5,6 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"testing"
+	"time"
+
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/codec"
 	sparkv1 "github.com/azarc-io/vth-faas-sdk-go/pkg/spark/v1"
 	"github.com/azarc-io/vth-faas-sdk-go/pkg/spark/v1/util"
@@ -12,8 +15,6 @@ import (
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
 	"github.com/rs/zerolog/log"
-	"testing"
-	"time"
 )
 
 var (
@@ -82,12 +83,12 @@ func (r *runnerTest) Execute(ctx *sparkv1.JobContext, opts ...sparkv1.Option) (*
 
 	port, err := util.GetFreeTCPPort()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error getting free tcp port: %w", err)
 	}
 
 	s, err := util.RunServerOnPort(port, tmpDir)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error running nats server: %w", err)
 	}
 	defer s.Shutdown()
 	s.Start()
@@ -99,7 +100,7 @@ func (r *runnerTest) Execute(ctx *sparkv1.JobContext, opts ...sparkv1.Option) (*
 		Bucket: "test",
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error creating object store: %w", err)
 	}
 
 	//Initialise spark
@@ -108,7 +109,7 @@ func (r *runnerTest) Execute(ctx *sparkv1.JobContext, opts ...sparkv1.Option) (*
 		so = opt(so)
 	}
 	if err := r.spark.Init(sparkv1.NewInitContext(so)); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error init spark: %w", err)
 	}
 
 	// Create new workflow
@@ -122,33 +123,40 @@ func (r *runnerTest) Execute(ctx *sparkv1.JobContext, opts ...sparkv1.Option) (*
 			NatsResponseSubject: "agent.v1.job.a.b.test." + ctx.Metadata.JobKeyValue,
 		}),
 	)
+	if err != nil {
+		return nil, fmt.Errorf("error creating new workflow: %w", err)
+	}
 
 	// start the request consumer
 	requestSubject, err := r.startRequestConsumer(ctx, js, wf)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error starting request consumer: %w", err)
 	}
 
 	// start the response consumer
 	responseConsumer, _, err := r.startResponseConsumer(ctx, js)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error starting response consumer: %w", err)
 	}
 
-	b, _ := json.Marshal(ctx.Metadata)
+	b, err := json.Marshal(ctx.Metadata)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling metadata: %w", err)
+	}
+
 	if _, err := js.Publish(ctx, requestSubject, b); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error publishing to a stream: %w", err)
 	}
 
 	msgs, err := responseConsumer.Fetch(1, jetstream.FetchMaxWait(time.Second*120))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error fetching messages: %w", err)
 	}
 
 	var res *runnerTestOutput
 	for msg := range msgs.Messages() {
 		if err := json.Unmarshal(msg.Data(), &res); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("error unmarshaling message: %w", err)
 		}
 	}
 
@@ -172,11 +180,11 @@ func (r *runnerTest) Execute(ctx *sparkv1.JobContext, opts ...sparkv1.Option) (*
 	ob, err := store.GetBytes(ctx, res.VariablesKey)
 	if err != nil {
 		if !errors.Is(err, jetstream.ErrObjectNotFound) {
-			return nil, err
+			return nil, fmt.Errorf("error object not found: %w", err)
 		}
 	} else {
 		if err := json.Unmarshal(ob, &res.Outputs); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("error unmarshaling output: %w", err)
 		}
 	}
 
