@@ -123,6 +123,9 @@ func (r *runnerTest) Execute(ctx *sparkv1.JobContext, opts ...sparkv1.Option) (*
 			NatsResponseSubject: "agent.v1.job.a.b.test." + ctx.Metadata.JobKeyValue,
 		}),
 	)
+	if err != nil {
+		return nil, fmt.Errorf("error creating new workflow: %w", err)
+	}
 
 	// start the request consumer
 	requestSubject, err := r.startRequestConsumer(ctx, js, wf)
@@ -177,7 +180,7 @@ func (r *runnerTest) Execute(ctx *sparkv1.JobContext, opts ...sparkv1.Option) (*
 	ob, err := store.GetBytes(ctx, res.VariablesKey)
 	if err != nil {
 		if !errors.Is(err, jetstream.ErrObjectNotFound) {
-			return nil, err
+			return nil, fmt.Errorf("error object not found: %w", err)
 		}
 	} else {
 		if err := json.Unmarshal(ob, &res.Outputs); err != nil {
