@@ -12,6 +12,7 @@ import (
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
 	"github.com/rs/zerolog/log"
+	"os"
 	"testing"
 	"time"
 )
@@ -67,6 +68,35 @@ type runnerTestOutput struct {
 	Error         *sparkv1.ExecuteSparkError        `json:"error,omitempty"`
 }
 
+var (
+	port      int
+	runNumber int
+)
+
+func init() {
+	var err error
+	port, err = util.GetFreeTCPPort()
+	if err != nil {
+		panic(err)
+	}
+
+	tmpDir := os.TempDir()
+	log.Info().Msgf("created nats tmp storage: %s", tmpDir)
+
+	s, err := util.RunServerOnPort(port, tmpDir)
+	if err != nil {
+		panic(err)
+	}
+
+	//runtime.SetFinalizer(s, func(s *server.Server) {
+	//	log.Info().Msgf("removed nats tmp storage: %s", tmpDir)
+	//	s.Shutdown()
+	//	os.RemoveAll(tmpDir)
+	//})
+
+	s.Start()
+}
+
 func (r *runnerTest) Execute(ctx *sparkv1.JobContext, opts ...sparkv1.Option) (*Outputs, error) {
 	// Create the spark chain
 	builder := sparkv1.NewBuilder()
@@ -75,22 +105,9 @@ func (r *runnerTest) Execute(ctx *sparkv1.JobContext, opts ...sparkv1.Option) (*
 	jmd := ctx.Metadata
 	outputs := make(sparkv1.BindableMap)
 
-	jmd.VariablesKey = jmd.JobKeyValue
-
-	tmpDir := r.t.TempDir()
-	log.Info().Msgf("tmp dir %s %s", ctx.Metadata.JobKeyValue, tmpDir)
-
-	port, err := util.GetFreeTCPPort()
-	if err != nil {
-		return nil, err
-	}
-
-	s, err := util.RunServerOnPort(port, tmpDir)
-	if err != nil {
-		return nil, err
-	}
-	defer s.Shutdown()
-	s.Start()
+	runNumber++
+	jmd.VariablesKey = fmt.Sprintf("%s-%d", jmd.JobKeyValue, runNumber)
+	natsResponseSubject := fmt.Sprintf("agent.v1.job.a.b.test.%s-%d", ctx.Metadata.JobKeyValue, runNumber)
 
 	nc, js := util.GetNatsClient(port)
 	defer nc.Close()
@@ -119,18 +136,18 @@ func (r *runnerTest) Execute(ctx *sparkv1.JobContext, opts ...sparkv1.Option) (*
 		sparkv1.WithObjectStore(store),
 		sparkv1.WithInputs(ctx.Metadata.Inputs),
 		sparkv1.WithConfig(&sparkv1.Config{
-			NatsResponseSubject: "agent.v1.job.a.b.test." + ctx.Metadata.JobKeyValue,
+			NatsResponseSubject: natsResponseSubject,
 		}),
 	)
 
 	// start the request consumer
-	requestSubject, err := r.startRequestConsumer(ctx, js, wf)
+	requestSubject, err := r.startRequestConsumer(ctx, js, wf, runNumber)
 	if err != nil {
 		return nil, err
 	}
 
 	// start the response consumer
-	responseConsumer, _, err := r.startResponseConsumer(ctx, js)
+	responseConsumer, _, err := r.startResponseConsumer(ctx, js, natsResponseSubject, runNumber)
 	if err != nil {
 		return nil, err
 	}
@@ -191,11 +208,12 @@ func (r *runnerTest) Execute(ctx *sparkv1.JobContext, opts ...sparkv1.Option) (*
 	}, nil
 }
 
-func (r *runnerTest) startRequestConsumer(ctx *sparkv1.JobContext, js jetstream.JetStream, wf sparkv1.JobWorkflow) (string, error) {
-	subject := fmt.Sprintf("agent.v1.job.request.%s", ctx.Metadata.JobKeyValue)
+func (r *runnerTest) startRequestConsumer(ctx *sparkv1.JobContext, js jetstream.JetStream, wf sparkv1.JobWorkflow, runNumber int) (string, error) {
+	subject := fmt.Sprintf("agent.v1.job.request.%s-%d", ctx.Metadata.JobKeyValue, runNumber)
+	streamName := fmt.Sprintf("AGENT_JOB_REQ_%d", runNumber)
 
 	_, err := js.CreateOrUpdateStream(context.Background(), jetstream.StreamConfig{
-		Name:      "AGENT_JOB_REQ",
+		Name:      streamName,
 		Retention: jetstream.WorkQueuePolicy,
 		Subjects: []string{
 			subject,
@@ -205,7 +223,7 @@ func (r *runnerTest) startRequestConsumer(ctx *sparkv1.JobContext, js jetstream.
 		return "", err
 	}
 
-	consumer, err := js.CreateOrUpdateConsumer(context.Background(), "AGENT_JOB_REQ", jetstream.ConsumerConfig{
+	consumer, err := js.CreateOrUpdateConsumer(context.Background(), streamName, jetstream.ConsumerConfig{
 		FilterSubject: subject,
 		AckPolicy:     jetstream.AckExplicitPolicy,
 		AckWait:       time.Second * 240,
@@ -246,28 +264,27 @@ func (r *runnerTest) startRequestConsumer(ctx *sparkv1.JobContext, js jetstream.
 	return subject, nil
 }
 
-func (r *runnerTest) startResponseConsumer(ctx *sparkv1.JobContext, js jetstream.JetStream) (jetstream.Consumer, string, error) {
-	subject := fmt.Sprintf("agent.v1.job.a.b.%s.%s", "test", ctx.Metadata.JobKeyValue)
-
+func (r *runnerTest) startResponseConsumer(ctx *sparkv1.JobContext, js jetstream.JetStream, natsResponseSubject string, runNumber int) (jetstream.Consumer, string, error) {
+	streamName := fmt.Sprintf("AGENT_JOB_RES_%d", runNumber)
 	_, err := js.CreateOrUpdateStream(context.Background(), jetstream.StreamConfig{
-		Name:      "AGENT_JOB_RES",
+		Name:      streamName,
 		Retention: jetstream.WorkQueuePolicy,
 		Subjects: []string{
-			subject,
+			natsResponseSubject,
 		},
 	})
 	if err != nil {
 		return nil, "", err
 	}
 
-	consumer, err := js.CreateOrUpdateConsumer(ctx, "AGENT_JOB_RES", jetstream.ConsumerConfig{
-		FilterSubject: subject,
+	consumer, err := js.CreateOrUpdateConsumer(ctx, streamName, jetstream.ConsumerConfig{
+		FilterSubject: natsResponseSubject,
 	})
 	if err != nil {
 		return nil, "", err
 	}
 
-	return consumer, subject, nil
+	return consumer, natsResponseSubject, nil
 }
 
 func NewTestRunner(t *testing.T, spark sparkv1.Spark, options ...Option) (RunnerTest, error) {
