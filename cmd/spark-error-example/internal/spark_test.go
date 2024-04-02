@@ -34,7 +34,7 @@ func TestSparkErrorWithRetries(t *testing.T) {
 			worker, err := module_test_runner.NewTestRunner(t, spark.NewSpark(totalTimesToErr))
 			assert.Nil(t, err)
 
-			result, err := worker.Execute(ctx, sparkv1.WithSparkConfig(spark.Config{
+			result, err := worker.ExecuteWithoutStageRetryOverride(ctx, sparkv1.WithSparkConfig(spark.Config{
 				Panic: test.Panic,
 				Retry: &sparkv1.RetryConfig{
 					Times:             test.Times,

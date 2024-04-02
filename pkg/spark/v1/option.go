@@ -59,11 +59,12 @@ func WithSparkConfig(cfg any) Option {
 // WORKFLOW OPTIONS
 /************************************************************************/
 type workflowOpts struct {
-	stageTracker InternalStageTracker
-	config       *Config
-	nc           *nats.Conn
-	os           jetstream.ObjectStore
-	inputs       ExecuteSparkInputs
+	stageTracker       InternalStageTracker
+	config             *Config
+	nc                 *nats.Conn
+	os                 jetstream.ObjectStore
+	inputs             ExecuteSparkInputs
+	stageRetryOverride *RetryConfig
 }
 
 type WorkflowOption = func(je *workflowOpts) *workflowOpts
@@ -100,5 +101,12 @@ func WithInputs(inputs ExecuteSparkInputs) WorkflowOption {
 	return func(jw *workflowOpts) *workflowOpts {
 		jw.inputs = inputs
 		return jw
+	}
+}
+
+func WithStageRetryOverride(override *RetryConfig) WorkflowOption {
+	return func(je *workflowOpts) *workflowOpts {
+		je.stageRetryOverride = override
+		return je
 	}
 }
