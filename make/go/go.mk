@@ -174,7 +174,7 @@ coverpkgs:
 cover: pretest installtest
 	@mkdir -p $(dir $(COVER_HTML)) $(dir $(COVER_TXT)) $(dir $(COVER_JSON))
 	@rm -f $(COVER_HTML) $(COVER_TXT) $(COVER_JSON)
-	go test -race -coverprofile=$(COVER_TXT) -json -v -coverpkg=$(shell GOPKGS=$(GOPKGS) $(MAKE) -s coverpkgs) $(GOPKGS) >> $(COVER_JSON)
+	go test -race -coverprofile=$(COVER_TXT) -json -v -coverpkg=$(shell GOPKGS=$(GOPKGS) $(MAKE) -s coverpkgs) $(GOPKGS) | tee -a $(COVER_JSON)
 	@go tool cover -html=$(COVER_TXT) -o $(COVER_HTML)
 	@echo
 	@go tool cover -func=$(COVER_TXT) | grep total
