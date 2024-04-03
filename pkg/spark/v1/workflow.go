@@ -24,14 +24,15 @@ type RetryConfig struct {
 }
 
 type jobWorkflow struct {
-	Chain        *SparkChain
-	SparkId      string
-	ctx          context.Context
-	stageTracker InternalStageTracker
-	cfg          *Config
-	nc           *nats.Conn
-	store        jetstream.ObjectStore
-	inputs       ExecuteSparkInputs
+	Chain              *SparkChain
+	SparkId            string
+	ctx                context.Context
+	stageTracker       InternalStageTracker
+	cfg                *Config
+	nc                 *nats.Conn
+	store              jetstream.ObjectStore
+	inputs             ExecuteSparkInputs
+	stageRetryOverride *RetryConfig
 }
 
 func (w *jobWorkflow) Run(msg jetstream.Msg) {
@@ -169,6 +170,11 @@ func (w *jobWorkflow) executeStageActivity(ctx context.Context, stageName string
 			if se.Retry == nil {
 				// no retries set, exit
 				return nil, se
+			}
+
+			// check if we must override this retry value
+			if w.stageRetryOverride != nil {
+				se.Retry = w.stageRetryOverride
 			}
 
 			if se.Retry.Times <= attempts {
@@ -331,14 +337,15 @@ func NewJobWorkflow(ctx context.Context, sparkId string, chain *SparkChain, opts
 	}
 
 	return &jobWorkflow{
-		ctx:          ctx,
-		SparkId:      sparkId,
-		Chain:        chain,
-		stageTracker: wo.stageTracker,
-		cfg:          wo.config,
-		nc:           wo.nc,
-		store:        wo.os,
-		inputs:       wo.inputs,
+		ctx:                ctx,
+		SparkId:            sparkId,
+		Chain:              chain,
+		stageTracker:       wo.stageTracker,
+		cfg:                wo.config,
+		nc:                 wo.nc,
+		store:              wo.os,
+		inputs:             wo.inputs,
+		stageRetryOverride: wo.stageRetryOverride,
 	}, nil
 }
 

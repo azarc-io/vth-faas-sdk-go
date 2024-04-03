@@ -25,6 +25,7 @@ var (
 type RunnerTest interface {
 	sparkv1.StageTracker
 	Execute(ctx *sparkv1.JobContext, opts ...sparkv1.Option) (*Outputs, error)
+	ExecuteWithoutStageRetryOverride(ctx *sparkv1.JobContext, opts ...sparkv1.Option) (*Outputs, error)
 }
 
 type Input struct {
@@ -69,6 +70,14 @@ type runnerTestOutput struct {
 }
 
 func (r *runnerTest) Execute(ctx *sparkv1.JobContext, opts ...sparkv1.Option) (*Outputs, error) {
+	return r.execute(ctx, true, opts...)
+}
+
+func (r *runnerTest) ExecuteWithoutStageRetryOverride(ctx *sparkv1.JobContext, opts ...sparkv1.Option) (*Outputs, error) {
+	return r.execute(ctx, false, opts...)
+}
+
+func (r *runnerTest) execute(ctx *sparkv1.JobContext, addStageOverride bool, opts ...sparkv1.Option) (*Outputs, error) {
 	// Create the spark chain
 	builder := sparkv1.NewBuilder()
 	r.spark.BuildChain(builder)
@@ -112,6 +121,15 @@ func (r *runnerTest) Execute(ctx *sparkv1.JobContext, opts ...sparkv1.Option) (*
 		return nil, fmt.Errorf("error init spark: %w", err)
 	}
 
+	var stageRetryOverride *sparkv1.RetryConfig
+	if addStageOverride {
+		stageRetryOverride = &sparkv1.RetryConfig{
+			Times:             2,
+			FirstBackoffWait:  time.Millisecond * 100,
+			BackoffMultiplier: 1,
+		}
+	}
+
 	// Create new workflow
 	wf, _ := sparkv1.NewJobWorkflow(
 		ctx, uuid.NewString(), chain,
@@ -122,6 +140,7 @@ func (r *runnerTest) Execute(ctx *sparkv1.JobContext, opts ...sparkv1.Option) (*
 		sparkv1.WithConfig(&sparkv1.Config{
 			NatsResponseSubject: "agent.v1.job.a.b.test." + ctx.Metadata.JobKeyValue,
 		}),
+		sparkv1.WithStageRetryOverride(stageRetryOverride),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("error creating new workflow: %w", err)
